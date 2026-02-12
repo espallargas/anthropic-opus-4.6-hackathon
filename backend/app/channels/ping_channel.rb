@@ -4,10 +4,13 @@ class PingChannel < ApplicationCable::Channel
   end
 
   def ping(data)
-    transmit(
-      type: "pong",
-      client_sent_at: data["sent_at"],
-      server_time: Time.current.iso8601(3)
+    ActionCable.server.broadcast(
+      "ping_channel",
+      {
+        pong: true,
+        client_sent_at: data["sent_at"],
+        server_time: Time.current.iso8601(3)
+      }
     )
   end
 end

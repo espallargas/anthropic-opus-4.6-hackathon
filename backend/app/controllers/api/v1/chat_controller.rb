@@ -36,7 +36,7 @@ module Api
         system_prompt = build_system_prompt
         client = Rails.application.config.x.anthropic
 
-        sse.write({ type: 'message_start' })
+        sse.write({ type: 'message_start', server_time: Time.current.iso8601(3) })
 
         MAX_TURNS.times do
           text_content = ''
@@ -54,7 +54,7 @@ module Api
           stream.each do |event|
             case event.type
             when :text
-              sse.write({ type: 'token', token: event.text })
+              sse.write({ type: 'token', token: event.text, server_time: Time.current.iso8601(3) })
               text_content += event.text
             when :content_block_stop
               next unless event.content_block.type == :tool_use
@@ -62,7 +62,7 @@ module Api
               block = event.content_block
               input = parse_tool_input(block.input)
               tool_use_blocks << { id: block.id, name: block.name, input: input }
-              sse.write({ type: 'tool_use_start', tool_call_id: block.id, tool_name: block.name, tool_input: input })
+              sse.write({ type: 'tool_use_start', tool_call_id: block.id, tool_name: block.name, tool_input: input, server_time: Time.current.iso8601(3) })
             when :message_stop
               stop_reason = event.message.stop_reason.to_s
             end
@@ -81,22 +81,22 @@ module Api
             result = begin
               Tools::Executor.call(tb[:name], tb[:input])
             rescue StandardError => e
-              sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: { error: e.message } })
+              sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: { error: e.message }, server_time: Time.current.iso8601(3) })
               next { type: 'tool_result', tool_use_id: tb[:id], content: e.message, is_error: true }
             end
 
-            sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: JSON.parse(result) })
+            sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: JSON.parse(result), server_time: Time.current.iso8601(3) })
             { type: 'tool_result', tool_use_id: tb[:id], content: result }
           end
 
           messages << { role: 'user', content: tool_results }
         end
 
-        sse.write({ type: 'message_end' })
+        sse.write({ type: 'message_end', server_time: Time.current.iso8601(3) })
       rescue StandardError => e
         Rails.logger.error("Chat SSE error: #{e.class} - #{e.message}")
         begin
-          sse&.write({ type: 'error', error: e.message })
+          sse&.write({ type: 'error', error: e.message, server_time: Time.current.iso8601(3) })
         rescue StandardError
           nil
         end
