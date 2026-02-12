@@ -1,5 +1,6 @@
 import { Chat } from '@/components/Chat'
 import { SetupForm } from '@/components/SetupForm'
+import { Globe } from '@/components/Globe'
 import { useEffect, useState } from 'react'
 import { useCable } from './hooks/useCable'
 import type { SystemVars } from './hooks/useChat'
@@ -61,30 +62,42 @@ function App() {
 
   return (
     <div className="bg-background flex h-screen">
-      {/* Left panel – info */}
-      <div className="hidden w-100 flex-col items-center justify-center gap-6 border-r p-8 md:flex">
-        <h1 className="text-3xl font-bold">Assistente de Imigração</h1>
-        <p className="text-muted-foreground text-center text-sm">
-          {config.origin_country} → {config.destination_country}
-        </p>
-        <div className="flex flex-col gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-gray-800 px-3 py-1.5 text-xs">
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${health === 'ok' ? 'bg-green-400' : health === 'error' ? 'bg-red-400' : 'animate-pulse bg-yellow-400'}`}
-            />
-            API: {health ?? 'connecting...'}
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-gray-800 px-3 py-1.5 text-xs">
-            <span className={`inline-block h-2 w-2 rounded-full ${wsDot}`} />
-            WS: {wsLabel}
-          </div>
+      {/* Left panel – globe + info */}
+      <div className="hidden w-100 flex-col items-center justify-between border-r md:flex">
+        {/* Globe */}
+        <div className="relative w-full flex-1">
+          <Globe
+            origin={config.origin_country}
+            destination={config.destination_country}
+            className="w-full"
+          />
         </div>
-        <button
-          onClick={handleReconfigure}
-          className="text-muted-foreground hover:text-foreground text-xs underline transition-colors"
-        >
-          Reconfigurar dados
-        </button>
+
+        {/* Info section */}
+        <div className="flex w-full flex-col items-center justify-center gap-4 border-t bg-black/50 p-8 backdrop-blur">
+          <h1 className="text-3xl font-bold">Assistente de Imigração</h1>
+          <p className="text-muted-foreground text-center text-sm">
+            {config.origin_country} → {config.destination_country}
+          </p>
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-gray-800 px-3 py-1.5 text-xs">
+              <span
+                className={`inline-block h-2 w-2 rounded-full ${health === 'ok' ? 'bg-green-400' : health === 'error' ? 'bg-red-400' : 'animate-pulse bg-yellow-400'}`}
+              />
+              API: {health ?? 'connecting...'}
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-gray-800 px-3 py-1.5 text-xs">
+              <span className={`inline-block h-2 w-2 rounded-full ${wsDot}`} />
+              WS: {wsLabel}
+            </div>
+          </div>
+          <button
+            onClick={handleReconfigure}
+            className="text-muted-foreground hover:text-foreground text-xs underline transition-colors"
+          >
+            Reconfigurar dados
+          </button>
+        </div>
       </div>
 
       {/* Right panel – chat (full height) */}
