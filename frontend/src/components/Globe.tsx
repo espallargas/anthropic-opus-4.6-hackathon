@@ -121,6 +121,13 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
           if (globeRef.current?.renderer) {
             globeRef.current.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
           }
+          // Force POV on globe ready
+          if (globeRef.current && pointOfView) {
+            globeRef.current.pointOfView(
+              { lat: pointOfView.lat, lng: pointOfView.lng, altitude: pointOfView.altitude },
+              0,
+            )
+          }
         }}
       />
     </div>
