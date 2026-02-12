@@ -7,6 +7,7 @@ type CableStatus = 'connecting' | 'connected' | 'disconnected'
 export function useCable() {
   const [status, setStatus] = useState<CableStatus>('connecting')
   const [roundTripMs, setRoundTripMs] = useState<number | null>(null)
+  const [serverTime, setServerTime] = useState<string | null>(null)
   const subRef = useRef<Subscription | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -24,11 +25,16 @@ export function useCable() {
       disconnected() {
         setStatus('disconnected')
         setRoundTripMs(null)
+        setServerTime(null)
         if (intervalRef.current) clearInterval(intervalRef.current)
       },
-      received(data: { type: string; client_sent_at: number }) {
-        if (data.type === 'pong' && data.client_sent_at) {
+      received(data: { pong: boolean; client_sent_at: number; server_time: string }) {
+        if (data.pong && data.client_sent_at) {
           setRoundTripMs(Date.now() - data.client_sent_at)
+          setServerTime(data.server_time)
+          console.log(
+            `[WebSocket] Pong received. RTT: ${Date.now() - data.client_sent_at}ms, Server time: ${data.server_time}`,
+          )
         }
       },
     })
@@ -41,5 +47,5 @@ export function useCable() {
     }
   }, [])
 
-  return { status, roundTripMs, sendPing }
+  return { status, roundTripMs, serverTime, sendPing }
 }

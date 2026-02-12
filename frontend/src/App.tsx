@@ -3,6 +3,7 @@ import { SetupForm } from '@/components/SetupForm'
 import { Globe } from '@/components/Globe'
 import { useEffect, useState } from 'react'
 import { useCable } from './hooks/useCable'
+import { healthCheck } from './lib/api'
 import type { SystemVars } from './hooks/useChat'
 
 const CONFIG_KEY = 'chat_config'
@@ -27,14 +28,23 @@ function saveConfig(config: SystemVars) {
 
 function App() {
   const [health, setHealth] = useState<string | null>(null)
+  const [healthRtt, setHealthRtt] = useState<number | null>(null)
   const [config, setConfig] = useState<SystemVars | null>(loadConfig)
   const { status, roundTripMs } = useCable()
 
   useEffect(() => {
-    fetch('/api/v1/health')
-      .then((res) => res.json())
-      .then((data) => setHealth(data.status))
-      .catch(() => setHealth('error'))
+    const startMs = Date.now()
+    healthCheck()
+      .then((data) => {
+        const rtt = Date.now() - startMs
+        setHealth(data.status)
+        setHealthRtt(rtt)
+      })
+      .catch(() => {
+        const rtt = Date.now() - startMs
+        setHealth('error')
+        setHealthRtt(rtt)
+      })
   }, [])
 
   const handleSetup = (vars: SystemVars) => {
@@ -73,7 +83,10 @@ function App() {
             <span
               className={`inline-block h-2 w-2 rounded-full ${health === 'ok' ? 'bg-green-400' : health === 'error' ? 'bg-red-400' : 'animate-pulse bg-yellow-400'}`}
             />
-            API: {health ?? 'connecting...'}
+            API:{' '}
+            {health && healthRtt !== null
+              ? `${health} (${healthRtt}ms)`
+              : (health ?? 'connecting...')}
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs">
             <span className={`inline-block h-2 w-2 rounded-full ${wsDot}`} />
