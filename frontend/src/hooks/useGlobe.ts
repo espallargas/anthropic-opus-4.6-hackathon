@@ -172,8 +172,8 @@ export function useGlobe(origin?: string, destination?: string) {
     setArcsData(arcs)
 
     // POV at midpoint with zoom based on distance
-    const minAltitude = 2.2
-    const maxAltitude = 3.5
+    const minAltitude = 2.5
+    const maxAltitude = 4.0
     const altitude = minAltitude + (maxAltitude - minAltitude) * (centralAngle / Math.PI)
 
     setPointOfView({
