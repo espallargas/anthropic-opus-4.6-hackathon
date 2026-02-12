@@ -1,0 +1,31 @@
+# Environment
+.env
+.env*.local
+!.env.local.example
+
+# Ruby / Rails
+*.rbc
+/.bundle
+/vendor/bundle
+.byebug_history
+backend/tmp/
+backend/log/
+backend/storage/
+backend/config/master.key
+backend/config/credentials/*.key
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
