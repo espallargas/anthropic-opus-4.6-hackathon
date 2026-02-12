@@ -11,6 +11,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { countryCentroids } from '@/lib/countries'
 import type { SystemVars } from '@/hooks/useChat'
 
 interface SetupFormProps {
@@ -26,6 +34,11 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
   )
   const [objective, setObjective] = useState(defaultValues?.objective ?? '')
   const [additionalInfo, setAdditionalInfo] = useState(defaultValues?.additional_info ?? '')
+
+  // Get sorted country list for dropdowns
+  const countryOptions = Object.entries(countryCentroids)
+    .map(([code, data]) => ({ code, ...data }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const canSubmit =
     originCountry.trim() && nationality.trim() && destinationCountry.trim() && objective.trim()
@@ -57,12 +70,18 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="origin_country">País de origem</Label>
-              <Input
-                id="origin_country"
-                value={originCountry}
-                onChange={(e) => setOriginCountry(e.target.value)}
-                placeholder="Ex: Brasil"
-              />
+              <Select value={originCountry} onValueChange={setOriginCountry}>
+                <SelectTrigger id="origin_country">
+                  <SelectValue placeholder="Selecione seu país de origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countryOptions.map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -77,12 +96,18 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="destination_country">País de destino</Label>
-              <Input
-                id="destination_country"
-                value={destinationCountry}
-                onChange={(e) => setDestinationCountry(e.target.value)}
-                placeholder="Ex: Portugal"
-              />
+              <Select value={destinationCountry} onValueChange={setDestinationCountry}>
+                <SelectTrigger id="destination_country">
+                  <SelectValue placeholder="Selecione seu país de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countryOptions.map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex flex-col gap-2">
