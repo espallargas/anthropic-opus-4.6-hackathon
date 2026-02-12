@@ -16,3 +16,23 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
 
   return response.json()
 }
+
+export async function healthCheck(): Promise<{ status: string; server_time?: string }> {
+  const startMs = Date.now()
+
+  try {
+    const response = await apiFetch<{ status: string; server_time?: string }>('/health')
+    const endMs = Date.now()
+    const rtt = endMs - startMs
+
+    console.log(
+      `[Health Check] Status: ${response.status}, RTT: ${rtt}ms, Server time: ${response.server_time}`,
+    )
+    return response
+  } catch (e) {
+    const endMs = Date.now()
+    const rtt = endMs - startMs
+    console.error(`[Health Check] Failed after ${rtt}ms`)
+    throw e
+  }
+}

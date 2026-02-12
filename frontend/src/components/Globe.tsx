@@ -40,9 +40,11 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
   useEffect(() => {
     if (!globeRef.current || !pointOfView) return
 
+    // Use 0 duration on first set to avoid animation, 1000ms on updates
+    const duration = globeRef.current._pov ? 1000 : 0
     globeRef.current.pointOfView(
       { lat: pointOfView.lat, lng: pointOfView.lng, altitude: pointOfView.altitude },
-      1000,
+      duration,
     )
   }, [pointOfView])
 
