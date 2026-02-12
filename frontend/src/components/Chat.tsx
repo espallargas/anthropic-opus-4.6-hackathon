@@ -48,9 +48,13 @@ export function Chat({ systemVars, onReconfigure }: ChatProps) {
   const statusLabel =
     status === 'streaming' ? 'streaming...' : status === 'error' ? 'error' : 'ready'
 
+  // Dynamic opacity: less opaque when empty (globo visible), more opaque when has messages
+  const bgOpacity = messages.length === 0 ? 'bg-black/20' : 'bg-black/70'
+  const headerOpacity = messages.length === 0 ? 'bg-black/10' : 'bg-black/40'
+
   return (
-    <Card className="flex h-full w-full flex-col rounded-none border-0 bg-black/50 shadow-none">
-      <CardHeader className="flex-row items-center justify-between border-b bg-black/30">
+    <Card className={`flex h-full w-full flex-col rounded-none border-0 ${bgOpacity} shadow-none`}>
+      <CardHeader className={`flex-row items-center justify-between border-b ${headerOpacity}`}>
         <CardTitle className="flex items-center gap-2">
           <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} />
           <span className="text-muted-foreground text-sm font-medium">{statusLabel}</span>
@@ -120,7 +124,7 @@ export function Chat({ systemVars, onReconfigure }: ChatProps) {
         </div>
       )}
 
-      <CardFooter className="border-t border-white/10 bg-black/30 p-4">
+      <CardFooter className={`border-t border-white/10 ${headerOpacity} p-4`}>
         <form onSubmit={handleSubmit} className="flex w-full gap-2">
           <Input
             ref={inputRef}

@@ -59,8 +59,30 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
     [origin, destination],
   )
 
+  // Gradient color interpolation from origin (cyan) to destination (magenta)
   const arcDashColor = useCallback((arc: { isBase?: boolean }) => {
-    return arc.isBase ? 'rgba(0,229,255,0.3)' : 'rgba(255,160,40,0.8)'
+    if (arc.isBase) {
+      // Base arc: gradient from cyan (origin) to magenta (destination)
+      return (t: number) => {
+        // Origin color: rgba(0,200,255,0.45) - cyan
+        // Destination color: rgba(255,100,200,0.45) - magenta
+        const startR = 0,
+          startG = 200,
+          startB = 255
+        const endR = 255,
+          endG = 100,
+          endB = 200
+
+        const r = Math.round(startR + (endR - startR) * t)
+        const g = Math.round(startG + (endG - startG) * t)
+        const b = Math.round(startB + (endB - startB) * t)
+
+        return `rgba(${r},${g},${b},0.5)`
+      }
+    } else {
+      // Animated arc: amber/orange
+      return 'rgba(255,160,40,0.8)'
+    }
   }, [])
 
   if (loading) {
@@ -109,18 +131,15 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
         polygonsTransitionDuration={300}
         arcsData={arcsData}
         arcColor={arcDashColor}
-        arcDashLength={0.9}
-        arcDashGap={0.3}
-        arcDashAnimateTime={3000}
+        arcDashLength={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.9)}
+        arcDashGap={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.3)}
+        arcDashAnimateTime={(d: { isBase?: boolean }) => (d.isBase ? 0 : 3000)}
         arcAltitude={(d: { altitude?: number }) => d.altitude ?? 0.3}
-        arcStroke={1.8}
+        arcStroke={(d: { isBase?: boolean }) => (d.isBase ? 1.0 : 1.8)}
         arcCurveResolution={32}
         polygonCapCurvatureResolution={10}
         rendererConfig={{ antialias: true }}
         onGlobeReady={() => {
-          if (globeRef.current?.renderer) {
-            globeRef.current.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
-          }
           // Force POV on globe ready
           if (globeRef.current && pointOfView) {
             globeRef.current.pointOfView(

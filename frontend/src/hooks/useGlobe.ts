@@ -147,14 +147,14 @@ export function useGlobe(origin?: string, destination?: string) {
     )
     const arcAltitude = Math.max(0.2, Math.min(0.8, centralAngle / Math.PI))
 
-    // Two arcs: base static + pulse animation
+    // Two arcs: base continuous gradient + animated dash overlay
     const arcs: ArcData[] = [
       {
         startLat: originData.lat,
         startLng: originData.lng,
         endLat: destData.lat,
         endLng: destData.lng,
-        strokeColor: 'rgba(0,229,255,0.3)',
+        strokeColor: 'gradient', // Will use gradient function in Globe component
         altitude: arcAltitude,
         isBase: true,
       },
