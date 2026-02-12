@@ -49,8 +49,8 @@ export function Chat({ systemVars, onReconfigure }: ChatProps) {
     status === 'streaming' ? 'streaming...' : status === 'error' ? 'error' : 'ready'
 
   return (
-    <Card className="flex h-full w-full flex-col rounded-none border-0 shadow-none">
-      <CardHeader className="flex-row items-center justify-between border-b">
+    <Card className="flex h-full w-full flex-col rounded-none border-0 bg-black/50 shadow-none">
+      <CardHeader className="flex-row items-center justify-between border-b bg-black/30">
         <CardTitle className="flex items-center gap-2">
           <span className={`inline-block h-2 w-2 rounded-full ${statusDot}`} />
           <span className="text-muted-foreground text-sm font-medium">{statusLabel}</span>
@@ -120,7 +120,7 @@ export function Chat({ systemVars, onReconfigure }: ChatProps) {
         </div>
       )}
 
-      <CardFooter className="border-t p-4">
+      <CardFooter className="border-t border-white/10 bg-black/30 p-4">
         <form onSubmit={handleSubmit} className="flex w-full gap-2">
           <Input
             ref={inputRef}

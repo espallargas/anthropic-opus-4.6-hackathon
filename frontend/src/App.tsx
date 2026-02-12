@@ -91,7 +91,7 @@ function App() {
       {/* Right panel – chat with globe behind */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Globe background - positioned behind chat */}
-        <div className="absolute inset-0 z-0 opacity-30">
+        <div className="absolute inset-0 z-0 opacity-80">
           <Globe
             origin={config.origin_country}
             destination={config.destination_country}
@@ -99,8 +99,8 @@ function App() {
           />
         </div>
 
-        {/* Chat overlay */}
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col bg-black/70">
+        {/* Chat overlay - fully opaque */}
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col">
           <Chat systemVars={config} onReconfigure={handleReconfigure} />
         </div>
       </div>
