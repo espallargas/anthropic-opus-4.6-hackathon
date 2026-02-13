@@ -160,7 +160,7 @@ class LegislationCrawlerService
   end
 
   def call_claude_crawler(system_prompt)
-    emit(:phase, message: "Invoking Claude Opus 4.6 Agent with parallel web search")
+    emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
 
     messages = [
       {
@@ -171,15 +171,24 @@ class LegislationCrawlerService
 
     # Call Claude with agentic loop - Claude will autonomously make web_search calls
     # The API handles web_search tool execution natively
-    response = @client.messages.create(
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      thinking: {
-        type: "adaptive"
-      },
-      system_: system_prompt,
-      messages: messages
-    )
+    Rails.logger.info("Calling Claude API with #{messages.length} messages")
+
+    begin
+      response = @client.messages.create(
+        model: MODEL,
+        max_tokens: MAX_TOKENS,
+        thinking: {
+          type: "adaptive"
+        },
+        system_: system_prompt,
+        messages: messages
+      )
+      Rails.logger.info("Claude responded with stop_reason: #{response.stop_reason}")
+    rescue => e
+      Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
+      emit(:error, message: "Claude API error: #{e.message}")
+      raise
+    end
 
     # Process tool use calls and continue conversation
     all_results = {}
