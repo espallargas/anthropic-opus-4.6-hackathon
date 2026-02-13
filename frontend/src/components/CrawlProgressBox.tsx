@@ -293,23 +293,25 @@ export function CrawlProgressBox({
             </div>
           ) : (
             <>
-              {/* Status messages (phase, timing, etc.) */}
-              {statusMessages.map((msg, idx) => (
-                <div
-                  key={`status-${idx}`}
-                  className={`animate-fadeIn flex items-start gap-2 rounded px-2 py-1 ${
-                    msg.type === 'error' ? 'text-red-400/70' : 'text-white/50'
-                  }`}
-                  style={{ animation: 'fadeIn 0.3s ease-in-out' }}
-                >
-                  {msg.type === 'error' ? (
-                    <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
-                  ) : (
-                    <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-400/60" />
-                  )}
-                  <p className="break-words font-mono">{msg.message}</p>
-                </div>
-              ))}
+              {/* Status messages (phase, timing, etc.) - filter out empty messages */}
+              {statusMessages
+                .filter((msg) => msg.message && msg.message.trim())
+                .map((msg, idx) => (
+                  <div
+                    key={`status-${idx}`}
+                    className={`animate-fadeIn flex items-start gap-2 rounded px-2 py-1 ${
+                      msg.type === 'error' ? 'text-red-400/70' : 'text-white/50'
+                    }`}
+                    style={{ animation: 'fadeIn 0.3s ease-in-out' }}
+                  >
+                    {msg.type === 'error' ? (
+                      <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-400/60" />
+                    )}
+                    <p className="break-words font-mono">{msg.message}</p>
+                  </div>
+                ))}
 
               {/* Operation groups */}
               {operationOrder.map((opId) => {
