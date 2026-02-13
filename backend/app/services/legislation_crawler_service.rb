@@ -258,6 +258,7 @@ class LegislationCrawlerService
       end
 
       # If no tool uses, we're done
+      Rails.logger.info("Iteration #{iteration} - has_tool_use: #{has_tool_use}, response.stop_reason: #{response.stop_reason}")
       break unless has_tool_use
 
       # Continue conversation with tool results
