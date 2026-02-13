@@ -182,8 +182,7 @@ class LegislationCrawlerService
             type: "adaptive"
           },
           system_: system_prompt,
-          messages: messages,
-          timeout: 300  # Pass timeout to client
+          messages: messages
         )
         Rails.logger.info("Claude responded!")
         Rails.logger.info("Response stop_reason: #{response.stop_reason}")
