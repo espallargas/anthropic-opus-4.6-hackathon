@@ -261,11 +261,10 @@ class LegislationCrawlerService
       break unless has_tool_use
 
       # Continue conversation with tool results
-      emit(:phase, message: "Analyzing results")
+      emit(:phase, message: "Analyzing results...")
       messages << { role: "assistant", content: response.content }
       messages << { role: "user", content: tool_results }
 
-      emit(:phase, message: "Thinking about next steps")
       start_time = Time.current
       response = @client.messages.create(
         model: MODEL,
