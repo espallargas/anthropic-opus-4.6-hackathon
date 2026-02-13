@@ -170,10 +170,7 @@ class LegislationCrawlerService
     ]
 
     # Call Claude with agentic loop - Claude will autonomously make web_search calls
-    # The API handles web_search tool execution natively and can parallelize requests
-    # Include beta header for agentic web search capabilities
-    headers = { "anthropic-beta" => "interleaved-thinking-2025-05-14,web-search-2025-02-06" }
-
+    # The API handles web_search tool execution natively
     response = @client.messages.create(
       model: MODEL,
       max_tokens: MAX_TOKENS,
