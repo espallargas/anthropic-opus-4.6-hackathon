@@ -182,25 +182,41 @@ class LegislationCrawlerService
       event_count += 1
 
       # VERBOSE LOGGING - Every single event
+      Rails.logger.info("🔵 [RAW EVENT ##{event_count}] Type: #{event.type.inspect}")
       log_event_details(event, event_count)
 
       # Emit thinking blocks in real-time (every chunk)
       if event.type == 'content_block_delta'
-        if event.delta.respond_to?(:thinking) && event.delta.thinking
-          Rails.logger.info("  ✓ THINKING DELTA: #{event.delta.thinking[0..80]}")
-          emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
+        Rails.logger.info("  📝 CONTENT_BLOCK_DELTA detected")
+
+        begin
+          if event.delta.respond_to?(:thinking) && event.delta.thinking
+            thinking_text = event.delta.thinking
+            Rails.logger.info("  ✓ THINKING_DELTA: emitting #{thinking_text.length} chars")
+            emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id)
+          end
+        rescue => e
+          Rails.logger.error("  ✗ THINKING EMIT ERROR: #{e.message}")
         end
 
-        if event.delta.respond_to?(:text) && event.delta.text
-          text = event.delta.text
-          Rails.logger.info("  ✓ TEXT DELTA: #{text[0..80]}")
-          # Emit Claude's text output in real-time
-          emit(:claude_text, text: text)
+        begin
+          if event.delta.respond_to?(:text) && event.delta.text
+            text = event.delta.text
+            Rails.logger.info("  ✓ TEXT_DELTA: emitting #{text.length} chars")
+            # Emit Claude's text output in real-time
+            emit(:claude_text, text: text)
+          end
+        rescue => e
+          Rails.logger.error("  ✗ TEXT EMIT ERROR: #{e.message}")
         end
 
-        if event.delta.respond_to?(:input) && event.delta.input
-          input_text = event.delta.input.to_s
-          Rails.logger.info("  ✓ INPUT DELTA: #{input_text[0..80]}")
+        begin
+          if event.delta.respond_to?(:input) && event.delta.input
+            input_text = event.delta.input.to_s
+            Rails.logger.info("  ✓ INPUT_DELTA: #{input_text[0..80]}")
+          end
+        rescue => e
+          Rails.logger.error("  ✗ INPUT DELTA ERROR: #{e.message}")
         end
       end
 
