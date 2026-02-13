@@ -171,19 +171,26 @@ class LegislationCrawlerService
 
     # Call Claude with agentic loop - Claude will autonomously make web_search calls
     # The API handles web_search tool execution natively
-    Rails.logger.info("Calling Claude API with #{messages.length} messages")
+    Rails.logger.info("Calling Claude API with #{messages.length} messages, timeout: 300s")
 
     begin
-      response = @client.messages.create(
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        thinking: {
-          type: "adaptive"
-        },
-        system_: system_prompt,
-        messages: messages
-      )
-      Rails.logger.info("Claude responded with stop_reason: #{response.stop_reason}")
+      Timeout.timeout(300) do  # 5 minute timeout
+        response = @client.messages.create(
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          thinking: {
+            type: "adaptive"
+          },
+          system_: system_prompt,
+          messages: messages,
+          timeout: 300  # Pass timeout to client
+        )
+        Rails.logger.info("Claude responded with stop_reason: #{response.stop_reason}")
+      end
+    rescue Timeout::Error => e
+      Rails.logger.error("Claude API timeout after 300s: #{e.message}")
+      emit(:error, message: "Claude API timeout - request took too long")
+      raise
     rescue => e
       Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
       emit(:error, message: "Claude API error: #{e.message}")
