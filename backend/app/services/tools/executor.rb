@@ -6,7 +6,15 @@ module Tools
     def self.call(tool_name, input)
       case tool_name
       when 'web_search'
-        web_search(input['query'])
+        query = if input.is_a?(Hash)
+          input['query']
+        elsif input.respond_to?(:query)
+          input.query
+        elsif input.respond_to?(:[])
+          input[:query] || input['query']
+        end
+
+        web_search(query.to_s)
       else
         { error: "Unknown tool: #{tool_name}" }.to_json
       end

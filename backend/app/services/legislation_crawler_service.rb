@@ -115,10 +115,10 @@ class LegislationCrawlerService
       }
     ]
 
-    response = @client.messages(
+    response = @client.messages.create(
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: system_prompt,
+      system_: system_prompt,
       tools: Tools::Definitions::TOOLS,
       messages: messages
     )
@@ -142,19 +142,28 @@ class LegislationCrawlerService
       tool_results = []
 
       response.content.each do |block|
-        if block.type == "tool_use"
+        if block.type == :tool_use
           has_tool_use = true
-          emit("🔎 Running: #{block.name}")
+          emit("🔎 Claude called: #{block.name}")
 
           # Execute the tool
           tool_result = Tools::Executor.call(block.name, block.input)
-          emit("  Found results for: #{block.name}")
 
           # Parse and collect results
           if block.name == "web_search"
+            emit("  Searching for: #{block.input}")
             category = determine_category_from_input(block.input)
-            data = JSON.parse(tool_result)
-            all_results[category] = data if category
+            begin
+              data = JSON.parse(tool_result)
+              if data.is_a?(Hash) && data['results']
+                all_results[category] = data if category
+                emit("  ✓ Category: #{category}, Found #{data['results'].length} results")
+              else
+                emit("  No results in response")
+              end
+            rescue JSON::ParserError => e
+              emit("  ⚠ Parse error: #{e.message[0..50]}")
+            end
           end
 
           tool_results << {
@@ -162,6 +171,8 @@ class LegislationCrawlerService
             tool_use_id: block.id,
             content: tool_result
           }
+        elsif block.type == :text
+          emit("📝 Claude: #{block.text[0..50]}...")
         end
       end
 
@@ -172,10 +183,10 @@ class LegislationCrawlerService
       messages << { role: "assistant", content: response.content }
       messages << { role: "user", content: tool_results }
 
-      response = @client.messages(
+      response = @client.messages.create(
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        system: system_prompt,
+        system_: system_prompt,
         tools: Tools::Definitions::TOOLS,
         messages: messages
       )
@@ -192,27 +203,53 @@ class LegislationCrawlerService
   end
 
   def determine_category_from_input(input)
-    query = input['query'].to_s.downcase
-
-    SEARCH_QUERIES.each do |category, search_term|
-      return category if query.include?(search_term.split.first.downcase)
+    # Handle both Hash and object responses from Anthropic
+    query_text = if input.is_a?(Hash)
+      input['query'].to_s
+    elsif input.respond_to?(:query)
+      input.query.to_s
+    elsif input.respond_to?(:[])
+      (input[:query] || input['query']).to_s
+    else
+      input.to_s
     end
 
-    nil
+    query_lower = query_text.downcase
+
+    # Match category by finding the search term from SEARCH_QUERIES in the query
+    # Returns the first category that matches
+    best_match = nil
+    best_match_length = 0
+
+    SEARCH_QUERIES.each do |category, search_term|
+      search_lower = search_term.downcase
+      # Check if the search term appears as consecutive words in the query
+      if query_lower.include?(search_lower)
+        # Prefer longer matches (more specific)
+        if search_lower.length > best_match_length
+          best_match = category
+          best_match_length = search_lower.length
+        end
+      end
+    end
+
+    best_match
   end
 
   def build_user_prompt
     <<~PROMPT
-      Search for immigration legislation for #{@country.name} across these 6 categories using the web_search tool:
+      Your task: Use the web_search tool to find immigration legislation for #{@country.name}.
 
-      1. FEDERAL LAWS — #{SEARCH_QUERIES[:federal_laws]}
-      2. REGULATIONS — #{SEARCH_QUERIES[:regulations]}
-      3. CONSULAR RULES — #{SEARCH_QUERIES[:consular]}
-      4. JURISDICTIONAL — #{SEARCH_QUERIES[:jurisdictional]}
-      5. HEALTH & COMPLEMENTARY — #{SEARCH_QUERIES[:complementary]}
-      6. AUXILIARY — #{SEARCH_QUERIES[:auxiliary]}
+      You MUST call the web_search tool 6 times, once for each category below:
 
-      For each category, perform a web_search and collect the results. Extract official law titles, dates, summaries, and URLs.
+      1. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:federal_laws]}"
+      2. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:regulations]}"
+      3. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:consular]}"
+      4. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:jurisdictional]}"
+      5. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:complementary]}"
+      6. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:auxiliary]}"
+
+      Make sure to use the web_search tool for each query. Do not skip any categories.
     PROMPT
   end
 
