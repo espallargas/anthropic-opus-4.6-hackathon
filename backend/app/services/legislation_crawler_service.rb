@@ -27,26 +27,27 @@ class LegislationCrawlerService
   end
 
   def crawl
-    emit("Starting crawl for #{@country.name}...")
+    emit("🌍 Starting crawl for #{@country.name}...")
 
     existing_count = @country.legislations.count
     crawl_type = @country.last_crawled_at.nil? ? "first_crawl" : "update_search"
 
-    emit("Crawl type: #{crawl_type}")
-    emit("Found #{existing_count} existing legislations")
+    emit("📋 Crawl type: #{crawl_type}")
+    emit("📚 Found #{existing_count} existing legislations")
 
     # Build system prompt
     system_prompt = build_system_prompt(crawl_type, existing_count)
 
     # Call Claude Opus 4.6 with web_search tool
-    emit("Initiating Claude Opus 4.6 crawl...")
+    emit("🤖 Invoking Claude Opus 4.6 to search legislation...")
     results = call_claude_crawler(system_prompt)
 
     # Save results to database
+    emit("💾 Saving results to database...")
     save_results(results)
 
     @country.update!(last_crawled_at: Time.current)
-    emit("✓ Crawl complete: #{results.values.sum { |docs| docs.count }} documents stored")
+    emit("✅ Crawl complete: #{results.values.sum { |docs| docs.count }} documents stored")
   end
 
   private
@@ -130,7 +131,7 @@ class LegislationCrawlerService
   end
 
   def call_claude_crawler(system_prompt)
-    emit("🔍 Invoking Claude Opus 4.6 with tool_use...")
+    emit("🤖 Invoking Claude Opus 4.6 Agent...")
 
     messages = [
       {
@@ -157,7 +158,7 @@ class LegislationCrawlerService
 
       # Check if we got a stop reason
       if response.stop_reason == "end_turn"
-        emit("✓ Claude completed search")
+        emit("✅ Claude Agent: Search complete (no more tool calls)")
         break
       end
 
@@ -168,7 +169,13 @@ class LegislationCrawlerService
       response.content.each do |block|
         if block.type == :tool_use
           has_tool_use = true
-          emit("🔎 Claude called: #{block.name}")
+          tool_name = block.name
+
+          if tool_name == "web_search"
+            emit("🤖 Claude Agent: Calling web_search tool")
+          else
+            emit("🤖 Claude Agent: Calling #{tool_name} tool")
+          end
 
           # Execute the tool
           tool_result = Tools::Executor.call(block.name, block.input)
@@ -182,15 +189,15 @@ class LegislationCrawlerService
               if data.is_a?(Hash) && data['results']
                 if category
                   all_results[category] = data
-                  emit("  ✓ Found #{data['results'].length} results for #{category}")
+                  emit("  ✓ web_search returned #{data['results'].length} results (#{category})")
                 else
-                  emit("  ⚠ Could not detect category for this search")
+                  emit("  ⚠ Could not detect category from search")
                 end
               else
-                emit("  ⚠ Unexpected response format")
+                emit("  ⚠ Unexpected response format from web_search")
               end
             rescue JSON::ParserError
-              emit("  ⚠ Could not parse web search response")
+              emit("  ⚠ Failed to parse web_search response")
             end
           end
 
@@ -200,7 +207,7 @@ class LegislationCrawlerService
             content: tool_result
           }
         elsif block.type == :text
-          emit("📝 Claude: #{block.text[0..50]}...")
+          emit("💬 Claude: #{block.text[0..60]}...")
         end
       end
 
@@ -221,11 +228,11 @@ class LegislationCrawlerService
     end
 
     # Generate legislation from collected search results
-    emit("🔄 Processing search results...")
+    emit("⚙️ Processing search results from agent...")
     legislation_results = generate_legislation_from_searches(all_results)
 
     doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
-    emit("✓ Processed #{doc_count} documents from search results")
+    emit("✅ Processed #{doc_count} documents from agent search results")
 
     legislation_results
   end
