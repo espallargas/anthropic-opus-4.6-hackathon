@@ -199,16 +199,14 @@ export function CrawlProgressBox({
                 }
 
                 // Log the message for debugging
-                console.log(`[SSE ${data.type.toUpperCase()}] ${progressItem.message}`)
                 if (data.type === 'thinking') {
-                  console.log(`[THINKING DEBUG] text length: ${progressItem.text?.length}, is_summary: ${progressItem.is_summary}`)
+                  console.log(`[SSE THINKING] text length: ${progressItem.text?.length} chars`)
                 }
 
                 // Update UI with smooth transitions
                 setTimeout(() => {
                   if (currentStatus && currentStatus.status === 'in-progress') {
                     const completedItem = { ...currentStatus, status: 'done' }
-                    console.log(`[MOVE TO COMPLETED] type: ${completedItem.type}, has text: ${!!completedItem.text}`)
                     setCompletedItems((prev) => [...prev, completedItem])
                   }
                   setCurrentStatus(progressItem)
@@ -299,21 +297,28 @@ export function CrawlProgressBox({
                 >
                   <div className="mt-0.5 flex-shrink-0">{getIcon(item)}</div>
                   <div className="min-w-0 flex-1">
-                    {item.message && (
-                      <p className="break-words whitespace-pre-wrap font-mono">{item.message}</p>
-                    )}
-                    {/* Thinking blocks: collapsible details */}
-                    {item.type === 'thinking' && item.text && (
-                      <details className="mt-2 cursor-pointer">
-                        <summary className="text-blue-300/70 hover:text-blue-300">
-                          Show thinking {item.is_summary ? '(summarized)' : ''}
+                    {item.type === 'thinking' ? (
+                      // Thinking blocks get special rendering
+                      <details className="cursor-pointer">
+                        <summary className="text-blue-300/70 hover:text-blue-300 font-mono">
+                          🧠 Show thinking {item.is_summary ? '(summarized)' : ''}
                         </summary>
-                        <div className="mt-2 rounded bg-blue-900/20 p-2">
-                          <p className="break-words whitespace-pre-wrap font-mono text-blue-200/80">
-                            {item.text}
-                          </p>
-                        </div>
+                        {item.text && (
+                          <div className="mt-2 rounded bg-blue-900/20 p-2 space-y-2">
+                            <p className="text-xs font-semibold text-blue-300">Thinking content:</p>
+                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80">
+                              {item.text}
+                            </p>
+                          </div>
+                        )}
                       </details>
+                    ) : (
+                      // Regular messages
+                      <>
+                        {item.message && (
+                          <p className="break-words whitespace-pre-wrap font-mono">{item.message}</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -332,23 +337,30 @@ export function CrawlProgressBox({
                 >
                   <div className="mt-0.5 flex-shrink-0">{getIcon(currentStatus)}</div>
                   <div className="min-w-0 flex-1">
-                    {currentStatus.message && (
-                      <p className="break-words whitespace-pre-wrap font-mono">
-                        {currentStatus.message}
-                      </p>
-                    )}
-                    {/* Thinking blocks: collapsible details */}
-                    {currentStatus.type === 'thinking' && currentStatus.text && (
-                      <details className="mt-2 cursor-pointer">
-                        <summary className="text-blue-300/70 hover:text-blue-300">
-                          Show thinking {currentStatus.is_summary ? '(summarized)' : ''}
+                    {currentStatus.type === 'thinking' ? (
+                      // Thinking blocks get special rendering
+                      <details className="cursor-pointer" open>
+                        <summary className="text-blue-300/70 hover:text-blue-300 font-mono">
+                          🧠 Show thinking {currentStatus.is_summary ? '(summarized)' : ''}
                         </summary>
-                        <div className="mt-2 rounded bg-blue-900/20 p-2">
-                          <p className="break-words whitespace-pre-wrap font-mono text-blue-200/80">
-                            {currentStatus.text}
-                          </p>
-                        </div>
+                        {currentStatus.text && (
+                          <div className="mt-2 rounded bg-blue-900/20 p-2 space-y-2">
+                            <p className="text-xs font-semibold text-blue-300">Thinking content:</p>
+                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80">
+                              {currentStatus.text}
+                            </p>
+                          </div>
+                        )}
                       </details>
+                    ) : (
+                      // Regular messages
+                      <>
+                        {currentStatus.message && (
+                          <p className="break-words whitespace-pre-wrap font-mono">
+                            {currentStatus.message}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
