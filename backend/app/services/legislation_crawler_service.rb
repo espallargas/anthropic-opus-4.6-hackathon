@@ -172,18 +172,20 @@ class LegislationCrawlerService
     end
   end
 
-  def build_response_from_stream(**options)
+  def build_response_from_stream(operation_id = nil, **options)
     collector = StreamResponseCollector.new
     event_count = 0
 
-    @client.messages.stream(**options) do |event|
+    # Use .each to iterate over stream events (do NOT use block syntax, it doesn't work)
+    stream_response = @client.messages.stream(**options)
+    stream_response.each do |event|
       event_count += 1
       Rails.logger.info("Stream event ##{event_count}: #{event.type}")
 
       # Emit thinking blocks in real-time as they arrive
       if event.type == 'content_block_delta' && event.delta.respond_to?(:thinking)
-        Rails.logger.info("  -> Emitting thinking block")
-        emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: @current_operation_id)
+        Rails.logger.info("  -> Emitting thinking block: #{event.delta.thinking[0..50]}...")
+        emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
       end
 
       # Log content block events
@@ -290,10 +292,14 @@ class LegislationCrawlerService
     # The API handles web_search tool execution natively
     Rails.logger.info("Calling Claude API with streaming, timeout: 300s")
 
+    # Initialize operation_id for first streaming call
+    current_operation_id = next_operation_id
+
     response = nil
     begin
       Timeout.timeout(300) do  # 5 minute timeout
         response = build_response_from_stream(
+          current_operation_id,
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
@@ -330,7 +336,6 @@ class LegislationCrawlerService
     max_iterations = 3
     web_search_count = 0
     max_web_searches = 15
-    current_operation_id = nil
     max_searches_reached = false
 
     while iteration < max_iterations
@@ -340,11 +345,6 @@ class LegislationCrawlerService
       if response.stop_reason == "end_turn"
         emit(:phase, message: "Search complete")
         break
-      end
-
-      # Initialize operation_id for first iteration (before any web_search)
-      if iteration == 1 && current_operation_id.nil?
-        current_operation_id = next_operation_id
       end
 
       # Process tool uses from native web_search
@@ -461,7 +461,11 @@ class LegislationCrawlerService
       start_time = Time.current
 
       begin
+        # Generate new operation_id for next iteration
+        current_operation_id = next_operation_id
+
         response = build_response_from_stream(
+          current_operation_id,
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {

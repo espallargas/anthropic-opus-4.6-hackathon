@@ -10,11 +10,7 @@ interface CountryListItemProps {
   docCount?: number
 }
 
-export function CountryListItem({
-  country,
-  onCrawlStart,
-  docCount,
-}: CountryListItemProps) {
+export function CountryListItem({ country, onCrawlStart, docCount }: CountryListItemProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 

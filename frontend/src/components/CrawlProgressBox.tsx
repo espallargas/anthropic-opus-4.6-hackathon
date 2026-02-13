@@ -72,7 +72,6 @@ export function CrawlProgressBox({
     }
   }, [operationOrder, operations])
 
-
   // Process incoming SSE messages
   const processMessage = useCallback(
     (data: SSEMessage) => {
@@ -126,7 +125,11 @@ export function CrawlProgressBox({
         }
 
         // Handle status messages and special cases (outside the if/else chain)
-        if (data.type !== 'search_started' && data.type !== 'search_result' && data.type !== 'thinking') {
+        if (
+          data.type !== 'search_started' &&
+          data.type !== 'search_result' &&
+          data.type !== 'thinking'
+        ) {
           setStatusMessages((prev) => [...prev, data])
         }
 
@@ -153,7 +156,7 @@ export function CrawlProgressBox({
         return newOps
       })
     },
-    [onComplete]
+    [onComplete],
   )
 
   useEffect(() => {
@@ -162,7 +165,9 @@ export function CrawlProgressBox({
 
     // Prevent double-firing in React Strict Mode
     if (crawlStartedRef.current) {
-      console.warn(`[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}, skipping`)
+      console.warn(
+        `[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}, skipping`,
+      )
       return
     }
     crawlStartedRef.current = true
@@ -252,7 +257,6 @@ export function CrawlProgressBox({
     startCrawl()
   }, [countryCode, processMessage, onComplete])
 
-
   return (
     <div className="flex w-[600px] flex-col rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
@@ -308,7 +312,7 @@ export function CrawlProgressBox({
                     ) : (
                       <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-400/60" />
                     )}
-                    <p className="break-words font-mono">{msg.message}</p>
+                    <p className="font-mono break-words">{msg.message}</p>
                   </div>
                 ))}
 

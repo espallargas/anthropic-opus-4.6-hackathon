@@ -48,7 +48,6 @@ export function CrawlerOperationGroup({
     }
   }
 
-
   const getStatusLabel = () => {
     switch (status) {
       case 'error':
@@ -69,12 +68,12 @@ export function CrawlerOperationGroup({
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center justify-between gap-2 text-left focus:outline-none"
       >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex-shrink-0">{getStatusIcon()}</div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs font-semibold text-white truncate">{category}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-xs font-semibold text-white">{category}</p>
               <span
                 className={`status-badge ${status === 'error' ? 'error' : status === 'running' ? 'running' : status === 'done' ? 'done' : 'pending'}`}
               >
@@ -84,7 +83,7 @@ export function CrawlerOperationGroup({
                 {index}/{total}
               </span>
             </div>
-            <p className="mt-1 text-xs text-white/60 truncate">Query: {query}</p>
+            <p className="mt-1 truncate text-xs text-white/60">Query: {query}</p>
           </div>
         </div>
 
@@ -97,14 +96,16 @@ export function CrawlerOperationGroup({
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="space-y-2 border-t border-white/10 pt-2 animate-fadeIn">
+        <div className="animate-fadeIn space-y-2 border-t border-white/10 pt-2">
           {/* Thinking blocks */}
           {thinkingBlocks.length > 0 && (
             <div className="space-y-2">
               {thinkingBlocks.map((block, idx) => (
                 <div key={`thinking-${operationId}-${idx}`} className="thinking-block">
-                  <p className="text-xs font-semibold text-blue-300 mb-1.5">Claude is thinking...</p>
-                  <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80 leading-relaxed max-h-32 overflow-auto">
+                  <p className="mb-1.5 text-xs font-semibold text-blue-300">
+                    Claude is thinking...
+                  </p>
+                  <p className="max-h-32 overflow-auto font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-blue-200/80">
                     {block.text}
                   </p>
                 </div>
@@ -116,7 +117,10 @@ export function CrawlerOperationGroup({
           {resultMessages.length > 0 && (
             <div className="space-y-1">
               {resultMessages.map((msg, idx) => (
-                <p key={`result-${operationId}-${idx}`} className="text-xs text-white/60 flex items-center gap-1.5">
+                <p
+                  key={`result-${operationId}-${idx}`}
+                  className="flex items-center gap-1.5 text-xs text-white/60"
+                >
                   <span>✓</span>
                   <span>{msg.message || `Found ${msg.result_count || 0} results`}</span>
                 </p>
