@@ -186,7 +186,7 @@ class LegislationCrawlerService
       log_event_details(event, event_count)
 
       # Emit thinking blocks in real-time (every chunk)
-      if event.type == 'content_block_delta'
+      if event.type.to_s == 'content_block_delta'
         Rails.logger.info("  📝 CONTENT_BLOCK_DELTA detected")
 
         begin
@@ -221,7 +221,7 @@ class LegislationCrawlerService
       end
 
       # Detect web_search tool use start
-      if event.type == 'content_block_start'
+      if event.type.to_s == 'content_block_start'
         Rails.logger.info("  → BLOCK START: type=#{event.content_block.type}")
         if event.content_block.type == 'tool_use'
           Rails.logger.info("    TOOL_USE block: name=#{event.content_block.name}, id=#{event.content_block.id}")
@@ -260,13 +260,13 @@ class LegislationCrawlerService
       end
 
       # Clear current_search_id on block end
-      if event.type == 'content_block_stop'
+      if event.type.to_s == 'content_block_stop'
         Rails.logger.info("  ← BLOCK STOP (index: #{event.index})")
         current_search_id = nil
       end
 
       # Emit token tracking
-      if event.type == 'message_delta' && event.delta.respond_to?(:usage)
+      if event.type.to_s == 'message_delta' && event.delta.respond_to?(:usage)
         input_tokens = event.delta.usage.input_tokens || 0
         output_tokens = event.delta.usage.output_tokens || 0
         Rails.logger.info("  📊 TOKENS: input=#{input_tokens}, output=#{output_tokens}")
@@ -274,11 +274,11 @@ class LegislationCrawlerService
       end
 
       # Message start/stop
-      if event.type == 'message_start'
+      if event.type.to_s == 'message_start'
         Rails.logger.info("  📨 MESSAGE_START: model=#{event.message.model if event.message.respond_to?(:model)}")
       end
 
-      if event.type == 'message_stop'
+      if event.type.to_s == 'message_stop'
         Rails.logger.info("  📨 MESSAGE_STOP: stop_reason=#{event.message.stop_reason if event.message.respond_to?(:stop_reason)}")
       end
 
@@ -296,7 +296,7 @@ class LegislationCrawlerService
   end
 
   private def log_event_details(event, count)
-    case event.type
+    case event.type.to_s
     when 'content_block_start'
       Rails.logger.info("▶ [Event ##{count}] CONTENT_BLOCK_START - type: #{event.content_block&.type}")
     when 'content_block_delta'
