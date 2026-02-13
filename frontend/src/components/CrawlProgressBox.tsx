@@ -133,7 +133,7 @@ export function CrawlProgressBox({
       try {
         console.log(`[CrawlProgressBox] Starting crawl for ${countryCode}`)
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes - crawling can take time with Claude
 
         const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
           method: 'POST',

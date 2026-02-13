@@ -177,7 +177,7 @@ class LegislationCrawlerService
     # Process tool use calls and continue conversation
     all_results = {}
     iteration = 0
-    max_iterations = 8
+    max_iterations = 3  # Reduced from 8 to prevent infinite loops with repetitive results
     web_search_count = 0
     max_web_searches = 6
 
