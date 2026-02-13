@@ -47,8 +47,7 @@ module Api
             model: MODEL,
             max_tokens: MAX_TOKENS,
             system: system_prompt,
-            messages: messages,
-            tools: Tools::Definitions::TOOLS
+            messages: messages
           )
 
           stream.each do |event|
@@ -77,19 +76,8 @@ module Api
           end
           messages << { role: 'assistant', content: assistant_content }
 
-          tool_results = tool_use_blocks.map do |tb|
-            result = begin
-              Tools::Executor.call(tb[:name], tb[:input])
-            rescue StandardError => e
-              sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: { error: e.message }, server_time: Time.current.iso8601(3) })
-              next { type: 'tool_result', tool_use_id: tb[:id], content: e.message, is_error: true }
-            end
-
-            sse.write({ type: 'tool_use_result', tool_call_id: tb[:id], result: JSON.parse(result), server_time: Time.current.iso8601(3) })
-            { type: 'tool_result', tool_use_id: tb[:id], content: result }
-          end
-
-          messages << { role: 'user', content: tool_results }
+          # Tool results are handled natively by Claude API
+          # No custom tool execution needed - web_search and other tools work natively
         end
 
         sse.write({ type: 'message_end', server_time: Time.current.iso8601(3) })

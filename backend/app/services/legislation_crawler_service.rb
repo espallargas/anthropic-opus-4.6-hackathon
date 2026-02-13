@@ -160,7 +160,7 @@ class LegislationCrawlerService
   end
 
   def call_claude_crawler(system_prompt)
-    emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
+    emit(:phase, message: "Invoking Claude Opus 4.6 Agent with parallel web search")
 
     messages = [
       {
@@ -169,6 +169,11 @@ class LegislationCrawlerService
       }
     ]
 
+    # Call Claude with agentic loop - Claude will autonomously make web_search calls
+    # The API handles web_search tool execution natively and can parallelize requests
+    # Include beta header for agentic web search capabilities
+    headers = { "anthropic-beta" => "interleaved-thinking-2025-05-14,web-search-2025-02-06" }
+
     response = @client.messages.create(
       model: MODEL,
       max_tokens: MAX_TOKENS,
@@ -176,16 +181,15 @@ class LegislationCrawlerService
         type: "adaptive"
       },
       system_: system_prompt,
-      tools: Tools::Definitions::TOOLS,
       messages: messages
     )
 
     # Process tool use calls and continue conversation
     all_results = {}
     iteration = 0
-    max_iterations = 3  # Reduced from 8 to prevent infinite loops with repetitive results
+    max_iterations = 3
     web_search_count = 0
-    max_web_searches = 15  # Increased from 6 to allow more thorough searches
+    max_web_searches = 15
     current_operation_id = nil
     max_searches_reached = false
 
@@ -203,7 +207,7 @@ class LegislationCrawlerService
         current_operation_id = next_operation_id
       end
 
-      # Process tool uses
+      # Process tool uses from native web_search
       has_tool_use = false
       tool_results = []
 
@@ -228,47 +232,60 @@ class LegislationCrawlerService
 
             if web_search_count > max_web_searches
               if !max_searches_reached
-                emit(:phase, message: "Maximum web searches reached (6/6)")
+                emit(:phase, message: "Maximum web searches reached (#{max_web_searches}/#{max_web_searches})")
                 max_searches_reached = true
               end
-              tool_result = { error: "Maximum web search limit reached (6)", results: [] }.to_json
+              tool_result = { error: "Maximum web search limit reached (#{max_web_searches})", results: [] }.to_json
             else
               current_operation_id = next_operation_id
               emit(:search_started, operation_id: current_operation_id, category: category_label, query: query, index: web_search_count, total: max_web_searches)
               emit(:phase, message: "Searching for: #{category_label}")
               emit(:search, count: web_search_count, total: max_web_searches, category: category_label, query: query)
-              # Execute the tool
-              tool_result = Tools::Executor.call(block.name, block.input)
+              # Claude's native web_search will be handled by the API
+              # We'll extract results from the tool_result in the API response
+              tool_result = nil  # Will be filled from API response
               emit(:phase, message: "Processing #{category_label} results...")
             end
-          else
-            tool_result = Tools::Executor.call(block.name, block.input)
           end
 
-          # Parse and collect results
-          if block.name == "web_search"
+          # Parse and collect web_search results from API response
+          if block.type == :tool_use && block.name == "web_search"
             category = determine_category_from_input(block.input)
             category_label = SEARCH_DESCRIPTIONS[category] || "legislation"
 
-            begin
-              data = JSON.parse(tool_result)
-              if data.is_a?(Hash) && data['results'] && data['results'].any?
-                if category
-                  all_results[category] = data
-                  emit(:search_result, operation_id: current_operation_id, result_count: data['results'].length)
-                elsif web_search_count <= max_web_searches
-                  emit(:warning, message: 'Could not detect category from search')
+            # Extract tool result from the API response (it comes as tool_use block with result)
+            if block.respond_to?(:content) && block.content.present?
+              begin
+                # For web_search, Claude returns structured results
+                tool_result_content = block.content
+                data = if tool_result_content.is_a?(String)
+                  JSON.parse(tool_result_content)
+                else
+                  tool_result_content
                 end
+
+                if data.is_a?(Hash) && (data['results'] || data['content'])
+                  result_array = data['results'] || data['content']
+                  if category
+                    all_results[category] = { 'results' => result_array }
+                    result_count = result_array.is_a?(Array) ? result_array.length : 1
+                    emit(:search_result, operation_id: current_operation_id, result_count: result_count)
+                  elsif web_search_count <= max_web_searches
+                    emit(:warning, message: 'Could not detect category from search')
+                  end
+                end
+              rescue JSON::ParserError => e
+                Rails.logger.warn("Failed to parse web_search result: #{e.message}")
+                emit(:error, message: 'Failed to parse web_search response')
               end
-            rescue JSON::ParserError
-              emit(:error, message: 'Failed to parse web_search response')
             end
           end
 
+          # Build tool_result for conversation continuation
           tool_results << {
             type: "tool_result",
             tool_use_id: block.id,
-            content: tool_result
+            content: tool_result || ""
           }
         elsif block.type == :text
           if block.text.length > 0
@@ -311,7 +328,6 @@ class LegislationCrawlerService
             type: "adaptive"
           },
           system_: system_prompt,
-          tools: Tools::Definitions::TOOLS,
           messages: messages
         )
         elapsed = ((Time.current - start_time) * 1000).round
