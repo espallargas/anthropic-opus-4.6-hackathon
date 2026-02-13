@@ -180,22 +180,41 @@ class LegislationCrawlerService
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
-      Rails.logger.info("Stream event ##{event_count}: #{event.type}")
+
+      # VERBOSE LOGGING - Every single event
+      log_event_details(event, event_count)
 
       # Emit thinking blocks in real-time (every chunk)
       if event.type == 'content_block_delta'
         if event.delta.respond_to?(:thinking) && event.delta.thinking
-          Rails.logger.info("  -> Emitting thinking: #{event.delta.thinking[0..40]}...")
+          Rails.logger.info("  ✓ THINKING DELTA: #{event.delta.thinking[0..80]}")
           emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
+        end
+
+        if event.delta.respond_to?(:text) && event.delta.text
+          Rails.logger.info("  ✓ TEXT DELTA: #{event.delta.text[0..80]}")
+        end
+
+        if event.delta.respond_to?(:input) && event.delta.input
+          input_text = event.delta.input.to_s
+          Rails.logger.info("  ✓ INPUT DELTA: #{input_text[0..80]}")
         end
       end
 
       # Detect web_search tool use start
       if event.type == 'content_block_start'
-        if event.content_block.type == 'tool_use' && event.content_block.name == 'web_search'
-          search_count += 1
-          current_search_id = event.content_block.id
-          Rails.logger.info("  -> web_search ##{search_count} started (id: #{current_search_id})")
+        Rails.logger.info("  → BLOCK START: type=#{event.content_block.type}")
+        if event.content_block.type == 'tool_use'
+          Rails.logger.info("    TOOL_USE block: name=#{event.content_block.name}, id=#{event.content_block.id}")
+          if event.content_block.name == 'web_search'
+            search_count += 1
+            current_search_id = event.content_block.id
+            Rails.logger.info("    🔍 WEB_SEARCH ##{search_count} DETECTED (id: #{current_search_id})")
+          end
+        elsif event.content_block.type == 'text'
+          Rails.logger.info("    TEXT block starting")
+        elsif event.content_block.type == 'thinking'
+          Rails.logger.info("    THINKING block starting")
         end
       end
 
@@ -215,7 +234,7 @@ class LegislationCrawlerService
               end
             end
 
-            Rails.logger.info("  -> Emitting search_started: #{category} (#{input_text[0..40]}...)")
+            Rails.logger.info("  🔍 SEARCH_STARTED: category=#{category}, query=#{input_text[0..60]}")
             emit(:search_started, operation_id: operation_id, category: category, query: input_text, index: search_count, total: 6)
           end
         end
@@ -223,6 +242,7 @@ class LegislationCrawlerService
 
       # Clear current_search_id on block end
       if event.type == 'content_block_stop'
+        Rails.logger.info("  ← BLOCK STOP (index: #{event.index})")
         current_search_id = nil
       end
 
@@ -230,15 +250,53 @@ class LegislationCrawlerService
       if event.type == 'message_delta' && event.delta.respond_to?(:usage)
         input_tokens = event.delta.usage.input_tokens || 0
         output_tokens = event.delta.usage.output_tokens || 0
-        Rails.logger.info("  -> Emitting tokens: #{input_tokens} input, #{output_tokens} output")
+        Rails.logger.info("  📊 TOKENS: input=#{input_tokens}, output=#{output_tokens}")
         emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
+      end
+
+      # Message start/stop
+      if event.type == 'message_start'
+        Rails.logger.info("  📨 MESSAGE_START: model=#{event.message.model if event.message.respond_to?(:model)}")
+      end
+
+      if event.type == 'message_stop'
+        Rails.logger.info("  📨 MESSAGE_STOP: stop_reason=#{event.message.stop_reason if event.message.respond_to?(:stop_reason)}")
       end
 
       collector.add_event(event)
     end
 
-    Rails.logger.info("Stream completed with #{event_count} events, #{collector.content.length} content blocks, #{search_count} searches")
+    Rails.logger.info("\n" + "="*80)
+    Rails.logger.info("STREAM SUMMARY:")
+    Rails.logger.info("  Total events: #{event_count}")
+    Rails.logger.info("  Content blocks: #{collector.content.length}")
+    Rails.logger.info("  Web searches detected: #{search_count}")
+    Rails.logger.info("="*80 + "\n")
+
     collector
+  end
+
+  private def log_event_details(event, count)
+    case event.type
+    when 'content_block_start'
+      Rails.logger.info("▶ [Event ##{count}] CONTENT_BLOCK_START - type: #{event.content_block&.type}")
+    when 'content_block_delta'
+      delta_keys = []
+      delta_keys << 'thinking' if event.delta.respond_to?(:thinking) && event.delta.thinking
+      delta_keys << 'text' if event.delta.respond_to?(:text) && event.delta.text
+      delta_keys << 'input' if event.delta.respond_to?(:input) && event.delta.input
+      Rails.logger.info("▪ [Event ##{count}] CONTENT_BLOCK_DELTA - contains: #{delta_keys.join(', ')}")
+    when 'content_block_stop'
+      Rails.logger.info("◀ [Event ##{count}] CONTENT_BLOCK_STOP - index: #{event.index}")
+    when 'message_start'
+      Rails.logger.info("📬 [Event ##{count}] MESSAGE_START - model: #{event.message&.model}")
+    when 'message_delta'
+      Rails.logger.info("📊 [Event ##{count}] MESSAGE_DELTA - usage available: #{event.delta.respond_to?(:usage)}")
+    when 'message_stop'
+      Rails.logger.info("📭 [Event ##{count}] MESSAGE_STOP - stop_reason: #{event.message&.stop_reason}")
+    else
+      Rails.logger.info("? [Event ##{count}] #{event.type.upcase}")
+    end
   end
 
   def build_system_prompt(crawl_type, existing_count)
