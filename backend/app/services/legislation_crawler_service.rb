@@ -251,7 +251,9 @@ class LegislationCrawlerService
           end
         elsif block.type == :thinking
           thinking_text = block.thinking.to_s.strip
+          Rails.logger.info("Got thinking block: #{thinking_text.length} chars")
           if thinking_text.length > 0
+            Rails.logger.info("Emitting thinking block")
             emit(:thinking, text: thinking_text, is_summary: false)
           end
         end
@@ -272,7 +274,9 @@ class LegislationCrawlerService
         messages << { role: "user", content: tool_results }
       end
 
-      emit(:phase, message: "Waiting for Claude to analyze results...")
+      if iteration > 1
+        emit(:phase, message: "Waiting for Claude to analyze results...")
+      end
       start_time = Time.current
 
       begin
