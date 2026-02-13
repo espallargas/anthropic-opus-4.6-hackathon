@@ -68,7 +68,6 @@ class LegislationCrawlerService
     system_prompt = build_system_prompt(crawl_type, existing_count)
 
     # Call Claude Opus 4.6 with web_search tool
-    emit(:phase, message: "Invoking Claude Opus 4.6 to search legislation")
     results = call_claude_crawler(system_prompt)
 
     # Save results to database
