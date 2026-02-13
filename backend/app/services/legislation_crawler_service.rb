@@ -187,6 +187,7 @@ class LegislationCrawlerService
     web_search_count = 0
     max_web_searches = 6
     current_operation_id = nil
+    max_searches_reached = false
 
     while iteration < max_iterations
       iteration += 1
@@ -226,7 +227,10 @@ class LegislationCrawlerService
             end
 
             if web_search_count > max_web_searches
-              emit(:phase, message: "Maximum web searches reached (6/6)")
+              if !max_searches_reached
+                emit(:phase, message: "Maximum web searches reached (6/6)")
+                max_searches_reached = true
+              end
               tool_result = { error: "Maximum web search limit reached (6)", results: [] }.to_json
             else
               current_operation_id = next_operation_id
