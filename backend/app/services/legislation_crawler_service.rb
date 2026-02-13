@@ -346,22 +346,6 @@ class LegislationCrawlerService
           thinking: {
             type: "adaptive"
           },
-          tools: [
-            {
-              name: "web_search",
-              description: "Search the web for information",
-              input_schema: {
-                type: "object",
-                properties: {
-                  query: {
-                    type: "string",
-                    description: "The search query"
-                  }
-                },
-                required: ["query"]
-              }
-            }
-          ],
           system_: system_prompt,
           messages: messages
         )
@@ -400,36 +384,82 @@ class LegislationCrawlerService
 
   def build_user_prompt
     <<~PROMPT
-      CRITICAL: You MUST use the web_search tool to research immigration legislation for #{@country.name}.
+      # Research Immigration Legislation for #{@country.name}
 
-      DO NOT generate fake data. DO NOT skip web_search calls.
+      ## CRITICAL REQUIREMENTS
 
-      You MUST execute exactly these 6 web_search calls (in parallel if possible):
+      ❌ DO NOT generate fake data
+      ❌ DO NOT return empty results
+      ❌ DO NOT skip any of the 6 required searches
+      ❌ DO NOT include generic or non-official law names
+      ✅ YOU MUST use web_search to find real legislation
+      ✅ YOU MUST execute searches for ALL 6 categories
+      ✅ YOU MUST compile results into the exact JSON format below
 
-      1. web_search("#{@country.name} immigration federal law constitution")
-      2. web_search("#{@country.name} immigration regulations official procedures")
-      3. web_search("#{@country.name} visa requirements embassy consular")
-      4. web_search("#{@country.name} immigration regional provincial rules")
-      5. web_search("#{@country.name} immigration health requirements")
-      6. web_search("#{@country.name} immigration statistics quotas occupation")
+      ## STEP 1: Execute Web Searches
 
-      AFTER completing all 6 searches, compile results into this JSON format:
+      You WILL use web_search for EACH of these 6 categories. Execute searches in this order:
+
+      1. **Federal Laws & Constitutional Provisions**
+         Query: "#{@country.name} main immigration law constitution national"
+
+      2. **Official Regulations & Procedures**
+         Query: "#{@country.name} immigration ministry official regulations procedures"
+
+      3. **Visa Requirements & Embassy Procedures**
+         Query: "#{@country.name} visa requirements documents embassy consular"
+
+      4. **Regional/Provincial Immigration Rules**
+         Query: "#{@country.name} regional provincial immigration rules jurisdiction"
+
+      5. **Health Requirements & Complementary Laws**
+         Query: "#{@country.name} immigration health requirements vaccines medical"
+
+      6. **Statistics, Quotas & Occupational Lists**
+         Query: "#{@country.name} immigration statistics quotas occupation demand"
+
+      For each search:
+      - Use the suggested query or formulate a better one if needed
+      - Wait for results
+      - Extract laws with specific names, numbers, and dates
+      - Record the source URL from search results
+
+      ## STEP 2: Compile Results into JSON
+
+      After completing ALL 6 searches, return ONLY this JSON (no other text before or after):
 
       {
-        "federal_laws": [{"title": "Law Name/Number", "summary": "...", "source_url": "...", "date_effective": "YYYY-MM-DD"}],
-        "regulations": [...],
+        "federal_laws": [
+          {"title": "Official Law Name/Reference (Year)", "summary": "2-3 sentence description", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
+        ],
+        "regulations": [
+          {"title": "...", "summary": "...", "source_url": "...", "date_effective": "..."}
+        ],
         "consular": [...],
         "jurisdictional": [...],
         "complementary": [...],
         "auxiliary": [...]
       }
 
-      Rules:
-      - ONLY use real search results, never fabricate
-      - Include 1-3 high-quality entries per category
-      - Use official law names and reference numbers
-      - Verify results are actually from #{@country.name}
-      - Return ONLY the JSON, no other text
+      ## RULES
+
+      - ONLY include laws actually found via web_search (verified sources)
+      - Use EXACT official law names with reference numbers (e.g., "Lei 13.445/2017")
+      - Include 1-3 quality entries per category (better few & good than many & generic)
+      - Dates in YYYY-MM-DD format (use 2024-01-01 if exact date unknown)
+      - source_url MUST be a real URL from search results
+      - Reject generic titles like "Immigration Law" or "Regulations 2024"
+      - Reject laws from other countries (verify country match)
+      - Empty arrays only if NO legislation found for category
+      - Return ONLY valid JSON, no explanations
+
+      ## Existing Legislation to Avoid Duplicates
+
+      Current database for #{@country.name}:
+      #{@country.legislations.pluck(:title, :date_effective).map { |t, d| "- #{t} (#{d})" }.join("\n")}
+
+      If you find the exact same title + same date = skip (duplicate)
+      If you find same title + newer date = include as UPDATE
     PROMPT
   end
 
