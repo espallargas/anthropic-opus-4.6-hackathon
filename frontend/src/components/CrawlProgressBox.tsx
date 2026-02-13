@@ -205,11 +205,16 @@ export function CrawlProgressBox({
 
                 // Update UI with smooth transitions
                 setTimeout(() => {
-                  if (currentStatus && currentStatus.status === 'in-progress') {
-                    const completedItem = { ...currentStatus, status: 'done' }
-                    setCompletedItems((prev) => [...prev, completedItem])
+                  // Special handling for thinking blocks: add to completed items instead of replacing currentStatus
+                  if (data.type === 'thinking') {
+                    setCompletedItems((prev) => [...prev, progressItem])
+                  } else {
+                    if (currentStatus && currentStatus.status === 'in-progress') {
+                      const completedItem = { ...currentStatus, status: 'done' }
+                      setCompletedItems((prev) => [...prev, completedItem])
+                    }
+                    setCurrentStatus(progressItem)
                   }
-                  setCurrentStatus(progressItem)
 
                   // Handle special cases
                   if (data.type === 'complete') {
