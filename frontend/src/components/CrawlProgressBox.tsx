@@ -261,7 +261,7 @@ export function CrawlProgressBox({
   }, [countryCode])
 
   return (
-    <div className="flex h-[700px] w-[1000px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div>
@@ -282,9 +282,9 @@ export function CrawlProgressBox({
       </div>
 
       {/* Main content - 3 column layout */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left: Thinking panel (33%) */}
-        <div className="w-1/3 border-r border-white/10">
+      <div className="flex min-h-0 flex-1 overflow-hidden gap-0">
+        {/* Left: Thinking panel (35%) */}
+        <div className="flex-none w-[35%] border-r border-white/10 overflow-hidden">
           <ThinkingPanel
             thinkingText={thinkingText}
             inputTokens={inputTokens}
@@ -292,18 +292,20 @@ export function CrawlProgressBox({
           />
         </div>
 
-        {/* Middle: Claude Output (33%) */}
-        <div className="w-1/3 border-r border-white/10">
+        {/* Middle: Claude Output (35%) */}
+        <div className="flex-none w-[35%] border-r border-white/10 overflow-hidden">
           <ClaudeOutputPanel outputText={claudeOutputText} />
         </div>
 
-        {/* Right: Categories + status (34%) */}
-        <div className="flex w-1/3 flex-col">
-          <CategoriesPanel categories={categories} />
+        {/* Right: Categories + status (30%) */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <CategoriesPanel categories={categories} />
+          </div>
 
           {/* Status messages footer */}
           {statusMessages.length > 0 && (
-            <div className="max-h-24 overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
+            <div className="flex-none max-h-24 overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
               <div className="space-y-1">
                 {statusMessages.slice(-3).map((msg, idx) => (
                   <div key={idx} className="flex items-start gap-2 text-white/60">
