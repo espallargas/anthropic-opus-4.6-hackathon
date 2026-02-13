@@ -168,8 +168,6 @@ export function CrawlProgressBox({
     }
     crawlStartedRef.current = true
 
-    let isMounted = true
-
     const startCrawl = async () => {
       try {
         console.log(`[CrawlProgressBox] ✅ Starting crawl for ${countryCode}`)
@@ -230,12 +228,8 @@ export function CrawlProgressBox({
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                console.log(`[SSE received] type=${data.type}, isMounted=${isMounted}`)
-                if (isMounted) {
-                  processMessage(data)
-                } else {
-                  console.warn(`[SSE skipped] component unmounted, skipping message type=${data.type}`)
-                }
+                console.log(`[SSE received] type=${data.type}`)
+                processMessage(data)
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
               }
@@ -257,10 +251,6 @@ export function CrawlProgressBox({
     }
 
     startCrawl()
-
-    return () => {
-      isMounted = false
-    }
   }, [countryCode, processMessage, onComplete])
 
 
