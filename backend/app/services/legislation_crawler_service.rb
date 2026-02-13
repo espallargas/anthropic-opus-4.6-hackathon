@@ -288,8 +288,7 @@ class LegislationCrawlerService
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
-            type: "adaptive",
-            budget_tokens: 10000  # Extended thinking budget for deeper analysis
+            type: "adaptive"
           },
           system_: system_prompt,
           messages: messages
@@ -457,8 +456,7 @@ class LegislationCrawlerService
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
-            type: "adaptive",
-            budget_tokens: 10000  # Extended thinking budget for deeper analysis
+            type: "adaptive"
           },
           system_: system_prompt,
           messages: messages
