@@ -207,7 +207,9 @@ export function CrawlProgressBox({
                 // Update UI with smooth transitions
                 setTimeout(() => {
                   if (currentStatus && currentStatus.status === 'in-progress') {
-                    setCompletedItems((prev) => [...prev, { ...currentStatus, status: 'done' }])
+                    const completedItem = { ...currentStatus, status: 'done' }
+                    console.log(`[MOVE TO COMPLETED] type: ${completedItem.type}, has text: ${!!completedItem.text}`)
+                    setCompletedItems((prev) => [...prev, completedItem])
                   }
                   setCurrentStatus(progressItem)
 
