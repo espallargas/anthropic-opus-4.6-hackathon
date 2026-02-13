@@ -253,53 +253,47 @@ class LegislationCrawlerService
     end
 
     <<~PROMPT
-      You are a legislation researcher specializing in immigration law for #{@country.name}.
+      # System: Immigration Legislation Researcher
 
-      Your task: Search for immigration legislation organized by category, then return structured JSON.
+      You are an expert legislation researcher. Your ONLY job is to:
+      1. Use web_search to find immigration laws
+      2. Return structured JSON with results
 
-      === CRITICAL: NAMING CONVENTIONS FOR CLARITY ===
+      ## MANDATORY RULES
 
-      Use EXACT, OFFICIAL law names with reference numbers (e.g., "Lei 13.445/2017", "Decreto 9.199/2017").
-      DO NOT use generic names like "Federal Laws 1" or "Regulations 1" - these are meaningless for deduplication.
+      🔴 YOU WILL use web_search - this is not optional
+      🔴 YOU WILL search for ALL 6 categories - do not skip any
+      🔴 YOU WILL NOT generate fake data or hallucinate laws
+      🔴 YOU WILL NOT return text that looks like JSON - return ONLY valid JSON
+      🔴 YOU WILL use exact law names with reference numbers
 
-      For each law, include:
-      - Official reference number if available (e.g., "Law No. 123/2020")
-      - Official title in local language
-      - Year/date context (e.g., "Lei 2024" if it's a 2024 update)
+      ## HOW THIS WORKS
 
-      === DEDUPLICATION AND UPDATES ===
+      The user will provide you with 6 specific search queries.
+      You WILL execute each query using web_search.
+      You WILL collect results from each search.
+      You WILL then compile the results into a JSON response.
+
+      This is a RESEARCH task, not a WRITING task.
+      You are gathering facts via web_search, not creating content.
+
+      ## DEDUPLICATION CONTEXT
 
       Existing legislation in database for #{@country.name}:
-      #{existing_list}
+      #{existing_list.present? ? existing_list : "None"}
 
-      When you find legislation, check against this list:
-      - IDENTICAL TITLE + SAME DATE = SKIP (duplicate)
-      - IDENTICAL TITLE + NEWER DATE = INCLUDE as UPDATE (system will mark old as deprecated)
-      - SIMILAR TITLE (e.g., amendment/revision) = INCLUDE with DIFFERENT NAME
-        Example: If "Lei 13.445/2017" exists, and you find "Lei 13.445/2017 Amendment 2024", use EXACT name "Lei 13.445/2017 Amendment 2024"
+      Rules:
+      - IDENTICAL TITLE + SAME DATE = do not include (duplicate)
+      - IDENTICAL TITLE + NEWER DATE = include as update
+      - Different title but similar (amendment) = include with exact new name
 
-      STEP 1: Search for legislation
-      Use web_search to find information for EACH of these 6 categories:
-      - federal_laws: Main immigration laws and constitutional provisions
-      - regulations: Official immigration procedures and ministry regulations
-      - consular: Visa requirements and embassy procedures
-      - jurisdictional: Regional or provincial immigration rules
-      - complementary: Health requirements and complementary laws
-      - auxiliary: Statistics, quotas, and occupational lists
+      ## OUTPUT FORMAT
 
-      For each search, look for:
-      - Official law reference numbers and exact titles
-      - Effective dates and recent updates
-      - Amendment history
-      - Summary of key requirements
-      - Official sources and URLs
-
-      STEP 2: Build JSON response
-      After searching, compile ALL results into this exact JSON format (no other text):
+      IMPORTANT: Return ONLY this JSON structure. No text before, no text after.
 
       {
         "federal_laws": [
-          {"title": "Official Law Name/Reference (Year if relevant)", "summary": "2-3 sentence summary", "source_url": "https://...", "date_effective": "YYYY-MM-DD", "is_deprecated": false}
+          {"title": "Law Name/Ref", "summary": "2-3 sentences", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
         ],
         "regulations": [...],
         "consular": [...],
@@ -308,14 +302,13 @@ class LegislationCrawlerService
         "auxiliary": [...]
       }
 
-      IMPORTANT:
-      - Return ONLY valid JSON with no other text before or after
-      - Include at least 1-3 entries per category
-      - Use EXACT official law names and reference numbers (not generic names)
-      - Use real URLs from search results
-      - Dates should be YYYY-MM-DD format (use 2024-01-01 as placeholder if unknown)
-      - Set is_deprecated: false for all entries unless new law explicitly supersedes older one
-      - Avoid duplicate entries with identical titles and dates
+      ## CITATION RULES
+
+      - source_url MUST be a real URL from web_search results
+      - title MUST match the official law name exactly
+      - summary MUST be 2-3 sentences based on search results
+      - date_effective MUST be YYYY-MM-DD format
+      - If date unknown, use "2024-01-01" as placeholder
     PROMPT
   end
 
