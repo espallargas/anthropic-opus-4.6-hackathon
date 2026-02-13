@@ -76,6 +76,7 @@ export function AdminPage() {
       {/* Crawl progress panel */}
       {crawlInProgress && selectedCountryCode && (
         <CrawlProgressBox
+          key={`crawl-${selectedCountryCode}`}
           countryCode={selectedCountryCode}
           countryName={selectedCountryName || ''}
           onComplete={handleCrawlComplete}

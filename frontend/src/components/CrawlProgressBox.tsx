@@ -162,14 +162,14 @@ export function CrawlProgressBox({
   useEffect(() => {
     // Prevent double-firing in React Strict Mode
     if (crawlStartedRef.current) {
-      console.log(`[CrawlProgressBox] Crawl already started, skipping duplicate`)
+      console.warn(`[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}, skipping`)
       return
     }
     crawlStartedRef.current = true
 
     const startCrawl = async () => {
       try {
-        console.log(`[CrawlProgressBox] Starting crawl for ${countryCode}`)
+        console.log(`[CrawlProgressBox] ✅ Starting crawl for ${countryCode}`)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
 
