@@ -6,14 +6,12 @@ import { timeAgo } from '@/lib/time'
 
 interface CountryListItemProps {
   country: Country
-  isSelected: boolean
   onCrawlStart: (code: string, name: string) => void
   docCount?: number
 }
 
 export function CountryListItem({
   country,
-  isSelected,
   onCrawlStart,
   docCount,
 }: CountryListItemProps) {

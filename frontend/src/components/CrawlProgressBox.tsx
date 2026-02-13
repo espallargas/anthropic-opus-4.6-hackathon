@@ -4,8 +4,6 @@ import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 interface CrawlProgressBoxProps {
   countryCode: string
   countryName: string
-  messages: string[]
-  setMessages: (messages: string[]) => void
   onComplete: () => void
   onDocCountUpdate?: (count: number) => void
 }
@@ -33,8 +31,6 @@ interface SSEMessage {
 export function CrawlProgressBox({
   countryCode,
   countryName,
-  messages,
-  setMessages,
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
@@ -45,7 +41,14 @@ export function CrawlProgressBox({
   const scrollRef = useRef<HTMLDivElement>(null)
   const crawlStartedRef = useRef(false)
 
-  const memoizedOnDocCountUpdate = useCallback(onDocCountUpdate, [onDocCountUpdate])
+  const memoizedOnDocCountUpdate = useCallback(
+    (count: number) => {
+      if (onDocCountUpdate) {
+        onDocCountUpdate(count)
+      }
+    },
+    [onDocCountUpdate]
+  )
 
   // Auto-scroll to bottom when new items appear
   useEffect(() => {
@@ -208,7 +211,7 @@ export function CrawlProgressBox({
                   // Handle special cases
                   if (data.type === 'complete') {
                     setDocumentCount(data.document_count || 0)
-                    memoizedOnDocCountUpdate?.(data.document_count || 0)
+                    memoizedOnDocCountUpdate(data.document_count || 0)
                     setIsComplete(true)
                     setTimeout(() => onComplete(), 1200)
                   } else if (data.type === 'error') {

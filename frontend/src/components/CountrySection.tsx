@@ -4,7 +4,6 @@ import type { Country } from '@/lib/api'
 interface CountrySectionProps {
   title: string
   countries: Country[]
-  selectedCountryCode: string | null
   onCrawlStart: (code: string, name: string) => void
   liveDocCount?: Record<string, number>
 }
@@ -12,7 +11,6 @@ interface CountrySectionProps {
 export function CountrySection({
   title,
   countries,
-  selectedCountryCode,
   onCrawlStart,
   liveDocCount = {},
 }: CountrySectionProps) {
@@ -28,7 +26,6 @@ export function CountrySection({
           <CountryListItem
             key={country.code}
             country={country}
-            isSelected={country.code === selectedCountryCode}
             onCrawlStart={onCrawlStart}
             docCount={liveDocCount[country.code]}
           />

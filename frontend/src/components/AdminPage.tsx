@@ -8,14 +8,12 @@ export function AdminPage() {
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
   const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null)
   const [crawlInProgress, setCrawlInProgress] = useState(false)
-  const [crawlMessages, setCrawlMessages] = useState<string[]>([])
   const [liveDocCount, setLiveDocCount] = useState<Record<string, number>>({})
 
   const handleCrawlStart = useCallback((code: string, name: string) => {
     setSelectedCountryCode(code)
     setSelectedCountryName(name)
     setCrawlInProgress(true)
-    setCrawlMessages([])
   }, [])
 
   const handleDocCountUpdate = useCallback((code: string, count: number) => {
@@ -26,11 +24,6 @@ export function AdminPage() {
     setCrawlInProgress(false)
     refetch()
   }, [refetch])
-
-  // Get effective doc count from live updates or from data
-  const getDocCount = (country: any) => {
-    return liveDocCount[country.code] ?? country.legislation_count
-  }
 
   if (loading) {
     return (
@@ -57,7 +50,6 @@ export function AdminPage() {
               <CountrySection
                 title="Active"
                 countries={active}
-                selectedCountryCode={selectedCountryCode}
                 onCrawlStart={handleCrawlStart}
                 liveDocCount={liveDocCount}
               />
@@ -70,7 +62,6 @@ export function AdminPage() {
               <CountrySection
                 title="Pending"
                 countries={pending}
-                selectedCountryCode={selectedCountryCode}
                 onCrawlStart={handleCrawlStart}
                 liveDocCount={liveDocCount}
               />
@@ -84,8 +75,6 @@ export function AdminPage() {
         <CrawlProgressBox
           countryCode={selectedCountryCode}
           countryName={selectedCountryName || ''}
-          messages={crawlMessages}
-          setMessages={setCrawlMessages}
           onComplete={handleCrawlComplete}
           onDocCountUpdate={(count) => handleDocCountUpdate(selectedCountryCode!, count)}
         />

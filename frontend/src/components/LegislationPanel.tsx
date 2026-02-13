@@ -17,7 +17,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   auxiliary: 'Auxiliary Information',
 }
 
-export function LegislationPanel({ countryCode, isOpen, onToggle }: LegislationPanelProps) {
+export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps) {
   const [legislations, setLegislations] = useState<Record<string, Legislation[]>>({})
   const [loading, setLoading] = useState(false)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
