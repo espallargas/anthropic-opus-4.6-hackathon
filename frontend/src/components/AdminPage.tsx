@@ -1,5 +1,5 @@
 import { useAdminCountries } from '@/hooks/useAdminCountries'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { CountrySection } from './CountrySection'
 import { CrawlProgressBox } from './CrawlProgressBox'
 
@@ -11,21 +11,21 @@ export function AdminPage() {
   const [crawlMessages, setCrawlMessages] = useState<string[]>([])
   const [liveDocCount, setLiveDocCount] = useState<Record<string, number>>({})
 
-  const handleCrawlStart = (code: string, name: string) => {
+  const handleCrawlStart = useCallback((code: string, name: string) => {
     setSelectedCountryCode(code)
     setSelectedCountryName(name)
     setCrawlInProgress(true)
     setCrawlMessages([])
-  }
+  }, [])
 
-  const handleDocCountUpdate = (code: string, count: number) => {
+  const handleDocCountUpdate = useCallback((code: string, count: number) => {
     setLiveDocCount((prev) => ({ ...prev, [code]: count }))
-  }
+  }, [])
 
-  const handleCrawlComplete = () => {
+  const handleCrawlComplete = useCallback(() => {
     setCrawlInProgress(false)
     refetch()
-  }
+  }, [refetch])
 
   // Get effective doc count from live updates or from data
   const getDocCount = (country: any) => {
@@ -83,9 +83,11 @@ export function AdminPage() {
       {crawlInProgress && selectedCountryCode && (
         <CrawlProgressBox
           countryCode={selectedCountryCode}
+          countryName={selectedCountryName || ''}
           messages={crawlMessages}
           setMessages={setCrawlMessages}
           onComplete={handleCrawlComplete}
+          onDocCountUpdate={(count) => handleDocCountUpdate(selectedCountryCode!, count)}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 class LegislationCrawlerService
   MODEL = 'claude-opus-4-6'
-  MAX_TOKENS = 4096
+  MAX_TOKENS = 16000  # Increased to accommodate thinking budget
 
   CATEGORIES = {
     federal_laws: "Federal Laws",
@@ -20,34 +20,50 @@ class LegislationCrawlerService
     auxiliary: "immigration statistics occupation demand"
   }.freeze
 
+  SEARCH_DESCRIPTIONS = {
+    federal_laws: "main immigration laws and constitutional provisions",
+    regulations: "official regulations and procedures",
+    consular: "visa requirements and embassy procedures",
+    jurisdictional: "regional and provincial immigration rules",
+    complementary: "health requirements and complementary laws",
+    auxiliary: "statistics, quotas and occupational lists"
+  }.freeze
+
   def initialize(country, sse = nil)
     @country = country
     @sse = sse
     @client = Rails.application.config.x.anthropic
   end
 
+  # Single unified emit method - type-safe with schema validation
+  def emit(type, **data)
+    message = SSEMessageSchema.format(type, data)
+    @sse&.write(message)
+  end
+
   def crawl
-    emit("🌍 Starting crawl for #{@country.name}...")
+    emit(:phase, message: "Starting crawl for #{@country.name}")
 
     existing_count = @country.legislations.count
     crawl_type = @country.last_crawled_at.nil? ? "first_crawl" : "update_search"
 
-    emit("📋 Crawl type: #{crawl_type}")
-    emit("📚 Found #{existing_count} existing legislations")
+    emit(:phase, message: "Crawl type: #{crawl_type}")
+    emit(:phase, message: "Found #{existing_count} existing legislations")
 
     # Build system prompt
     system_prompt = build_system_prompt(crawl_type, existing_count)
 
     # Call Claude Opus 4.6 with web_search tool
-    emit("🤖 Invoking Claude Opus 4.6 to search legislation...")
+    emit(:phase, message: "Invoking Claude Opus 4.6 to search legislation")
     results = call_claude_crawler(system_prompt)
 
     # Save results to database
-    emit("💾 Saving results to database...")
+    emit(:phase, message: "Saving results to database")
     save_results(results)
 
     @country.update!(last_crawled_at: Time.current)
-    emit("✅ Crawl complete: #{results.values.sum { |docs| docs.count }} documents stored")
+    total_docs = results.values.sum { |docs| docs.is_a?(Array) ? docs.count : 0 }
+    emit(:complete, message: "Crawl complete", document_count: total_docs)
   end
 
   private
@@ -131,7 +147,7 @@ class LegislationCrawlerService
   end
 
   def call_claude_crawler(system_prompt)
-    emit("🤖 Invoking Claude Opus 4.6 Agent...")
+    emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
 
     messages = [
       {
@@ -143,6 +159,9 @@ class LegislationCrawlerService
     response = @client.messages.create(
       model: MODEL,
       max_tokens: MAX_TOKENS,
+      thinking: {
+        type: "adaptive"
+      },
       system_: system_prompt,
       tools: Tools::Definitions::TOOLS,
       messages: messages
@@ -151,14 +170,16 @@ class LegislationCrawlerService
     # Process tool use calls and continue conversation
     all_results = {}
     iteration = 0
-    max_iterations = 10
+    max_iterations = 8
+    web_search_count = 0
+    max_web_searches = 6
 
     while iteration < max_iterations
       iteration += 1
 
       # Check if we got a stop reason
       if response.stop_reason == "end_turn"
-        emit("✅ Claude Agent: Search complete (no more tool calls)")
+        emit(:phase, message: "Search complete")
         break
       end
 
@@ -172,32 +193,43 @@ class LegislationCrawlerService
           tool_name = block.name
 
           if tool_name == "web_search"
-            emit("🤖 Claude Agent: Calling web_search tool")
-          else
-            emit("🤖 Claude Agent: Calling #{tool_name} tool")
-          end
+            web_search_count += 1
+            category = determine_category_from_input(block.input)
+            category_label = SEARCH_DESCRIPTIONS[category] || "legislation"
+            query = if block.input.is_a?(Hash)
+              (block.input['query'] || block.input[:query])
+            else
+              block.input.to_s
+            end
 
-          # Execute the tool
-          tool_result = Tools::Executor.call(block.name, block.input)
+            if web_search_count > max_web_searches
+              tool_result = { error: "Maximum web search limit reached (6)", results: [] }.to_json
+            else
+              emit(:search, count: web_search_count, total: max_web_searches, category: category_label, query: query)
+              # Execute the tool
+              tool_result = Tools::Executor.call(block.name, block.input)
+            end
+          else
+            tool_result = Tools::Executor.call(block.name, block.input)
+          end
 
           # Parse and collect results
           if block.name == "web_search"
             category = determine_category_from_input(block.input)
+            category_label = SEARCH_DESCRIPTIONS[category] || "legislation"
 
             begin
               data = JSON.parse(tool_result)
-              if data.is_a?(Hash) && data['results']
+              if data.is_a?(Hash) && data['results'] && data['results'].any?
                 if category
                   all_results[category] = data
-                  emit("  ✓ web_search returned #{data['results'].length} results (#{category})")
-                else
-                  emit("  ⚠ Could not detect category from search")
+                  emit(:search_result, result_count: data['results'].length)
+                elsif web_search_count <= max_web_searches
+                  emit(:warning, message: 'Could not detect category from search')
                 end
-              else
-                emit("  ⚠ Unexpected response format from web_search")
               end
             rescue JSON::ParserError
-              emit("  ⚠ Failed to parse web_search response")
+              emit(:error, message: 'Failed to parse web_search response')
             end
           end
 
@@ -207,7 +239,14 @@ class LegislationCrawlerService
             content: tool_result
           }
         elsif block.type == :text
-          emit("💬 Claude: #{block.text[0..60]}...")
+          if block.text.length > 0
+            emit(:claude_text, text: block.text)
+          end
+        elsif block.type == :thinking
+          thinking_text = block.thinking.to_s.strip
+          if thinking_text.length > 0
+            emit(:thinking, text: thinking_text, is_summary: false)
+          end
         end
       end
 
@@ -215,30 +254,38 @@ class LegislationCrawlerService
       break unless has_tool_use
 
       # Continue conversation with tool results
+      emit(:phase, message: "Analyzing results")
       messages << { role: "assistant", content: response.content }
       messages << { role: "user", content: tool_results }
 
+      emit(:phase, message: "Thinking about next steps")
+      start_time = Time.current
       response = @client.messages.create(
         model: MODEL,
         max_tokens: MAX_TOKENS,
+        thinking: {
+          type: "adaptive"
+        },
         system_: system_prompt,
         tools: Tools::Definitions::TOOLS,
         messages: messages
       )
+      elapsed = ((Time.current - start_time) * 1000).round
+      emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
     end
 
     # Generate legislation from collected search results
-    emit("⚙️ Processing search results from agent...")
+    emit(:phase, message: "Processing search results")
     legislation_results = generate_legislation_from_searches(all_results)
 
     doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
-    emit("✅ Processed #{doc_count} documents from agent search results")
+    emit(:phase, message: "Preparing database save", document_count: doc_count)
 
     legislation_results
   end
 
   def determine_category_from_input(input)
-    # Extract query text - Anthropic uses symbol keys in Hash
+    # Extract query text
     query_text = if input.is_a?(Hash)
       (input[:query] || input['query']).to_s
     elsif input.respond_to?(:query)
@@ -252,15 +299,12 @@ class LegislationCrawlerService
     query_lower = query_text.downcase
 
     # Match category by finding the search term from SEARCH_QUERIES in the query
-    # Returns the category that matches (prefer longer matches)
     best_match = nil
     best_match_length = 0
 
     SEARCH_QUERIES.each do |category, search_term|
       search_lower = search_term.downcase
-      # Check if the search term appears as consecutive words in the query
       if query_lower.include?(search_lower)
-        # Prefer longer matches (more specific)
         if search_lower.length > best_match_length
           best_match = category
           best_match_length = search_lower.length
@@ -286,11 +330,21 @@ class LegislationCrawlerService
       5. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:complementary]}"
       6. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:auxiliary]}"
 
+      CRITICAL FILTERING RULES - REJECT generic/placeholder titles:
+      ❌ REJECT titles like: "Official Legislation", "Regulations and Procedures", "2024 Updates", "Immigration Procedures"
+      ❌ REJECT titles that start with just a dash "-" or are single words
+      ❌ REJECT titles without a law number or specific name
+      ✅ ACCEPT titles like: "Lei 13.445/2017", "Decreto 9.199/2017", "Resolution No. 123", "Constitutional Amendment 45/2019"
+
+      If search results only contain generic placeholders, do NOT use them. Return empty results for that category instead.
+      Better to have no results than misleading generic ones.
+
       IMPORTANT:
       - Search results should contain SPECIFIC law names and reference numbers
       - Do not accept generic results like "Official Legislation 2024"
-      - Only use search results that include real law names
+      - Only use search results that include real law names with proper reference numbers
       - Make sure to use the web_search tool for each query. Do not skip any categories.
+      - Prefer results with: year/number, official source, and descriptive title
     PROMPT
   end
 
@@ -311,12 +365,15 @@ class LegislationCrawlerService
         results_array = data.is_a?(Hash) ? data['results'] || data['data'] || [] : data
 
         results_array.each_with_index do |item, idx|
-          # Use the title from search result directly, it should be a proper law name
-          # If it's too generic, add category prefix for clarity
+          # Use the title from search result directly
           title = item['title'].to_s.strip
-          if title.blank? || title =~ /^\d+$/ || title =~ /^(Official|Legislation|Procedure)/i
-            # Fallback to prefixed title only if search result is too generic
-            title = "#{CATEGORIES[category]} #{idx + 1}: #{title}"
+
+          # Skip very generic/placeholder titles
+          if title.blank? || title =~ /^\d+$/ ||
+             title =~ /^(Official|Legislation|Procedure|Regulations|Updates|Rules|Immigration|Law|Document)/i ||
+             title =~ /^-\s/ ||
+             title =~ /^\w+\s+(1|2|3|4|5|6)$/
+            next
           end
 
           results[category] << {
@@ -330,8 +387,7 @@ class LegislationCrawlerService
           }
         end
       rescue JSON::ParserError, TypeError, NoMethodError => e
-        # If parsing fails, create placeholder
-        emit("⚠ Could not parse results for #{CATEGORIES[category]}: #{e.class}")
+        # If parsing fails, continue
       end
     end
 
@@ -407,16 +463,13 @@ class LegislationCrawlerService
 
           if new_date && old_date && new_date > old_date
             # Newer version found - mark old as deprecated
-            emit("🔄 Updating: #{doc[:title]} (#{old_date} → #{new_date})")
             legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category }
           else
             # Same or older date - skip as duplicate
-            emit("⏭ Skipping existing: #{doc[:title]}")
             next
           end
         else
           # New legislation
-          emit("📝 Saving: #{doc[:title]}")
           legislations_to_insert << {
             country_id: @country.id,
             category: Legislation.categories[category],
@@ -456,17 +509,6 @@ class LegislationCrawlerService
 
       # Mark old as deprecated
       old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
-      emit("✓ Marked old version as deprecated, linked to new version")
     end
-  end
-
-  def emit(message)
-    return unless @sse.present?
-
-    @sse.write({
-      type: 'crawl_progress',
-      message: message,
-      server_time: Time.current.iso8601(3)
-    })
   end
 end
