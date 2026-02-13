@@ -99,38 +99,65 @@ export function CrawlProgressBox({
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
-    console.log(`[SSE] ${data.type}`, data)
+    console.log(`[SSE] Message type: ${data.type}`, data)
 
     if (data.type === 'thinking') {
-      setThinkingText((prev) => prev + ((data.text as string) || ''))
+      const text = (data.text as string) || ''
+      if (text) {
+        console.log('[THINKING] Updating with:', text.slice(0, 50))
+        setThinkingText((prev) => prev + text)
+      }
     } else if (data.type === 'search_started') {
       const category = data.category as string
+      console.log('[SEARCH_STARTED] Category:', category)
       setCategories((prev) =>
-        prev.map((cat) =>
-          cat.name === category ? { ...cat, status: 'searching' as CategoryStatus } : cat,
-        ),
+        prev.map((cat) => {
+          if (cat.name === category) {
+            console.log('  -> Marking', category, 'as searching')
+            return { ...cat, status: 'searching' as CategoryStatus }
+          }
+          return cat
+        }),
       )
     } else if (data.type === 'search_result') {
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0
+      console.log('[SEARCH_RESULT] Category:', category, 'Count:', resultCount)
       setCategories((prev) =>
-        prev.map((cat) =>
-          cat.name === category ? { ...cat, status: 'done' as CategoryStatus, resultCount } : cat,
-        ),
+        prev.map((cat) => {
+          if (cat.name === category) {
+            console.log('  -> Marking', category, 'as done with', resultCount, 'results')
+            return { ...cat, status: 'done' as CategoryStatus, resultCount }
+          }
+          return cat
+        }),
       )
-    } else if (data.type === 'phase' && data.message) {
-      setStatusMessages((prev) => [...prev, data.message as string])
+    } else if (data.type === 'phase') {
+      const message = data.message as string
+      if (message) {
+        console.log('[PHASE]', message)
+        setStatusMessages((prev) => [...prev, message])
+      }
     } else if (data.type === 'tokens') {
-      setInputTokens((data.input_tokens as number) || 0)
-      setOutputTokens((data.output_tokens as number) || 0)
+      const inputTokens = (data.input_tokens as number) || 0
+      const outputTokens = (data.output_tokens as number) || 0
+      console.log('[TOKENS] Input:', inputTokens, 'Output:', outputTokens)
+      setInputTokens(inputTokens)
+      setOutputTokens(outputTokens)
     } else if (data.type === 'complete') {
-      setDocumentCount((data.document_count as number) || 0)
+      const count = (data.document_count as number) || 0
+      console.log('[COMPLETE] Documents:', count)
+      setDocumentCount(count)
       setIsComplete(true)
       setTimeout(() => onCompleteRef.current(), 1200)
     } else if (data.type === 'batch_saved') {
-      setDocumentCount((data.total_saved as number) || 0)
+      const count = (data.total_saved as number) || 0
+      console.log('[BATCH_SAVED] Total:', count)
+      setDocumentCount(count)
     } else if (data.type === 'error') {
-      setStatusMessages((prev) => [...prev, `Error: ${data.message}`])
+      const msg = data.message as string
+      console.log('[ERROR]', msg)
+      setStatusMessages((prev) => [...prev, `Error: ${msg}`])
       setCategories((prev) =>
         prev.map((cat) =>
           cat.status === 'searching' ? { ...cat, status: 'error' as CategoryStatus } : cat,
@@ -138,6 +165,8 @@ export function CrawlProgressBox({
       )
       setIsComplete(true)
       setTimeout(() => onCompleteRef.current(), 1500)
+    } else {
+      console.log('[SSE] Unhandled message type:', data.type)
     }
   }, [])
 
