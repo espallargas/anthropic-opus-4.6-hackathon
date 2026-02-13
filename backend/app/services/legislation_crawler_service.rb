@@ -384,20 +384,28 @@ class LegislationCrawlerService
 
       You can do additional searches (7-15) to refine results or search for alternative terms if the initial searches don't return good results.
 
-      CRITICAL FILTERING RULES - REJECT generic/placeholder titles:
-      ❌ REJECT titles like: "Official Legislation", "Regulations and Procedures", "2024 Updates", "Immigration Procedures"
+      ⚠️ CRITICAL: YOU ARE SEARCHING FOR #{@country.name.upcase} LEGISLATION ONLY ⚠️
+
+      MANDATORY FILTERING RULES:
+      ❌ REJECT ALL laws that are NOT from #{@country.name}
+      ❌ REJECT Brazilian laws (Lei, Decreto, Constituição Federal)
+      ❌ REJECT German laws (BGB, StGB, etc.)
+      ❌ REJECT any law in Portuguese from Brazil
+      ❌ REJECT any law with "Brasil", "Brazil", "brasileiro" in it
+      ❌ REJECT generic/placeholder titles: "Official Legislation", "Regulations and Procedures", "2024 Updates"
       ❌ REJECT titles that start with just a dash "-" or are single words
       ❌ REJECT titles without a law number or specific name
-      ❌ REJECT titles from OTHER COUNTRIES (e.g., don't include Brazilian laws, German laws, etc. - ONLY #{@country.name} laws)
-      ✅ ACCEPT titles like: "Lei 13.445/2017", "Decreto 9.199/2017", "Resolution No. 123", "Constitutional Amendment 45/2019"
 
-      COUNTRY VERIFICATION:
-      - Verify each result is SPECIFIC to #{@country.name}, not another country
-      - If a search result mentions laws from other countries, REJECT it
-      - Check the source URL to confirm it's from #{@country.name} government domain
+      ✅ ONLY ACCEPT laws that are explicitly from #{@country.name}
+      ✅ Verify each result source URL is from #{@country.name} government domain
+      ✅ Check that the law is applicable in #{@country.name}, not in another country
 
-      If search results only contain generic placeholders or non-#{@country.name} laws, do NOT use them. Return empty results for that category instead.
-      Better to have no results than misleading or incorrect country data.
+      EXAMPLE - IF SEARCHING FOR BELGIUM:
+      ✅ ACCEPT: "Belgian Immigration Law", "Loi sur l'Immigration (Belgium)", "Royal Decree on Entry (Belgium)"
+      ❌ REJECT: "Lei 13.445/2017" (Brazilian), "Constituição Federal" (Brazilian), any Portuguese-language Brazilian law
+
+      If search results only contain laws from OTHER COUNTRIES or generic placeholders, return EMPTY RESULTS for that category.
+      IMPORTANT: Better to have no results than to include wrong country data.
 
       IMPORTANT:
       - Search results should contain SPECIFIC law names and reference numbers
