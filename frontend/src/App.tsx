@@ -1,10 +1,12 @@
 import { Chat } from '@/components/Chat'
 import { SetupForm } from '@/components/SetupForm'
 import { Globe } from '@/components/Globe'
+import { AdminPage } from '@/components/AdminPage'
 import { useEffect, useState } from 'react'
 import { useCable } from './hooks/useCable'
 import { healthCheck } from './lib/api'
 import type { SystemVars } from './hooks/useChat'
+import { useLocation } from 'react-router-dom'
 
 const CONFIG_KEY = 'chat_config'
 
@@ -27,10 +29,15 @@ function saveConfig(config: SystemVars) {
 }
 
 function App() {
+  const location = useLocation()
   const [health, setHealth] = useState<string | null>(null)
   const [healthRtt, setHealthRtt] = useState<number | null>(null)
   const [config, setConfig] = useState<SystemVars | null>(loadConfig)
   const { status, roundTripMs } = useCable()
+
+  if (location.pathname === '/admin') {
+    return <AdminPage />
+  }
 
   useEffect(() => {
     const startMs = Date.now()

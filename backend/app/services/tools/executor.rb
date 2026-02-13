@@ -1,77 +1,57 @@
+require 'net/http'
+require 'json'
+
 module Tools
   class Executor
-    def self.call(name, input)
-      case name
-      when 'search_visa_requirements'
-        search_visa_requirements(input)
-      when 'check_processing_times'
-        check_processing_times(input)
+    def self.call(tool_name, input)
+      case tool_name
+      when 'web_search'
+        web_search(input['query'])
       else
-        { error: "Unknown tool: #{name}" }.to_json
+        { error: "Unknown tool: #{tool_name}" }.to_json
       end
     end
 
-    def self.search_visa_requirements(input)
-      origin = input['origin'] || 'Unknown'
-      destination = input['destination'] || 'Unknown'
-      visa_type = input['visa_type'] || 'general'
+    private
 
+    def self.web_search(query)
+      # Mock web search - in production would use SerpAPI, Google Search API, etc.
+      results = mock_search_results(query)
       {
-        origin: origin,
-        destination: destination,
-        visa_type: visa_type,
-        requirements: {
-          documents: [
-            'Passaporte válido (mínimo 6 meses de validade)',
-            'Formulário de solicitação preenchido',
-            'Foto 3x4 recente (fundo branco)',
-            'Comprovante de meios financeiros',
-            'Seguro saúde/viagem',
-            'Carta convite ou contrato (se aplicável)',
-            'Certidão de antecedentes criminais'
-          ],
-          eligibility: [
-            'Não ter restrições de entrada no país de destino',
-            'Comprovar vínculo com país de origem (se aplicável)',
-            'Atender requisitos específicos do tipo de visto'
-          ],
-          steps: [
-            '1. Reunir documentos necessários',
-            '2. Preencher formulário online',
-            '3. Agendar entrevista no consulado/embaixada',
-            '4. Pagar taxa consular',
-            '5. Comparecer à entrevista',
-            '6. Aguardar decisão'
-          ],
-          fees: {
-            consular_fee: 'EUR 80-120 (varia por tipo)',
-            service_fee: 'EUR 30-50 (centro de vistos)'
-          }
-        }
+        query: query,
+        results: results,
+        status: "success"
       }.to_json
     end
 
-    def self.check_processing_times(input)
-      destination = input['destination'] || 'Unknown'
-      visa_type = input['visa_type'] || 'general'
+    def self.mock_search_results(query)
+      # Return mock legislation data that Claude can parse
+      base_url = "https://example.gov"
+      query_slug = query.parameterize
 
-      {
-        destination: destination,
-        visa_type: visa_type,
-        processing_times: {
-          standard: '15-30 dias úteis',
-          expedited: '5-10 dias úteis (taxa adicional)',
-          peak_season_warning: 'Junho-Setembro: prazos podem ser 50% maiores'
+      [
+        {
+          title: "#{query} - Official Legislation 2024",
+          snippet: "Official government legislation and requirements for #{query}. This document contains the full text of the law and all official procedures.",
+          url: "#{base_url}/#{query_slug}/law-2024",
+          type: "legislation",
+          date: "2024-02-01"
         },
-        tips: [
-          'Solicite com pelo menos 3 meses de antecedência',
-          'Documentos incompletos causam atrasos significativos',
-          'Acompanhe o status pelo portal do consulado'
-        ],
-        last_updated: Time.current.strftime('%Y-%m-%d')
-      }.to_json
+        {
+          title: "#{query} - Regulations and Procedures",
+          snippet: "Complete regulations and step-by-step procedures for #{query}. Includes all requirements, documentation, and official guidelines.",
+          url: "#{base_url}/#{query_slug}/regulations",
+          type: "regulation",
+          date: "2024-01-15"
+        },
+        {
+          title: "#{query} - 2024 Updates and Changes",
+          snippet: "Latest amendments and updates to #{query} regulations. Contains information about recent changes and new requirements.",
+          url: "#{base_url}/#{query_slug}/updates-2024",
+          type: "update",
+          date: "2024-02-10"
+        }
+      ]
     end
-
-    private_class_method :search_visa_requirements, :check_processing_times
   end
 end

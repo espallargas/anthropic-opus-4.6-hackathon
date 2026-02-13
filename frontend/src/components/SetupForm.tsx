@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { countryCentroids } from '@/lib/countries'
+import { useCountries } from '@/hooks/useCountries'
 import type { SystemVars } from '@/hooks/useChat'
 
 interface SetupFormProps {
@@ -35,10 +35,7 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
   const [objective, setObjective] = useState(defaultValues?.objective ?? '')
   const [additionalInfo, setAdditionalInfo] = useState(defaultValues?.additional_info ?? '')
 
-  // Get sorted country list for dropdowns
-  const countryOptions = Object.entries(countryCentroids)
-    .map(([code, data]) => ({ code, ...data }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const { countries, loading } = useCountries()
 
   const canSubmit =
     originCountry.trim() && nationality.trim() && destinationCountry.trim() && objective.trim()
@@ -55,6 +52,9 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
     })
   }
 
+  // Sort countries by name
+  const sortedCountries = [...countries].sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-lg">
@@ -70,14 +70,14 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="origin_country">País de origem</Label>
-              <Select value={originCountry} onValueChange={setOriginCountry}>
+              <Select value={originCountry} onValueChange={setOriginCountry} disabled={loading}>
                 <SelectTrigger id="origin_country">
-                  <SelectValue placeholder="Selecione seu país de origem" />
+                  <SelectValue placeholder={loading ? 'Carregando...' : 'Selecione seu país de origem'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {countryOptions.map((country) => (
+                  {sortedCountries.map((country) => (
                     <SelectItem key={country.code} value={country.code}>
-                      {country.name}
+                      {country.flag_emoji} {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -96,14 +96,14 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="destination_country">País de destino</Label>
-              <Select value={destinationCountry} onValueChange={setDestinationCountry}>
+              <Select value={destinationCountry} onValueChange={setDestinationCountry} disabled={loading}>
                 <SelectTrigger id="destination_country">
-                  <SelectValue placeholder="Selecione seu país de destino" />
+                  <SelectValue placeholder={loading ? 'Carregando...' : 'Selecione seu país de destino'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {countryOptions.map((country) => (
+                  {sortedCountries.map((country) => (
                     <SelectItem key={country.code} value={country.code}>
-                      {country.name}
+                      {country.flag_emoji} {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -5,6 +5,13 @@ Rails.application.routes.draw do
     namespace :v1 do
       get "health", to: "health#show"
       post "chat", to: "chat#create"
+      resources :countries, only: [:index]
+
+      namespace :admin do
+        get "countries", to: "countries#index"
+        get "countries/:code", to: "countries#show"
+        post "crawl/:code", to: "countries#crawl"
+      end
     end
   end
 
