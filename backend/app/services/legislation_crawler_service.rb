@@ -185,7 +185,7 @@ class LegislationCrawlerService
     iteration = 0
     max_iterations = 3  # Reduced from 8 to prevent infinite loops with repetitive results
     web_search_count = 0
-    max_web_searches = 6
+    max_web_searches = 15  # Increased from 6 to allow more thorough searches
     current_operation_id = nil
     max_searches_reached = false
 
@@ -373,7 +373,7 @@ class LegislationCrawlerService
 
       Focus on finding OFFICIAL LAW NAMES and REFERENCE NUMBERS (e.g., "Lei 13.445/2017" not "Official Legislation 2024").
 
-      You MUST call the web_search tool 6 times, once for each category below:
+      You MUST call the web_search tool at least 6 times, once for each category below, and can do additional searches (up to 15 total) to find more comprehensive results:
 
       1. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:federal_laws]}"
       2. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:regulations]}"
@@ -381,6 +381,8 @@ class LegislationCrawlerService
       4. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:jurisdictional]}"
       5. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:complementary]}"
       6. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:auxiliary]}"
+
+      You can do additional searches (7-15) to refine results or search for alternative terms if the initial searches don't return good results.
 
       CRITICAL FILTERING RULES - REJECT generic/placeholder titles:
       ❌ REJECT titles like: "Official Legislation", "Regulations and Procedures", "2024 Updates", "Immigration Procedures"
