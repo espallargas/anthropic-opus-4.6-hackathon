@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { ThinkingPanel } from './ThinkingPanel'
 import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
+import { ClaudeOutputPanel } from './ClaudeOutputPanel'
 import '../styles/crawler.css'
 
 interface CrawlProgressBoxProps {
@@ -31,6 +32,7 @@ export function CrawlProgressBox({
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
   const [thinkingText, setThinkingText] = useState('')
+  const [claudeOutputText, setClaudeOutputText] = useState('')
   const [categories, setCategories] = useState<CategoryState[]>([
     {
       id: 'federal_laws',
@@ -106,6 +108,12 @@ export function CrawlProgressBox({
       if (text) {
         console.log('[THINKING] Updating with:', text.slice(0, 50))
         setThinkingText((prev) => prev + text)
+      }
+    } else if (data.type === 'claude_text') {
+      const text = (data.text as string) || ''
+      if (text) {
+        console.log('[CLAUDE_OUTPUT] Updating with:', text.slice(0, 50))
+        setClaudeOutputText((prev) => prev + text)
       }
     } else if (data.type === 'search_started') {
       const category = data.category as string
@@ -273,10 +281,10 @@ export function CrawlProgressBox({
         </button>
       </div>
 
-      {/* Main content - 2 column layout */}
+      {/* Main content - 3 column layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left: Thinking panel (40%) */}
-        <div className="w-[40%] border-r border-white/10">
+        {/* Left: Thinking panel (33%) */}
+        <div className="w-1/3 border-r border-white/10">
           <ThinkingPanel
             thinkingText={thinkingText}
             inputTokens={inputTokens}
@@ -284,8 +292,13 @@ export function CrawlProgressBox({
           />
         </div>
 
-        {/* Right: Categories + status (60%) */}
-        <div className="flex w-[60%] flex-col">
+        {/* Middle: Claude Output (33%) */}
+        <div className="w-1/3 border-r border-white/10">
+          <ClaudeOutputPanel outputText={claudeOutputText} />
+        </div>
+
+        {/* Right: Categories + status (34%) */}
+        <div className="flex w-1/3 flex-col">
           <CategoriesPanel categories={categories} />
 
           {/* Status messages footer */}

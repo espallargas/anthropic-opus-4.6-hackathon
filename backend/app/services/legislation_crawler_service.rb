@@ -192,7 +192,10 @@ class LegislationCrawlerService
         end
 
         if event.delta.respond_to?(:text) && event.delta.text
-          Rails.logger.info("  ✓ TEXT DELTA: #{event.delta.text[0..80]}")
+          text = event.delta.text
+          Rails.logger.info("  ✓ TEXT DELTA: #{text[0..80]}")
+          # Emit Claude's text output in real-time
+          emit(:claude_text, text: text)
         end
 
         if event.delta.respond_to?(:input) && event.delta.input
@@ -390,6 +393,13 @@ class LegislationCrawlerService
     response = nil
     begin
       Timeout.timeout(300) do  # 5 minute timeout
+        # Define web_search tool explicitly with native type
+        web_search_tool = {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 6
+        }
+
         response = build_response_from_stream(
           current_operation_id,
           model: MODEL,
@@ -397,6 +407,7 @@ class LegislationCrawlerService
           thinking: {
             type: "adaptive"
           },
+          tools: [web_search_tool],
           system_: system_prompt,
           messages: messages
         )
@@ -422,9 +433,22 @@ class LegislationCrawlerService
       raise
     end
 
-    # Extract JSON results from text blocks
-    emit(:phase, message: "Extracting legislation results")
-    legislation_results = extract_legislation_from_response(response)
+    # If Claude used tool_use (web_search), handle it
+    has_tool_use = response.content.any? { |block| block.type == :tool_use }
+
+    if has_tool_use
+      Rails.logger.info("[TOOL_USE] Claude used web_search! Processing tool results...")
+      emit(:phase, message: "Processing web_search results")
+
+      # For now, since web_search is server-side, Claude should have already included results
+      # Extract what we can from text blocks
+      emit(:phase, message: "Extracting legislation results")
+      legislation_results = extract_legislation_from_response(response)
+    else
+      Rails.logger.warn("[NO_TOOL_USE] Claude did not use web_search, trying to extract from text blocks")
+      emit(:phase, message: "Extracting legislation results (no web_search used)")
+      legislation_results = extract_legislation_from_response(response)
+    end
 
     doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
     emit(:phase, message: "Preparing database save (#{doc_count} documents)")
