@@ -174,18 +174,27 @@ class LegislationCrawlerService
 
   def build_response_from_stream(**options)
     collector = StreamResponseCollector.new
+    event_count = 0
 
     @client.messages.stream(**options) do |event|
-      Rails.logger.debug("Stream event: #{event.type}")
+      event_count += 1
+      Rails.logger.info("Stream event ##{event_count}: #{event.type}")
 
       # Emit thinking blocks in real-time as they arrive
       if event.type == 'content_block_delta' && event.delta.respond_to?(:thinking)
+        Rails.logger.info("  -> Emitting thinking block")
         emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: @current_operation_id)
+      end
+
+      # Log content block events
+      if event.type == 'content_block_start'
+        Rails.logger.info("  -> Content block start: #{event.content_block.type}")
       end
 
       collector.add_event(event)
     end
 
+    Rails.logger.info("Stream completed with #{event_count} events, #{collector.content.length} content blocks")
     collector
   end
 
