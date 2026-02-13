@@ -7,9 +7,9 @@ module SSEMessageSchema
     # Progress lifecycle
     phase: { fields: [:message], required_fields: [:message] },
 
-    # Web search execution (hierarchical with operation_id)
-    search_started: { fields: [:operation_id, :category, :query, :index, :total], required_fields: [:operation_id, :query] },
-    search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:result_count] },
+    # Web search execution
+    search_started: { fields: [:operation_id, :category, :query, :index, :total], required_fields: [:category, :query] },
+    search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:category, :result_count] },
     search: { fields: [:count, :total, :category, :query], required_fields: [:count, :total, :query] },
 
     # Claude thinking (structured for UI rendering, linked via operation_id)

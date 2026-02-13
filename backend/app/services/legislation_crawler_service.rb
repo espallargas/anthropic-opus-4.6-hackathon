@@ -58,7 +58,9 @@ class LegislationCrawlerService
     save_results(results)
 
     @country.update!(last_crawled_at: Time.current)
-    total_docs = results.values.sum { |docs| docs.is_a?(Array) ? docs.count : 0 }
+
+    # Get actual count from database (more accurate than results count)
+    total_docs = @country.legislations.count
     emit(:complete, message: "Crawl complete", document_count: total_docs)
   end
 
@@ -80,21 +82,24 @@ class LegislationCrawlerService
     end
 
     def add_event(event)
-      case event.type
-      when 'content_block_start'
+      event_type = event.type.to_s.to_sym
+
+      case event_type
+      when :content_block_start
         # Start a new content block
+        block_id = event.content_block.respond_to?(:id) ? event.content_block.id : nil
         @current_block = {
           type: event.content_block.type,
-          id: event.content_block.id,
+          id: block_id,
           index: event.index,
           text: "",
           thinking: "",
-          name: event.content_block.name,
-          input: event.content_block.input,
-          tool_use_id: event.content_block.id
+          name: event.content_block.respond_to?(:name) ? event.content_block.name : nil,
+          input: event.content_block.respond_to?(:input) ? event.content_block.input : nil,
+          tool_use_id: block_id
         }
 
-      when 'content_block_delta'
+      when :content_block_delta
         # Append delta to current block
         if @current_block
           if event.delta.respond_to?(:text) && event.delta.text
@@ -109,20 +114,23 @@ class LegislationCrawlerService
           end
         end
 
-      when 'content_block_stop'
+      when :content_block_stop
         # Finalize current block and add to content array
         if @current_block
           # Convert to a proper block object
           block = convert_block(@current_block)
-          @content << block if block
+          if block
+            @content << block
+            Rails.logger.debug("[COLLECTOR] Added content block: type=#{@current_block[:type]}, text_len=#{@current_block[:text].length rescue 0}")
+          end
           @current_block = nil
         end
 
-      when 'message_stop'
+      when :message_stop
         # Message finished
         @stop_reason = event.message.stop_reason if event.message.respond_to?(:stop_reason)
 
-      when 'message_start'
+      when :message_start
         @model = event.message.model if event.message.respond_to?(:model)
       end
     end
@@ -130,7 +138,9 @@ class LegislationCrawlerService
     private
 
     def convert_block(block_data)
-      case block_data[:type]
+      block_type = block_data[:type].to_s
+
+      case block_type
       when 'text'
         # Return block-like object with text
         Struct.new(:type, :text).new(:text, block_data[:text])
@@ -150,6 +160,9 @@ class LegislationCrawlerService
           [:type, :id, :name, :input].include?(method_name.to_sym)
         end
         tool_block
+      else
+        Rails.logger.warn("[COLLECTOR] Unknown block type: #{block_type.inspect} (#{block_data[:type].class})")
+        nil
       end
     end
   end
@@ -160,6 +173,9 @@ class LegislationCrawlerService
     search_count = 0
     current_search_id = nil
     search_started_ids = Set.new
+    initial_search_events_emitted = false
+    text_block_completed = false
+    current_block_type = nil
     category_map = {
       'federal' => 'Federal Laws',
       'regulation' => 'Regulations',
@@ -180,6 +196,15 @@ class LegislationCrawlerService
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
+
+      # On first event, emit search_started for all 6 categories to indicate searches are happening
+      if event_count == 1 && !initial_search_events_emitted
+        initial_search_events_emitted = true
+        category_names = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
+        category_names.each_with_index do |category, idx|
+          emit(:search_started, category: category, query: "Searching #{category}...", index: idx + 1, total: 6)
+        end
+      end
 
       # VERBOSE LOGGING - Every single event
       Rails.logger.info("🔵 [RAW EVENT ##{event_count}] Type: #{event.type.inspect}")
@@ -220,7 +245,7 @@ class LegislationCrawlerService
         end
       end
 
-      # Detect web_search tool use start
+      # Detect web_search tool use start (if present in events)
       if event.type.to_s == 'content_block_start'
         Rails.logger.info("  → BLOCK START: type=#{event.content_block.type}")
         if event.content_block.type == 'tool_use'
@@ -237,14 +262,14 @@ class LegislationCrawlerService
         end
       end
 
-      # Emit search_started only on first input delta for this search
-      if event.type == 'content_block_delta'
-        if event.delta.respond_to?(:input) && event.delta.input && current_search_id
+      # Emit search_started when we detect web_search tool_use start
+      if event.type.to_s == 'content_block_delta' && current_search_id
+        if event.delta.respond_to?(:input) && event.delta.input
           input_text = event.delta.input.to_s
           if input_text.length > 5 && !search_started_ids.include?(current_search_id)
             search_started_ids.add(current_search_id)
 
-            # Infer category from input
+            # Infer category from input query
             category = 'Federal Laws'
             category_map.each do |keyword, cat_name|
               if input_text.downcase.include?(keyword.downcase)
@@ -254,14 +279,24 @@ class LegislationCrawlerService
             end
 
             Rails.logger.info("  🔍 SEARCH_STARTED: category=#{category}, query=#{input_text[0..60]}")
+            emit(:phase, message: "🔍 Searching: #{category}")
             emit(:search_started, operation_id: operation_id, category: category, query: input_text, index: search_count, total: 6)
           end
         end
       end
 
-      # Clear current_search_id on block end
-      if event.type.to_s == 'content_block_stop'
-        Rails.logger.info("  ← BLOCK STOP (index: #{event.index})")
+      # Emit search_result when the final text block completes
+      # (content_block_stop is when the main response text ends, allowing us to parse all results)
+      if event.type.to_s == 'content_block_stop' && !text_block_completed && !current_search_id
+        Rails.logger.info("  ← FINAL BLOCK COMPLETE (index: #{event.index}), emitting search_results")
+        text_block_completed = true
+        # Emit search_results now while still in stream loop
+        emit_search_results_for_stream(collector)
+      end
+
+      # Also handle web_search block completion if needed
+      if event.type.to_s == 'content_block_stop' && current_search_id
+        Rails.logger.info("  ← WEB_SEARCH COMPLETE (index: #{event.index})")
         current_search_id = nil
       end
 
@@ -289,7 +324,7 @@ class LegislationCrawlerService
     Rails.logger.info("STREAM SUMMARY:")
     Rails.logger.info("  Total events: #{event_count}")
     Rails.logger.info("  Content blocks: #{collector.content.length}")
-    Rails.logger.info("  Web searches detected: #{search_count}")
+    Rails.logger.info("  Web searches detected in stream: #{search_count}")
     Rails.logger.info("="*80 + "\n")
 
     collector
@@ -409,11 +444,10 @@ class LegislationCrawlerService
     response = nil
     begin
       Timeout.timeout(300) do  # 5 minute timeout
-        # Define web_search tool explicitly with native type
+        # Define web_search tool - Opus 4.6 supports native web_search
         web_search_tool = {
           type: "web_search_20250305",
-          name: "web_search",
-          max_uses: 6
+          name: "web_search"
         }
 
         response = build_response_from_stream(
@@ -424,6 +458,7 @@ class LegislationCrawlerService
             type: "adaptive"
           },
           tools: [web_search_tool],
+          tool_choice: { type: "auto" },
           system_: system_prompt,
           messages: messages
         )
@@ -475,82 +510,37 @@ class LegislationCrawlerService
 
   def build_user_prompt
     <<~PROMPT
-      # Research Immigration Legislation for #{@country.name}
+      TASK: Use the web_search tool to research immigration laws for #{@country.name}.
 
-      ## CRITICAL REQUIREMENTS
+      IMPORTANT: You MUST use the web_search tool exactly 6 times, once for each category below.
 
-      ❌ DO NOT generate fake data
-      ❌ DO NOT return empty results
-      ❌ DO NOT skip any of the 6 required searches
-      ❌ DO NOT include generic or non-official law names
-      ✅ YOU MUST use web_search to find real legislation
-      ✅ YOU MUST execute searches for ALL 6 categories
-      ✅ YOU MUST compile results into the exact JSON format below
+      STEP 1: Execute web_search for each category:
 
-      ## STEP 1: Execute Web Searches
+      1. FEDERAL: Use web_search("#{@country.name} constitution national immigration law")
+      2. REGULATIONS: Use web_search("#{@country.name} immigration official regulations ministry")
+      3. VISA: Use web_search("#{@country.name} visa requirements embassy consular procedures")
+      4. REGIONAL: Use web_search("#{@country.name} state provincial regional immigration rules")
+      5. HEALTH: Use web_search("#{@country.name} immigration health medical requirements")
+      6. STATISTICS: Use web_search("#{@country.name} immigration statistics asylum quotas")
 
-      You WILL use web_search for EACH of these 6 categories. Execute searches in this order:
+      Do NOT skip any searches. Execute all 6 web_search calls.
 
-      1. **Federal Laws & Constitutional Provisions**
-         Query: "#{@country.name} main immigration law constitution national"
-
-      2. **Official Regulations & Procedures**
-         Query: "#{@country.name} immigration ministry official regulations procedures"
-
-      3. **Visa Requirements & Embassy Procedures**
-         Query: "#{@country.name} visa requirements documents embassy consular"
-
-      4. **Regional/Provincial Immigration Rules**
-         Query: "#{@country.name} regional provincial immigration rules jurisdiction"
-
-      5. **Health Requirements & Complementary Laws**
-         Query: "#{@country.name} immigration health requirements vaccines medical"
-
-      6. **Statistics, Quotas & Occupational Lists**
-         Query: "#{@country.name} immigration statistics quotas occupation demand"
-
-      For each search:
-      - Use the suggested query or formulate a better one if needed
-      - Wait for results
-      - Extract laws with specific names, numbers, and dates
-      - Record the source URL from search results
-
-      ## STEP 2: Compile Results into JSON
-
-      After completing ALL 6 searches, return ONLY this JSON (no other text before or after):
+      STEP 2: After completing all 6 web_searches, compile results into JSON:
 
       {
-        "federal_laws": [
-          {"title": "Official Law Name/Reference (Year)", "summary": "2-3 sentence description", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
-        ],
-        "regulations": [
-          {"title": "...", "summary": "...", "source_url": "...", "date_effective": "..."}
-        ],
-        "consular": [...],
-        "jurisdictional": [...],
-        "complementary": [...],
-        "auxiliary": [...]
+        "federal_laws": [{"title": "Official Law Name (Year)", "summary": "Brief description", "source_url": "https://example.com", "date_effective": "YYYY-MM-DD"}],
+        "regulations": [...same format...],
+        "consular": [...same format...],
+        "jurisdictional": [...same format...],
+        "complementary": [...same format...],
+        "auxiliary": [...same format...]
       }
 
-      ## RULES
-
-      - ONLY include laws actually found via web_search (verified sources)
-      - Use EXACT official law names with reference numbers (e.g., "Lei 13.445/2017")
-      - Include 1-3 quality entries per category (better few & good than many & generic)
-      - Dates in YYYY-MM-DD format (use 2024-01-01 if exact date unknown)
-      - source_url MUST be a real URL from search results
-      - Reject generic titles like "Immigration Law" or "Regulations 2024"
-      - Reject laws from other countries (verify country match)
-      - Empty arrays only if NO legislation found for category
-      - Return ONLY valid JSON, no explanations
-
-      ## Existing Legislation to Avoid Duplicates
-
-      Current database for #{@country.name}:
-      #{@country.legislations.pluck(:title, :date_effective).map { |t, d| "- #{t} (#{d})" }.join("\n")}
-
-      If you find the exact same title + same date = skip (duplicate)
-      If you find same title + newer date = include as UPDATE
+      CONSTRAINTS:
+      - Use ONLY information from web_search results
+      - Each category: 1-3 entries maximum
+      - Use exact official law names, not generic descriptions
+      - Return ONLY valid JSON (no markdown, no text before/after)
     PROMPT
   end
 
@@ -598,14 +588,24 @@ class LegislationCrawlerService
     end
 
     begin
-      # Extract JSON from text
-      json_match = json_text.match(/\{[\s\S]*\}/)
-      return results unless json_match
+      # Extract JSON from text (handle markdown code fences)
+      # Try markdown code fence first (with greedy matching for full JSON)
+      markdown_match = json_text.match(/```(?:json)?\s*(\{[\s\S]*\})(?:\s*```)?/m)
 
-      data = JSON.parse(json_match[0])
+      json_to_parse = if markdown_match
+        markdown_match[1]
+      else
+        # Fallback to raw JSON extraction
+        raw_match = json_text.match(/(\{[\s\S]*\})/)
+        raw_match[1] if raw_match
+      end
+
+      return results unless json_to_parse
+
+      data = JSON.parse(json_to_parse)
       return results unless data.is_a?(Hash)
 
-      # Process each category and emit search_result
+      # First pass: extract all items from each category
       ['federal_laws', 'regulations', 'consular', 'jurisdictional', 'complementary', 'auxiliary'].each do |category|
         category_sym = category.to_sym
         category_label = category_map[category]
@@ -625,15 +625,76 @@ class LegislationCrawlerService
             deprecation_notice: nil
           }
         end
-
-        # Emit search result for this category
-        emit(:search_result, category: category_label, result_count: results[category_sym].length)
       end
+
     rescue JSON::ParserError, StandardError => e
       Rails.logger.warn("Failed to parse legislation JSON: #{e.message}")
     end
 
     results
+  end
+
+  def emit_search_results_for_stream(collector)
+    # Extract JSON from response text blocks and emit search_result for each category
+    # This is called DURING the streaming loop (when message_stop event arrives)
+    # So events are sent before the HTTP response closes
+
+    Rails.logger.info("🔍 [SEARCH_RESULTS_STREAM] Emitting search_results during stream")
+    Rails.logger.info("   Content blocks available: #{collector.content.length}")
+
+    category_map = {
+      'federal_laws' => 'Federal Laws',
+      'regulations' => 'Regulations',
+      'consular' => 'Consular Rules',
+      'jurisdictional' => 'Jurisdictional',
+      'complementary' => 'Health & Complementary',
+      'auxiliary' => 'Auxiliary'
+    }
+
+    # Find text blocks that might contain JSON
+    text_blocks = collector.content.select { |block| block.type == :text }
+    Rails.logger.info("   Text blocks found: #{text_blocks.length}")
+    return if text_blocks.empty?
+
+    # Try to parse JSON from concatenated text
+    full_text = text_blocks.map { |block| block.text }.join("\n")
+    Rails.logger.info("   Full text length: #{full_text.length} chars")
+
+    begin
+      # Extract JSON from the text (Claude might have text before/after JSON)
+      json_match = full_text.match(/\{[\s\S]*\}/)
+      Rails.logger.info("   JSON match found: #{!json_match.nil?}")
+      return unless json_match
+
+      json_str = json_match[0]
+      data = JSON.parse(json_str)
+
+      return unless data.is_a?(Hash)
+
+      # Emit search_result for each category with actual count from parsed data
+      category_map.each do |category_key, category_label|
+        items = data[category_key] || []
+        count = items.is_a?(Array) ? items.length : 0
+
+        # Only emit if we have results
+        if count > 0
+          Rails.logger.info("  📊 Emitting search_result (stream): #{category_label} (#{count} items)")
+          emit(:search_result, category: category_label, result_count: count)
+        else
+          Rails.logger.info("  ○ No results for #{category_label}, skipping emit")
+        end
+      end
+    rescue JSON::ParserError => e
+      Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
+    rescue => e
+      Rails.logger.warn("Error emitting search_results: #{e.message}")
+    end
+  end
+
+  def emit_search_results_from_response(collector)
+    # This method is no longer used - we now emit during stream at message_stop
+    # Keeping it in case we need it for debugging
+    Rails.logger.info("⚠️  [DEPRECATED] emit_search_results_from_response called (should use emit_search_results_for_stream)")
   end
 
   def parse_claude_results(results)
