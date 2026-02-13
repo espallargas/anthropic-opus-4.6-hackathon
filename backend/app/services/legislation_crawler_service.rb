@@ -332,8 +332,8 @@ class LegislationCrawlerService
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
-            type: "enabled",
-            budget_tokens: "max"
+            type: "adaptive",
+            budget_tokens: 120000
           },
           system_: system_prompt,
           messages: messages
