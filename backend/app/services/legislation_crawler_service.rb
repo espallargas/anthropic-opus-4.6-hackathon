@@ -346,6 +346,22 @@ class LegislationCrawlerService
           thinking: {
             type: "adaptive"
           },
+          tools: [
+            {
+              name: "web_search",
+              description: "Search the web for information",
+              input_schema: {
+                type: "object",
+                properties: {
+                  query: {
+                    type: "string",
+                    description: "The search query"
+                  }
+                },
+                required: ["query"]
+              }
+            }
+          ],
           system_: system_prompt,
           messages: messages
         )
