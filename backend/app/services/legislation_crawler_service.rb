@@ -384,30 +384,23 @@ class LegislationCrawlerService
 
   def build_user_prompt
     <<~PROMPT
-      Your task: Research immigration legislation for #{@country.name} across 6 categories.
+      CRITICAL: You MUST use the web_search tool to research immigration legislation for #{@country.name}.
 
-      Execute web_search calls IN PARALLEL for each category (you can call multiple searches at once):
+      DO NOT generate fake data. DO NOT skip web_search calls.
 
-      1. **Federal Laws**: National/Federal immigration laws and constitutional provisions for #{@country.name}
-      2. **Regulations**: Official regulations and procedures
-      3. **Consular**: Visa requirements and embassy/consular procedures
-      4. **Jurisdictional**: Regional or provincial immigration rules
-      5. **Complementary**: Health requirements and complementary laws
-      6. **Auxiliary**: Immigration statistics, quotas, and occupational lists
+      You MUST execute exactly these 6 web_search calls (in parallel if possible):
 
-      For each category, formulate 1-2 effective search queries and execute them. You can call multiple web_search in parallel.
+      1. web_search("#{@country.name} immigration federal law constitution")
+      2. web_search("#{@country.name} immigration regulations official procedures")
+      3. web_search("#{@country.name} visa requirements embassy consular")
+      4. web_search("#{@country.name} immigration regional provincial rules")
+      5. web_search("#{@country.name} immigration health requirements")
+      6. web_search("#{@country.name} immigration statistics quotas occupation")
 
-      CRITICAL RULES:
-      ✅ Search ONLY for #{@country.name} legislation
-      ✅ Verify source URLs are from #{@country.name} government domain
-      ❌ REJECT laws from other countries, generic titles, or entries without specific law numbers
-
-      After all searches complete, analyze results and return ONLY this JSON (no other text):
+      AFTER completing all 6 searches, compile results into this JSON format:
 
       {
-        "federal_laws": [
-          {"title": "Official Law Name/Reference", "summary": "2-3 sentence summary", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
-        ],
+        "federal_laws": [{"title": "Law Name/Number", "summary": "...", "source_url": "...", "date_effective": "YYYY-MM-DD"}],
         "regulations": [...],
         "consular": [...],
         "jurisdictional": [...],
@@ -415,12 +408,12 @@ class LegislationCrawlerService
         "auxiliary": [...]
       }
 
-      IMPORTANT:
-      - Execute searches in parallel when possible (call multiple web_search at once)
-      - Include 1-3 quality entries per category
-      - Use EXACT official law names with reference numbers
-      - Dates in YYYY-MM-DD format
-      - Empty arrays if no results found for category
+      Rules:
+      - ONLY use real search results, never fabricate
+      - Include 1-3 high-quality entries per category
+      - Use official law names and reference numbers
+      - Verify results are actually from #{@country.name}
+      - Return ONLY the JSON, no other text
     PROMPT
   end
 
