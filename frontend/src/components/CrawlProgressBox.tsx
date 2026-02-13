@@ -200,6 +200,9 @@ export function CrawlProgressBox({
 
                 // Log the message for debugging
                 console.log(`[SSE ${data.type.toUpperCase()}] ${progressItem.message}`)
+                if (data.type === 'thinking') {
+                  console.log(`[THINKING DEBUG] text length: ${progressItem.text?.length}, is_summary: ${progressItem.is_summary}`)
+                }
 
                 // Update UI with smooth transitions
                 setTimeout(() => {
@@ -242,14 +245,14 @@ export function CrawlProgressBox({
   }, [countryCode])
 
   const getIcon = (item: ProgressItem) => {
-    if (item.status === 'done' || item.type === 'complete') {
-      return <CheckCircle2 className="h-4 w-4 text-green-400/80" />
-    }
     if (item.status === 'error') {
       return <AlertCircle className="h-4 w-4 text-red-400/80" />
     }
     if (item.status === 'in-progress') {
       return <Loader2 className="h-4 w-4 animate-spin text-blue-400/80" />
+    }
+    if (item.status === 'done' || item.type === 'complete') {
+      return <CheckCircle2 className="h-4 w-4 text-green-400/80" />
     }
     return <div className="h-4 w-4 rounded-full border border-white/20" />
   }
