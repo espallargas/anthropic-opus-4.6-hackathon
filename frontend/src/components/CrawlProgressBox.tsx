@@ -230,7 +230,12 @@ export function CrawlProgressBox({
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                if (isMounted) processMessage(data)
+                console.log(`[SSE received] type=${data.type}, isMounted=${isMounted}`)
+                if (isMounted) {
+                  processMessage(data)
+                } else {
+                  console.warn(`[SSE skipped] component unmounted, skipping message type=${data.type}`)
+                }
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
               }
