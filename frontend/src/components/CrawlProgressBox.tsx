@@ -47,6 +47,13 @@ export function CrawlProgressBox({
   })
   const scrollRef = useRef<HTMLDivElement>(null)
   const crawlStartedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+  const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
+
+  // Update refs whenever dependencies change
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   // Track doc count changes separately to avoid setState during render
   useEffect(() => {
@@ -73,8 +80,7 @@ export function CrawlProgressBox({
   }, [operationOrder, operations])
 
   // Process incoming SSE messages
-  const processMessage = useCallback(
-    (data: SSEMessage) => {
+  const processMessage = useCallback((data: SSEMessage) => {
       console.log(`[SSE] ${data.type}`, data)
       setOperations((prevOps) => {
         const newOps = new Map(prevOps)
@@ -145,12 +151,12 @@ export function CrawlProgressBox({
         if (data.type === 'complete') {
           setDocumentCount(data.document_count || 0)
           setIsComplete(true)
-          setTimeout(() => onComplete(), 1200)
+          setTimeout(() => onCompleteRef.current(), 1200)
         } else if (data.type === 'batch_saved') {
           setDocumentCount(data.total_saved || 0)
         } else if (data.type === 'error') {
           setIsComplete(true)
-          setTimeout(() => onComplete(), 1500)
+          setTimeout(() => onCompleteRef.current(), 1500)
         }
 
         return newOps
@@ -159,10 +165,12 @@ export function CrawlProgressBox({
     [onComplete],
   )
 
+  // Update processMessageRef after it's defined
   useEffect(() => {
-    // Reset the ref for this component instance
-    crawlStartedRef.current = false
+    processMessageRef.current = processMessage
+  }, [processMessage])
 
+  useEffect(() => {
     // Prevent double-firing in React Strict Mode
     if (crawlStartedRef.current) {
       console.warn(
@@ -197,7 +205,7 @@ export function CrawlProgressBox({
             },
           ])
           setIsComplete(true)
-          setTimeout(() => onComplete(), 1200)
+          setTimeout(() => onCompleteRef.current(), 1200)
           return
         }
 
@@ -211,7 +219,7 @@ export function CrawlProgressBox({
             },
           ])
           setIsComplete(true)
-          setTimeout(() => onComplete(), 1200)
+          setTimeout(() => onCompleteRef.current(), 1200)
           return
         }
 
@@ -233,7 +241,7 @@ export function CrawlProgressBox({
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
                 console.log(`[SSE received] type=${data.type}`)
-                processMessage(data)
+                processMessageRef.current(data)
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
               }
@@ -250,12 +258,12 @@ export function CrawlProgressBox({
           },
         ])
         setIsComplete(true)
-        setTimeout(() => onComplete(), 1500)
+        setTimeout(() => onCompleteRef.current(), 1500)
       }
     }
 
     startCrawl()
-  }, [countryCode, processMessage, onComplete])
+  }, [countryCode])
 
   return (
     <div className="flex w-[600px] flex-col rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
