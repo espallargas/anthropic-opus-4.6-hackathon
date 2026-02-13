@@ -151,18 +151,16 @@ class LegislationCrawlerService
 
           # Parse and collect results
           if block.name == "web_search"
-            emit("  Searching for: #{block.input}")
             category = determine_category_from_input(block.input)
+
             begin
               data = JSON.parse(tool_result)
               if data.is_a?(Hash) && data['results']
                 all_results[category] = data if category
-                emit("  ✓ Category: #{category}, Found #{data['results'].length} results")
-              else
-                emit("  No results in response")
+                emit("  ✓ Found #{data['results'].length} results for #{category}")
               end
-            rescue JSON::ParserError => e
-              emit("  ⚠ Parse error: #{e.message[0..50]}")
+            rescue JSON::ParserError
+              emit("  ⚠ Could not parse web search response")
             end
           end
 
@@ -203,9 +201,9 @@ class LegislationCrawlerService
   end
 
   def determine_category_from_input(input)
-    # Handle both Hash and object responses from Anthropic
+    # Extract query text - Anthropic uses symbol keys in Hash
     query_text = if input.is_a?(Hash)
-      input['query'].to_s
+      (input[:query] || input['query']).to_s
     elsif input.respond_to?(:query)
       input.query.to_s
     elsif input.respond_to?(:[])
@@ -217,7 +215,7 @@ class LegislationCrawlerService
     query_lower = query_text.downcase
 
     # Match category by finding the search term from SEARCH_QUERIES in the query
-    # Returns the first category that matches
+    # Returns the category that matches (prefer longer matches)
     best_match = nil
     best_match_length = 0
 
@@ -256,12 +254,18 @@ class LegislationCrawlerService
   def generate_legislation_from_searches(search_results)
     results = {}
 
-    search_results.each do |category, json_results|
+    search_results.each do |category, json_or_hash|
       results[category] = []
 
       begin
-        data = JSON.parse(json_results)
-        results_array = data.is_a?(Hash) ? data['results'] : data
+        # Handle both JSON string and Hash responses
+        data = if json_or_hash.is_a?(String)
+          JSON.parse(json_or_hash)
+        else
+          json_or_hash
+        end
+
+        results_array = data.is_a?(Hash) ? data['results'] || data['data'] || [] : data
 
         results_array.each_with_index do |item, idx|
           results[category] << {
@@ -274,9 +278,9 @@ class LegislationCrawlerService
             deprecation_notice: nil
           }
         end
-      rescue JSON::ParserError, TypeError
+      rescue JSON::ParserError, TypeError, NoMethodError => e
         # If parsing fails, create placeholder
-        emit("⚠ Could not parse results for #{CATEGORIES[category]}")
+        emit("⚠ Could not parse results for #{CATEGORIES[category]}: #{e.class}")
       end
     end
 
