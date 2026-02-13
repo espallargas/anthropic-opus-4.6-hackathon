@@ -37,8 +37,15 @@ class LegislationCrawlerService
 
   # Single unified emit method - type-safe with schema validation
   def emit(type, **data)
-    message = SSEMessageSchema.format(type, data)
-    @sse&.write(message)
+    begin
+      message = SSEMessageSchema.format(type, data)
+      @sse&.write(message)
+    rescue StandardError => e
+      Rails.logger.error("Emit error for type #{type}: #{e.class} - #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      # Try to send error message anyway
+      @sse&.write({ type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) })
+    end
   end
 
   def crawl

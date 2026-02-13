@@ -53,13 +53,13 @@ module Api
 
           LegislationCrawlerService.new(country, sse).crawl
 
-          sse.write({ type: 'crawl_complete', server_time: Time.current.iso8601(3) })
+          sse.write(SSEMessageSchema.format(:complete, message: 'Crawl finished'))
         rescue StandardError => e
           Rails.logger.error("Crawl SSE error: #{e.class} - #{e.message}")
           begin
-            sse&.write({ type: 'error', error: e.message, server_time: Time.current.iso8601(3) })
-          rescue StandardError
-            nil
+            sse&.write(SSEMessageSchema.format(:error, message: e.message))
+          rescue StandardError => write_error
+            Rails.logger.error("Failed to write error to SSE: #{write_error.message}")
           end
         ensure
           sse&.close
