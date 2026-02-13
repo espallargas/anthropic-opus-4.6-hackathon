@@ -184,10 +184,14 @@ export function CrawlProgressBox({
 
         const decoder = new TextDecoder()
         let buffer = ''
+        let messageCount = 0
 
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            console.log(`[SSE] Stream ended. Total messages: ${messageCount}`)
+            break
+          }
 
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
@@ -197,11 +201,13 @@ export function CrawlProgressBox({
             const line = lines[i].trim()
             if (line.startsWith('data: ')) {
               try {
+                messageCount++
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
+                console.log(`[SSE] Message #${messageCount}: ${data.type}`)
                 processMessageRef.current?.(data)
               } catch (e) {
-                console.error('[SSE] Parse error:', e)
+                console.error('[SSE] Parse error:', e, 'line:', line.slice(0, 100))
               }
             }
           }

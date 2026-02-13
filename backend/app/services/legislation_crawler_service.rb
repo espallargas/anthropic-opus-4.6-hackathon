@@ -158,6 +158,8 @@ class LegislationCrawlerService
     collector = StreamResponseCollector.new
     event_count = 0
     search_count = 0
+    current_search_id = nil
+    search_started_ids = Set.new
     category_map = {
       'federal' => 'Federal Laws',
       'regulation' => 'Regulations',
@@ -180,45 +182,55 @@ class LegislationCrawlerService
       event_count += 1
       Rails.logger.info("Stream event ##{event_count}: #{event.type}")
 
-      # Emit thinking blocks in real-time
+      # Emit thinking blocks in real-time (every chunk)
       if event.type == 'content_block_delta'
         if event.delta.respond_to?(:thinking) && event.delta.thinking
+          Rails.logger.info("  -> Emitting thinking: #{event.delta.thinking[0..40]}...")
           emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
         end
       end
 
-      # Detect and emit web_search tool calls
+      # Detect web_search tool use start
       if event.type == 'content_block_start'
         if event.content_block.type == 'tool_use' && event.content_block.name == 'web_search'
           search_count += 1
-          # Emit search_started - we'll get the query in the input delta
-          Rails.logger.info("  -> Tool use (web_search) ##{search_count} started")
+          current_search_id = event.content_block.id
+          Rails.logger.info("  -> web_search ##{search_count} started (id: #{current_search_id})")
         end
       end
 
-      # Capture query from input deltas
+      # Emit search_started only on first input delta for this search
       if event.type == 'content_block_delta'
-        if event.delta.respond_to?(:input) && event.delta.input
-          query = event.delta.input.to_s
-          if query.length > 10
-            # Infer category from query
+        if event.delta.respond_to?(:input) && event.delta.input && current_search_id
+          input_text = event.delta.input.to_s
+          if input_text.length > 5 && !search_started_ids.include?(current_search_id)
+            search_started_ids.add(current_search_id)
+
+            # Infer category from input
             category = 'Federal Laws'
             category_map.each do |keyword, cat_name|
-              if query.downcase.include?(keyword.downcase)
+              if input_text.downcase.include?(keyword.downcase)
                 category = cat_name
                 break
               end
             end
-            emit(:search_started, operation_id: operation_id, category: category, query: query, index: search_count, total: 6)
-            Rails.logger.info("  -> web_search query: #{query[0..50]}... (category: #{category})")
+
+            Rails.logger.info("  -> Emitting search_started: #{category} (#{input_text[0..40]}...)")
+            emit(:search_started, operation_id: operation_id, category: category, query: input_text, index: search_count, total: 6)
           end
         end
+      end
+
+      # Clear current_search_id on block end
+      if event.type == 'content_block_stop'
+        current_search_id = nil
       end
 
       # Emit token tracking
       if event.type == 'message_delta' && event.delta.respond_to?(:usage)
         input_tokens = event.delta.usage.input_tokens || 0
         output_tokens = event.delta.usage.output_tokens || 0
+        Rails.logger.info("  -> Emitting tokens: #{input_tokens} input, #{output_tokens} output")
         emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
       end
 
