@@ -6,10 +6,7 @@ interface ClaudeOutputPanelProps {
   isExpanded?: boolean
 }
 
-export function ClaudeOutputPanel({
-  outputText,
-  isExpanded = true,
-}: ClaudeOutputPanelProps) {
+export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutputPanelProps) {
   const [collapsed, setCollapsed] = useState(!isExpanded)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -41,7 +38,7 @@ export function ClaudeOutputPanel({
       {!collapsed && (
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto overflow-x-auto px-3 py-2.5 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-green-200/80 bg-black/20"
+          className="flex-1 overflow-x-auto overflow-y-auto bg-black/20 px-3 py-2.5 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-green-200/80"
         >
           {outputText ? (
             outputText

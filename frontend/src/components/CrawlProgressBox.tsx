@@ -117,12 +117,16 @@ export function CrawlProgressBox({
       }
     } else if (data.type === 'search_started') {
       const category = data.category as string
-      console.log('[SEARCH_STARTED] Category:', category)
+      console.log('[SEARCH_STARTED] Category:', category, '- Web search called!')
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log('  -> Marking', category, 'as searching')
-            return { ...cat, status: 'searching' as CategoryStatus }
+            console.log('  -> Marking', category, 'as searching with web_search badge')
+            return {
+              ...cat,
+              status: 'searching' as CategoryStatus,
+              hasWebSearched: true,
+            }
           }
           return cat
         }),
@@ -290,9 +294,9 @@ export function CrawlProgressBox({
       </div>
 
       {/* Main content - 3 column layout */}
-      <div className="flex min-h-0 flex-1 overflow-hidden gap-0">
+      <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Left: Thinking panel (35%) */}
-        <div className="flex-none w-[35%] border-r border-white/10 overflow-hidden">
+        <div className="w-[35%] flex-none overflow-hidden border-r border-white/10">
           <ThinkingPanel
             thinkingText={thinkingText}
             inputTokens={inputTokens}
@@ -301,19 +305,19 @@ export function CrawlProgressBox({
         </div>
 
         {/* Middle: Claude Output (35%) */}
-        <div className="flex-none w-[35%] border-r border-white/10 overflow-hidden">
+        <div className="w-[35%] flex-none overflow-hidden border-r border-white/10">
           <ClaudeOutputPanel outputText={claudeOutputText} />
         </div>
 
         {/* Right: Categories + status (30%) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden">
             <CategoriesPanel categories={categories} />
           </div>
 
           {/* Status messages footer */}
           {statusMessages.length > 0 && (
-            <div className="flex-none max-h-24 overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
+            <div className="max-h-24 flex-none overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
               <div className="space-y-1">
                 {statusMessages.slice(-3).map((msg, idx) => (
                   <div key={idx} className="flex items-start gap-2 text-white/60">
