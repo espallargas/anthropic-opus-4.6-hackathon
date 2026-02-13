@@ -156,8 +156,14 @@ class LegislationCrawlerService
             begin
               data = JSON.parse(tool_result)
               if data.is_a?(Hash) && data['results']
-                all_results[category] = data if category
-                emit("  ✓ Found #{data['results'].length} results for #{category}")
+                if category
+                  all_results[category] = data
+                  emit("  ✓ Found #{data['results'].length} results for #{category}")
+                else
+                  emit("  ⚠ Could not detect category for this search")
+                end
+              else
+                emit("  ⚠ Unexpected response format")
               end
             rescue JSON::ParserError
               emit("  ⚠ Could not parse web search response")

@@ -15,36 +15,70 @@ export function CrawlProgressBox({
   onComplete,
 }: CrawlProgressBoxProps) {
   useEffect(() => {
-    const eventSource = new EventSource(`/api/v1/admin/crawl/${countryCode}`)
-
-    const handleMessage = (event: MessageEvent) => {
+    const startCrawl = async () => {
       try {
-        const data = JSON.parse(event.data)
-        if (data.type === 'crawl_progress') {
-          setMessages((prev) => [...prev, data.message])
-        } else if (data.type === 'crawl_complete') {
-          setMessages((prev) => [...prev, '✓ Crawl complete!'])
-          eventSource.close()
-          setTimeout(() => onComplete(), 1000)
-        } else if (data.type === 'error') {
-          setMessages((prev) => [...prev, `❌ Error: ${data.error}`])
-          eventSource.close()
+        const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          setMessages((prev) => [...prev, `❌ Error: ${response.statusText}`])
           setTimeout(() => onComplete(), 2000)
+          return
         }
-      } catch (e) {
-        console.error('Failed to parse SSE message:', e)
+
+        const reader = response.body?.getReader()
+        if (!reader) {
+          setMessages((prev) => [...prev, '❌ No response stream'])
+          setTimeout(() => onComplete(), 2000)
+          return
+        }
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+
+          // Keep the last incomplete line in buffer
+          buffer = lines[lines.length - 1]
+
+          for (let i = 0; i < lines.length - 1; i++) {
+            const line = lines[i].trim()
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6)
+                const data = JSON.parse(jsonStr)
+
+                if (data.type === 'crawl_progress') {
+                  setMessages((prev) => [...prev, data.message])
+                } else if (data.type === 'crawl_complete') {
+                  setMessages((prev) => [...prev, '✓ Crawl complete!'])
+                  setTimeout(() => onComplete(), 1000)
+                } else if (data.type === 'error') {
+                  setMessages((prev) => [...prev, `❌ Error: ${data.error}`])
+                  setTimeout(() => onComplete(), 2000)
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE message:', e)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        setMessages((prev) => [...prev, `❌ Connection error: ${String(error)}`])
+        setTimeout(() => onComplete(), 2000)
       }
     }
 
-    eventSource.addEventListener('message', handleMessage)
-    eventSource.addEventListener('error', () => {
-      eventSource.close()
-      setTimeout(() => onComplete(), 1000)
-    })
-
-    return () => {
-      eventSource.close()
-    }
+    startCrawl()
   }, [countryCode, setMessages, onComplete])
 
   return (
