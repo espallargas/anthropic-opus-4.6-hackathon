@@ -47,7 +47,6 @@ export function CrawlProgressBox({
   })
   const scrollRef = useRef<HTMLDivElement>(null)
   const crawlStartedRef = useRef(false)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const memoizedOnDocCountUpdate = useCallback(
     (count: number) => {
@@ -75,99 +74,87 @@ export function CrawlProgressBox({
     }
   }, [operationOrder, operations])
 
-  // Debounced message processing to batch rapid updates
-  const flushMessageQueue = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-  }, [])
 
-  // Process queued messages with debouncing
+  // Process incoming SSE messages
   const processMessage = useCallback(
     (data: SSEMessage) => {
-      // Clear existing debounce timer
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
+      setOperations((prevOps) => {
+        const newOps = new Map(prevOps)
 
-      // Batch process messages to reduce re-renders
-      debounceRef.current = setTimeout(() => {
-        setOperations((prevOps) => {
-          const newOps = new Map(prevOps)
-
-          if (data.type === 'search_started') {
-            // Create new operation
-            const opId = data.operation_id
-            newOps.set(opId, {
-              operationId: opId,
-              category: data.category,
-              query: data.query,
-              index: data.index,
-              total: data.total,
-              status: 'running',
-              messages: [],
+        if (data.type === 'search_started') {
+          // Create new operation
+          const opId = data.operation_id
+          newOps.set(opId, {
+            operationId: opId,
+            category: data.category,
+            query: data.query,
+            index: data.index,
+            total: data.total,
+            status: 'running',
+            messages: [],
+          })
+          // Add to order if not already there
+          setOperationOrder((prev) => (prev.includes(opId) ? prev : [...prev, opId]))
+        } else if (data.type === 'search_result') {
+          // Add result message to operation
+          const opId = data.operation_id
+          if (newOps.has(opId)) {
+            const op = newOps.get(opId)!
+            op.messages.push({
+              type: 'search_result',
+              message: `✅ Found ${data.result_count} results`,
+              result_count: data.result_count,
             })
-            // Add to order if not already there
-            setOperationOrder((prev) => (prev.includes(opId) ? prev : [...prev, opId]))
-          } else if (data.type === 'search_result') {
-            // Add result message to operation
-            const opId = data.operation_id
-            if (newOps.has(opId)) {
-              const op = newOps.get(opId)!
+            op.status = 'done'
+          }
+        } else if (data.type === 'thinking') {
+          // Add thinking to current or most recent operation
+          const opId = data.operation_id
+          if (opId && newOps.has(opId)) {
+            const op = newOps.get(opId)!
+            // Check if last message is thinking - if so, append
+            const lastMsg = op.messages[op.messages.length - 1]
+            if (lastMsg && lastMsg.type === 'thinking') {
+              lastMsg.text = (lastMsg.text || '') + data.text
+            } else {
               op.messages.push({
-                type: 'search_result',
-                message: `✅ Found ${data.result_count} results`,
-                result_count: data.result_count,
+                type: 'thinking',
+                text: data.text,
+                is_summary: data.is_summary || false,
               })
-              op.status = 'done'
-            }
-          } else if (data.type === 'thinking') {
-            // Add thinking to current or most recent operation
-            const opId = data.operation_id
-            if (opId && newOps.has(opId)) {
-              const op = newOps.get(opId)!
-              // Check if last message is thinking - if so, append
-              const lastMsg = op.messages[op.messages.length - 1]
-              if (lastMsg && lastMsg.type === 'thinking') {
-                lastMsg.text = (lastMsg.text || '') + data.text
-              } else {
-                op.messages.push({
-                  type: 'thinking',
-                  text: data.text,
-                  is_summary: data.is_summary || false,
-                })
-              }
-            }
-          } else {
-            // Status messages go to statusMessages
-            setStatusMessages((prev) => [...prev, data])
-
-            // Update progress summary
-            if (data.type === 'search_started') {
-              setProgressSummary((prev) => ({
-                completed: prev.completed,
-                total: data.total,
-              }))
-            }
-
-            // Handle completion
-            if (data.type === 'complete') {
-              setDocumentCount(data.document_count || 0)
-              memoizedOnDocCountUpdate(data.document_count || 0)
-              setIsComplete(true)
-              setTimeout(() => onComplete(), 1200)
-            } else if (data.type === 'batch_saved') {
-              setDocumentCount(data.total_saved || 0)
-              memoizedOnDocCountUpdate(data.total_saved || 0)
-            } else if (data.type === 'error') {
-              setIsComplete(true)
-              setTimeout(() => onComplete(), 1500)
             }
           }
+        }
 
-          return newOps
-        })
-      }, 50) // 50ms debounce for batching
+        // Handle status messages and special cases (outside the if/else chain)
+        if (data.type !== 'search_started' && data.type !== 'search_result' && data.type !== 'thinking') {
+          setStatusMessages((prev) => [...prev, data])
+        }
+
+        // Update progress summary
+        if (data.type === 'search_started') {
+          setProgressSummary((prev) => ({
+            completed: prev.completed,
+            total: data.total,
+          }))
+        }
+
+        // Handle completion
+        if (data.type === 'complete') {
+          setDocumentCount(data.document_count || 0)
+          memoizedOnDocCountUpdate(data.document_count || 0)
+          setIsComplete(true)
+          setTimeout(() => onComplete(), 1200)
+        } else if (data.type === 'batch_saved') {
+          setDocumentCount(data.total_saved || 0)
+          memoizedOnDocCountUpdate(data.total_saved || 0)
+        } else if (data.type === 'error') {
+          setIsComplete(true)
+          setTimeout(() => onComplete(), 1500)
+        }
+
+        return newOps
+      })
     },
     [memoizedOnDocCountUpdate, onComplete]
   )
@@ -262,10 +249,7 @@ export function CrawlProgressBox({
     }
 
     startCrawl()
-    return () => {
-      flushMessageQueue()
-    }
-  }, [countryCode, processMessage, flushMessageQueue, onComplete])
+  }, [countryCode, processMessage, onComplete])
 
 
   return (
