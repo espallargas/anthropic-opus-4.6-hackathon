@@ -287,7 +287,10 @@ class LegislationCrawlerService
         response = build_response_from_stream(
           model: MODEL,
           max_tokens: MAX_TOKENS,
-          thinking: { type: "adaptive" },
+          thinking: {
+            type: "adaptive",
+            budget_tokens: 10000  # Extended thinking budget for deeper analysis
+          },
           system_: system_prompt,
           messages: messages
         )
@@ -454,7 +457,8 @@ class LegislationCrawlerService
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
-            type: "adaptive"
+            type: "adaptive",
+            budget_tokens: 10000  # Extended thinking budget for deeper analysis
           },
           system_: system_prompt,
           messages: messages
