@@ -376,10 +376,16 @@ class LegislationCrawlerService
       ❌ REJECT titles like: "Official Legislation", "Regulations and Procedures", "2024 Updates", "Immigration Procedures"
       ❌ REJECT titles that start with just a dash "-" or are single words
       ❌ REJECT titles without a law number or specific name
+      ❌ REJECT titles from OTHER COUNTRIES (e.g., don't include Brazilian laws, German laws, etc. - ONLY #{@country.name} laws)
       ✅ ACCEPT titles like: "Lei 13.445/2017", "Decreto 9.199/2017", "Resolution No. 123", "Constitutional Amendment 45/2019"
 
-      If search results only contain generic placeholders, do NOT use them. Return empty results for that category instead.
-      Better to have no results than misleading generic ones.
+      COUNTRY VERIFICATION:
+      - Verify each result is SPECIFIC to #{@country.name}, not another country
+      - If a search result mentions laws from other countries, REJECT it
+      - Check the source URL to confirm it's from #{@country.name} government domain
+
+      If search results only contain generic placeholders or non-#{@country.name} laws, do NOT use them. Return empty results for that category instead.
+      Better to have no results than misleading or incorrect country data.
 
       IMPORTANT:
       - Search results should contain SPECIFIC law names and reference numbers
