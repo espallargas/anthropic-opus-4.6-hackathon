@@ -262,17 +262,19 @@ class LegislationCrawlerService
 
       # Continue conversation with tool results
       emit(:phase, message: "Analyzing results...")
-      messages << { role: "assistant", content: response.content }
-      messages << { role: "user", content: tool_results }
+
+      # Only include tool_use blocks in conversation, NOT thinking blocks
+      # (thinking blocks are too large and not needed for next iteration)
+      assistant_content = response.content.select { |block| block.type == :tool_use }
+      if assistant_content.any?
+        messages << { role: "assistant", content: assistant_content }
+        messages << { role: "user", content: tool_results }
+      end
 
       emit(:phase, message: "Waiting for Claude to analyze results...")
       start_time = Time.current
-      Rails.logger.info("Starting Claude message.create call (iteration #{iteration})")
-      Rails.logger.info("Messages count: #{messages.length}, Last message role: #{messages.last[:role]}, Tool results count: #{tool_results.length}")
-      Rails.logger.debug("Messages: #{messages.inspect}")
 
       begin
-        Rails.logger.info("About to call @client.messages.create with model=#{MODEL}, max_tokens=#{MAX_TOKENS}")
         response = @client.messages.create(
           model: MODEL,
           max_tokens: MAX_TOKENS,
@@ -283,13 +285,11 @@ class LegislationCrawlerService
           tools: Tools::Definitions::TOOLS,
           messages: messages
         )
-        Rails.logger.info("API call completed successfully")
         elapsed = ((Time.current - start_time) * 1000).round
         Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
         emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
       rescue StandardError => e
-        Rails.logger.error("Claude API error in iteration #{iteration}: #{e.class} - #{e.message}")
-        Rails.logger.error(e.backtrace.first(5).join("\n"))
+        Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
         emit(:error, message: "Claude error: #{e.message}")
         raise
       end
