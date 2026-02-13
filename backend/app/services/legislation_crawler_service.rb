@@ -452,6 +452,17 @@ class LegislationCrawlerService
       auxiliary: []
     }
 
+    # Log all content blocks for debugging
+    Rails.logger.info("[EXTRACT] Response has #{response.content.length} content blocks:")
+    response.content.each_with_index do |block, idx|
+      Rails.logger.info("  Block #{idx}: type=#{block.type}")
+      if block.type == :text
+        Rails.logger.info("    Text (first 200 chars): #{block.text[0..200]}")
+      elsif block.type == :tool_use
+        Rails.logger.info("    ToolUse: #{block.name}")
+      end
+    end
+
     # Find text block with JSON
     json_text = nil
     response.content.each do |block|
@@ -460,7 +471,10 @@ class LegislationCrawlerService
       break if json_text&.include?('"federal_laws"')
     end
 
-    return results if json_text.blank?
+    if json_text.blank?
+      Rails.logger.warn("[EXTRACT] No JSON text found in response blocks!")
+      return results
+    end
 
     begin
       # Extract JSON from text
