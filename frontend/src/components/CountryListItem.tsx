@@ -7,13 +7,15 @@ import { timeAgo } from '@/lib/time'
 interface CountryListItemProps {
   country: Country
   isSelected: boolean
-  onCrawlStart: () => void
+  onCrawlStart: (code: string, name: string) => void
+  docCount?: number
 }
 
 export function CountryListItem({
   country,
   isSelected,
   onCrawlStart,
+  docCount,
 }: CountryListItemProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
@@ -25,9 +27,11 @@ export function CountryListItem({
         ? 'bg-yellow-500'
         : 'bg-red-500'
 
+  const currentDocCount = docCount ?? country.legislation_count
+
   const handleRefresh = () => {
     setIsLoading(true)
-    onCrawlStart()
+    onCrawlStart(country.code, country.name)
   }
 
   return (
@@ -50,17 +54,17 @@ export function CountryListItem({
         </div>
 
         {/* Document count */}
-        {country.legislation_count > 0 && (
+        {currentDocCount > 0 && (
           <div className="text-xs text-white/60 flex-shrink-0">
-            {country.legislation_count}
+            {currentDocCount}
             <span className="text-white/40 ml-1">
-              {country.legislation_count === 1 ? 'doc' : 'docs'}
+              {currentDocCount === 1 ? 'doc' : 'docs'}
             </span>
           </div>
         )}
 
         {/* Expand button if has legislations */}
-        {country.legislation_count > 0 && (
+        {currentDocCount > 0 && (
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
             className="text-white/40 hover:text-white/60 transition-colors p-1"
@@ -84,7 +88,7 @@ export function CountryListItem({
       </div>
 
       {/* Legislation panel - more compact */}
-      {isPanelOpen && country.legislation_count > 0 && (
+      {isPanelOpen && currentDocCount > 0 && (
         <div className="pl-8 pr-2 pb-2">
           <LegislationPanel
             countryCode={country.code}

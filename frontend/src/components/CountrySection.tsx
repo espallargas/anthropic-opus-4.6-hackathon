@@ -5,7 +5,8 @@ interface CountrySectionProps {
   title: string
   countries: Country[]
   selectedCountryCode: string | null
-  onCrawlStart: (code: string) => void
+  onCrawlStart: (code: string, name: string) => void
+  liveDocCount?: Record<string, number>
 }
 
 export function CountrySection({
@@ -13,6 +14,7 @@ export function CountrySection({
   countries,
   selectedCountryCode,
   onCrawlStart,
+  liveDocCount = {},
 }: CountrySectionProps) {
   if (countries.length === 0) {
     return null
@@ -29,7 +31,8 @@ export function CountrySection({
             key={country.code}
             country={country}
             isSelected={country.code === selectedCountryCode}
-            onCrawlStart={() => onCrawlStart(country.code)}
+            onCrawlStart={onCrawlStart}
+            docCount={liveDocCount[country.code]}
           />
         ))}
       </div>

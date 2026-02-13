@@ -56,7 +56,7 @@ class LegislationCrawlerService
       @country.legislations
         .select(:title, :date_effective)
         .order(:title)
-        .map { |l| "- #{l.title} (#{l.date_effective})" }
+        .map { |l| "- #{l.title} (effective: #{l.date_effective || 'unknown'})" }
         .join("\n")
     else
       "None"
@@ -66,6 +66,27 @@ class LegislationCrawlerService
       You are a legislation researcher specializing in immigration law for #{@country.name}.
 
       Your task: Search for immigration legislation organized by category, then return structured JSON.
+
+      === CRITICAL: NAMING CONVENTIONS FOR CLARITY ===
+
+      Use EXACT, OFFICIAL law names with reference numbers (e.g., "Lei 13.445/2017", "Decreto 9.199/2017").
+      DO NOT use generic names like "Federal Laws 1" or "Regulations 1" - these are meaningless for deduplication.
+
+      For each law, include:
+      - Official reference number if available (e.g., "Law No. 123/2020")
+      - Official title in local language
+      - Year/date context (e.g., "Lei 2024" if it's a 2024 update)
+
+      === DEDUPLICATION AND UPDATES ===
+
+      Existing legislation in database for #{@country.name}:
+      #{existing_list}
+
+      When you find legislation, check against this list:
+      - IDENTICAL TITLE + SAME DATE = SKIP (duplicate)
+      - IDENTICAL TITLE + NEWER DATE = INCLUDE as UPDATE (system will mark old as deprecated)
+      - SIMILAR TITLE (e.g., amendment/revision) = INCLUDE with DIFFERENT NAME
+        Example: If "Lei 13.445/2017" exists, and you find "Lei 13.445/2017 Amendment 2024", use EXACT name "Lei 13.445/2017 Amendment 2024"
 
       STEP 1: Search for legislation
       Use web_search to find information for EACH of these 6 categories:
@@ -77,8 +98,9 @@ class LegislationCrawlerService
       - auxiliary: Statistics, quotas, and occupational lists
 
       For each search, look for:
-      - Official law titles and reference numbers
+      - Official law reference numbers and exact titles
       - Effective dates and recent updates
+      - Amendment history
       - Summary of key requirements
       - Official sources and URLs
 
@@ -87,7 +109,7 @@ class LegislationCrawlerService
 
       {
         "federal_laws": [
-          {"title": "Law name", "summary": "2-3 sentence summary", "source_url": "https://...", "date_effective": "YYYY-MM-DD", "is_deprecated": false}
+          {"title": "Official Law Name/Reference (Year if relevant)", "summary": "2-3 sentence summary", "source_url": "https://...", "date_effective": "YYYY-MM-DD", "is_deprecated": false}
         ],
         "regulations": [...],
         "consular": [...],
@@ -99,9 +121,11 @@ class LegislationCrawlerService
       IMPORTANT:
       - Return ONLY valid JSON with no other text before or after
       - Include at least 1-3 entries per category
+      - Use EXACT official law names and reference numbers (not generic names)
       - Use real URLs from search results
-      - Dates should be YYYY-MM-DD format
-      - Set is_deprecated: false for all entries unless new law supersedes older one
+      - Dates should be YYYY-MM-DD format (use 2024-01-01 as placeholder if unknown)
+      - Set is_deprecated: false for all entries unless new law explicitly supersedes older one
+      - Avoid duplicate entries with identical titles and dates
     PROMPT
   end
 
@@ -348,28 +372,71 @@ class LegislationCrawlerService
 
   def save_results(results)
     legislations_to_insert = []
+    legislations_to_update = []
 
     results.each do |category, documents|
       documents.each do |doc|
-        emit("📝 Saving: #{doc[:title]}")
+        # Check if legislation with same title already exists
+        existing = @country.legislations.find_by(title: doc[:title])
 
-        legislations_to_insert << {
-          country_id: @country.id,
-          category: Legislation.categories[category],
-          title: doc[:title],
-          content: doc[:content],
-          summary: doc[:summary],
-          source_url: doc[:source_url],
-          date_effective: doc[:date_effective],
-          is_deprecated: doc[:is_deprecated],
-          crawled_at: Time.current,
-          created_at: Time.current,
-          updated_at: Time.current
-        }
+        if existing
+          # Compare dates to determine if it's an update or duplicate
+          new_date = doc[:date_effective]
+          old_date = existing.date_effective
+
+          if new_date && old_date && new_date > old_date
+            # Newer version found - mark old as deprecated
+            emit("🔄 Updating: #{doc[:title]} (#{old_date} → #{new_date})")
+            legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category }
+          else
+            # Same or older date - skip as duplicate
+            emit("⏭ Skipping existing: #{doc[:title]}")
+            next
+          end
+        else
+          # New legislation
+          emit("📝 Saving: #{doc[:title]}")
+          legislations_to_insert << {
+            country_id: @country.id,
+            category: Legislation.categories[category],
+            title: doc[:title],
+            content: doc[:content],
+            summary: doc[:summary],
+            source_url: doc[:source_url],
+            date_effective: doc[:date_effective],
+            is_deprecated: doc[:is_deprecated],
+            crawled_at: Time.current,
+            created_at: Time.current,
+            updated_at: Time.current
+          }
+        end
       end
     end
 
+    # Insert new legislations
     Legislation.insert_all(legislations_to_insert) if legislations_to_insert.any?
+
+    # Update existing with new versions
+    legislations_to_update.each do |update|
+      old_leg = Legislation.find(update[:existing_id])
+
+      # Create new version
+      new_leg = Legislation.create!(
+        country_id: @country.id,
+        category: Legislation.categories[update[:new_category]],
+        title: update[:new_doc][:title],
+        content: update[:new_doc][:content],
+        summary: update[:new_doc][:summary],
+        source_url: update[:new_doc][:source_url],
+        date_effective: update[:new_doc][:date_effective],
+        is_deprecated: update[:new_doc][:is_deprecated],
+        crawled_at: Time.current
+      )
+
+      # Mark old as deprecated
+      old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+      emit("✓ Marked old version as deprecated, linked to new version")
+    end
   end
 
   def emit(message)

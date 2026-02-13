@@ -3,9 +3,11 @@ import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 interface CrawlProgressBoxProps {
   countryCode: string
+  countryName: string
   messages: string[]
   setMessages: (messages: string[]) => void
   onComplete: () => void
+  onDocCountUpdate?: (count: number) => void
 }
 
 interface ProgressItem {
@@ -16,12 +18,15 @@ interface ProgressItem {
 
 export function CrawlProgressBox({
   countryCode,
+  countryName,
   messages,
   setMessages,
   onComplete,
+  onDocCountUpdate,
 }: CrawlProgressBoxProps) {
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([])
   const [isComplete, setIsComplete] = useState(false)
+  const [documentCount, setDocumentCount] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new items appear
@@ -115,13 +120,16 @@ export function CrawlProgressBox({
                       return updated
                     })
                   }
-                  // Save messages
+                  // Save messages - extract document count
                   else if (msg.includes('Processed')) {
                     const match = msg.match(/(\d+)\s+documents/)
                     if (match) {
+                      const count = parseInt(match[1])
+                      setDocumentCount(count)
+                      onDocCountUpdate?.(count)
                       setProgressItems((prev) => [
                         ...prev,
-                        { type: 'save', message: `Saving ${match[1]} documents`, status: 'in-progress' },
+                        { type: 'save', message: `Saving ${count} documents`, status: 'in-progress' },
                       ])
                     }
                   }
@@ -159,7 +167,7 @@ export function CrawlProgressBox({
     }
 
     startCrawl()
-  }, [countryCode, setMessages, onComplete])
+  }, [countryCode, setMessages, onComplete, onDocCountUpdate])
 
   const getIcon = (item: ProgressItem) => {
     if (item.status === 'done' || item.type === 'complete') {
@@ -175,49 +183,52 @@ export function CrawlProgressBox({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
-      <div className="flex w-full max-w-3xl h-[600px] flex-col border border-white/10 bg-black/98 rounded-lg shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h3 className="text-lg font-semibold tracking-tight">Crawling Legislation</h3>
-          <button
-            onClick={onComplete}
-            className="text-white/40 hover:text-white/80 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="flex w-96 flex-col border-l border-white/10 bg-black/95">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold">{countryName}</h3>
+          {documentCount > 0 && (
+            <p className="text-xs text-green-400/70 mt-0.5">{documentCount} docs</p>
+          )}
         </div>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-2">
-            {progressItems.length === 0 ? (
-              <div className="flex items-center gap-2 text-white/50 text-xs">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Connecting...</span>
-              </div>
-            ) : (
-              progressItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-start gap-3 text-xs transition-all duration-200 ${
-                    item.status === 'done' ? 'text-white/50' : item.status === 'error' ? 'text-red-400/70' : 'text-white/70'
-                  }`}
-                >
-                  <div className="flex-shrink-0 mt-0.5">{getIcon(item)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate font-mono">{item.message}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {isComplete && (
-          <div className="border-t border-white/10 px-6 py-3 text-center">
-            <p className="text-xs text-green-400/70 font-medium">Closing...</p>
-          </div>
-        )}
+        <button
+          onClick={onComplete}
+          className="text-white/40 hover:text-white/80 transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
+        <div className="space-y-1.5 text-xs">
+          {progressItems.length === 0 ? (
+            <div className="flex items-center gap-2 text-white/50">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Connecting...</span>
+            </div>
+          ) : (
+            progressItems.map((item, idx) => (
+              <div
+                key={idx}
+                className={`flex items-start gap-2 transition-all duration-200 ${
+                  item.status === 'done' ? 'text-white/40' : item.status === 'error' ? 'text-red-400/70' : 'text-white/60'
+                }`}
+              >
+                <div className="flex-shrink-0 mt-0.5">{getIcon(item)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-mono">{item.message}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {isComplete && (
+        <div className="border-t border-white/10 px-4 py-2 text-center">
+          <p className="text-xs text-green-400/70 font-medium">Complete</p>
+        </div>
+      )}
     </div>
   )
 }

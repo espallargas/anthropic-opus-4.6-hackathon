@@ -6,18 +6,30 @@ import { CrawlProgressBox } from './CrawlProgressBox'
 export function AdminPage() {
   const { active, pending, loading, refetch } = useAdminCountries()
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
+  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null)
   const [crawlInProgress, setCrawlInProgress] = useState(false)
   const [crawlMessages, setCrawlMessages] = useState<string[]>([])
+  const [liveDocCount, setLiveDocCount] = useState<Record<string, number>>({})
 
-  const handleCrawlStart = (code: string) => {
+  const handleCrawlStart = (code: string, name: string) => {
     setSelectedCountryCode(code)
+    setSelectedCountryName(name)
     setCrawlInProgress(true)
     setCrawlMessages([])
+  }
+
+  const handleDocCountUpdate = (code: string, count: number) => {
+    setLiveDocCount((prev) => ({ ...prev, [code]: count }))
   }
 
   const handleCrawlComplete = () => {
     setCrawlInProgress(false)
     refetch()
+  }
+
+  // Get effective doc count from live updates or from data
+  const getDocCount = (country: any) => {
+    return liveDocCount[country.code] ?? country.legislation_count
   }
 
   if (loading) {
@@ -47,6 +59,7 @@ export function AdminPage() {
                 countries={active}
                 selectedCountryCode={selectedCountryCode}
                 onCrawlStart={handleCrawlStart}
+                liveDocCount={liveDocCount}
               />
             </div>
           )}
@@ -59,6 +72,7 @@ export function AdminPage() {
                 countries={pending}
                 selectedCountryCode={selectedCountryCode}
                 onCrawlStart={handleCrawlStart}
+                liveDocCount={liveDocCount}
               />
             </div>
           )}
