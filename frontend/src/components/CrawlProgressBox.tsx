@@ -78,6 +78,7 @@ export function CrawlProgressBox({
   // Process incoming SSE messages
   const processMessage = useCallback(
     (data: SSEMessage) => {
+      console.log(`[SSE] ${data.type}`, data)
       setOperations((prevOps) => {
         const newOps = new Map(prevOps)
 
