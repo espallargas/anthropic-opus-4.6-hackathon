@@ -211,6 +211,7 @@ export function CrawlProgressBox({
 
         const reader = response.body?.getReader()
         if (!reader) {
+          console.error('[CrawlProgressBox] No response.body.getReader()')
           setStatusMessages((prev) => [
             ...prev,
             {
@@ -223,13 +224,22 @@ export function CrawlProgressBox({
           return
         }
 
+        console.log('[CrawlProgressBox] Reader acquired, starting to read stream')
         const decoder = new TextDecoder()
         let buffer = ''
         let lineCount = 0
+        let dataLineCount = 0
 
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            console.log(`[CrawlProgressBox] Stream done. Total lines: ${lineCount}, data lines: ${dataLineCount}`)
+            break
+          }
+
+          if (value && value.length > 0) {
+            console.log(`[CrawlProgressBox] Received ${value.length} bytes`)
+          }
 
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
@@ -240,18 +250,19 @@ export function CrawlProgressBox({
             lineCount++
 
             // Log first few lines to debug format
-            if (lineCount <= 3) {
-              console.log(`[SSE line ${lineCount}] "${line.slice(0, 80)}"`)
+            if (lineCount <= 5) {
+              console.log(`[SSE line ${lineCount}] "${line.slice(0, 100)}"`)
             }
 
             if (line.startsWith('data: ')) {
+              dataLineCount++
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                console.log(`[SSE received] type=${data.type}`)
+                console.log(`[SSE received ${dataLineCount}] type=${data.type}`)
                 processMessageRef.current(data)
               } catch (e) {
-                console.error('Failed to parse SSE message:', e, 'line:', line)
+                console.error('Failed to parse SSE message:', e, 'line:', line.slice(0, 100))
               }
             }
           }
