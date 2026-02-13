@@ -192,9 +192,15 @@ class LegislationCrawlerService
       Rails.logger.info("Stream event ##{event_count}: #{event.type}")
 
       # Emit thinking blocks in real-time as they arrive
-      if event.type == 'content_block_delta' && event.delta.respond_to?(:thinking)
-        Rails.logger.info("  -> Emitting thinking block: #{event.delta.thinking[0..50]}...")
-        emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
+      if event.type == 'content_block_delta'
+        if event.delta.respond_to?(:thinking) && event.delta.thinking
+          Rails.logger.info("  -> Emitting thinking block: #{event.delta.thinking[0..50]}...")
+          emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
+        elsif event.delta.respond_to?(:text) && event.delta.text
+          Rails.logger.info("  -> Text delta: #{event.delta.text[0..50]}...")
+        else
+          Rails.logger.info("  -> Other delta type - respond_to keys: #{event.delta.respond_to?(:thinking)}, #{event.delta.respond_to?(:text)}")
+        end
       end
 
       # Log content block events
