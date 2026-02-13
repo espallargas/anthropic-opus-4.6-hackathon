@@ -47,6 +47,7 @@ class LegislationCrawlerService
   def emit(type, **data)
     begin
       message = ::SSEMessageSchema.format(type, data)
+      Rails.logger.info("[EMIT] #{type}: #{message.inspect[0..100]}")
       @sse&.write(message)
     rescue StandardError => e
       Rails.logger.error("Emit error for type #{type}: #{e.class} - #{e.message}")
@@ -57,6 +58,7 @@ class LegislationCrawlerService
   end
 
   def crawl
+    Rails.logger.info("[CRAWL] SSE object: #{@sse.class}, nil? #{@sse.nil?}")
     emit(:phase, message: "Starting crawl for #{@country.name}")
 
     existing_count = @country.legislations.count
