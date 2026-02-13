@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import ReactGlobe from 'react-globe.gl'
 import { useGlobe } from '@/hooks/useGlobe'
+import { useI18n } from '@/lib/i18n'
 
 interface GlobeProps {
   origin?: string
@@ -9,6 +10,7 @@ interface GlobeProps {
 }
 
 export function Globe({ origin, destination, className = '' }: GlobeProps) {
+  const { t } = useI18n()
   const globeRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 400, height: 500 })
@@ -28,7 +30,6 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
     if (loading) return
 
     // Measure on first render after loading
-    updateSize()
     const handleResize = () => {
       updateSize()
     }
@@ -91,7 +92,7 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
         ref={containerRef}
         className={`flex items-center justify-center bg-[#000008] ${className}`}
       >
-        <div className="text-muted-foreground text-xs">Loading globe...</div>
+        <div className="text-muted-foreground text-xs">{t('globe.loading')}</div>
       </div>
     )
   }

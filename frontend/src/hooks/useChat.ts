@@ -1,49 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-
-export interface ToolCall {
-  id: string
-  name: string
-  input: Record<string, unknown>
-  result?: Record<string, unknown>
-  status: 'calling' | 'done' | 'error'
-}
-
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  toolCalls?: ToolCall[]
-}
-
-export interface SystemVars {
-  origin_country: string
-  nationality: string
-  destination_country: string
-  objective: string
-  additional_info: string
-}
+import { useI18n } from '@/lib/i18n'
+import type { Chat, ChatMessage, ToolCall } from '@/lib/chatStore'
 
 type ChatStatus = 'idle' | 'streaming' | 'error'
-
-const STORAGE_KEY = 'chat_messages'
-
-function loadMessages(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as ChatMessage[]
-  } catch {
-    return []
-  }
-}
-
-function saveMessages(messages: ChatMessage[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
-  } catch {
-    // quota exceeded or unavailable
-  }
-}
 
 interface SSEEvent {
   type: string
@@ -55,19 +14,38 @@ interface SSEEvent {
   result?: Record<string, unknown>
 }
 
-export function useChat(systemVars?: SystemVars) {
-  const [messages, setMessages] = useState<ChatMessage[]>(loadMessages)
+export function useChat(
+  chat: Chat | null,
+  onUpdateMessages: (id: string, msgs: ChatMessage[]) => void,
+) {
+  const { t } = useI18n()
+  const [messages, setMessages] = useState<ChatMessage[]>(chat?.messages ?? [])
   const [status, setStatus] = useState<ChatStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const chatIdRef = useRef<string | null>(chat?.id ?? null)
 
+  // Reset messages when active chat changes
   useEffect(() => {
-    saveMessages(messages)
-  }, [messages])
+    if (chat?.id !== chatIdRef.current) {
+      abortRef.current?.abort()
+      chatIdRef.current = chat?.id ?? null
+      setMessages(chat?.messages ?? [])
+      setStatus('idle')
+      setError(null)
+    }
+  }, [chat?.id, chat?.messages])
+
+  // Persist messages to store on change
+  useEffect(() => {
+    if (chat?.id) {
+      onUpdateMessages(chat.id, messages)
+    }
+  }, [messages, chat?.id, onUpdateMessages])
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim()) return
+      if (!content.trim() || !chat) return
 
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -93,9 +71,9 @@ export function useChat(systemVars?: SystemVars) {
       abortRef.current = new AbortController()
 
       try {
-        const body: Record<string, unknown> = { messages: history }
-        if (systemVars) {
-          body.system_vars = systemVars
+        const body: Record<string, unknown> = {
+          messages: history,
+          system_vars: chat.systemVars,
         }
 
         const res = await fetch('/api/v1/chat', {
@@ -178,6 +156,20 @@ export function useChat(systemVars?: SystemVars) {
         setStatus('idle')
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1]
+            if (last?.id === assistantId && !last.content && !last.toolCalls?.length) {
+              return prev.slice(0, -1)
+            }
+            if (last?.id === assistantId && last.content) {
+              return prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: m.content + '\n\n' + t('chat.interrupted') }
+                  : m,
+              )
+            }
+            return prev
+          })
           setStatus('idle')
           return
         }
@@ -187,7 +179,7 @@ export function useChat(systemVars?: SystemVars) {
         abortRef.current = null
       }
     },
-    [messages, systemVars],
+    [messages, chat, t],
   )
 
   const clearMessages = useCallback(() => {
@@ -195,12 +187,11 @@ export function useChat(systemVars?: SystemVars) {
     setMessages([])
     setError(null)
     setStatus('idle')
-    try {
-      localStorage.removeItem(STORAGE_KEY)
-    } catch {
-      // ignore
-    }
   }, [])
 
-  return { messages, status, error, sendMessage, clearMessages }
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort()
+  }, [])
+
+  return { messages, status, error, sendMessage, clearMessages, stopStreaming }
 }
