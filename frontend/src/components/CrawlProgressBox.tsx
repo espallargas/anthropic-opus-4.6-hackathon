@@ -48,14 +48,12 @@ export function CrawlProgressBox({
   const scrollRef = useRef<HTMLDivElement>(null)
   const crawlStartedRef = useRef(false)
 
-  const memoizedOnDocCountUpdate = useCallback(
-    (count: number) => {
-      if (onDocCountUpdate) {
-        onDocCountUpdate(count)
-      }
-    },
-    [onDocCountUpdate]
-  )
+  // Track doc count changes separately to avoid setState during render
+  useEffect(() => {
+    if (documentCount > 0 && onDocCountUpdate) {
+      onDocCountUpdate(documentCount)
+    }
+  }, [documentCount, onDocCountUpdate])
 
   // Auto-scroll to bottom when new operations added, not on every update
   useEffect(() => {
@@ -143,12 +141,10 @@ export function CrawlProgressBox({
         // Handle completion
         if (data.type === 'complete') {
           setDocumentCount(data.document_count || 0)
-          memoizedOnDocCountUpdate(data.document_count || 0)
           setIsComplete(true)
           setTimeout(() => onComplete(), 1200)
         } else if (data.type === 'batch_saved') {
           setDocumentCount(data.total_saved || 0)
-          memoizedOnDocCountUpdate(data.total_saved || 0)
         } else if (data.type === 'error') {
           setIsComplete(true)
           setTimeout(() => onComplete(), 1500)
@@ -157,10 +153,13 @@ export function CrawlProgressBox({
         return newOps
       })
     },
-    [memoizedOnDocCountUpdate, onComplete]
+    [onComplete]
   )
 
   useEffect(() => {
+    // Reset the ref for this component instance
+    crawlStartedRef.current = false
+
     // Prevent double-firing in React Strict Mode
     if (crawlStartedRef.current) {
       console.warn(`[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}, skipping`)
