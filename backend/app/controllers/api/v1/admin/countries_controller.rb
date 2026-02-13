@@ -51,11 +51,14 @@ module Api
           sse = ActionController::Live::SSE.new(response.stream)
           country = Country.find_by!(code: params[:code])
 
+          Rails.logger.info("Starting crawl for #{country.name}")
           LegislationCrawlerService.new(country, sse).crawl
+          Rails.logger.info("Crawl finished for #{country.name}")
 
           sse.write(::SSEMessageSchema.format(:complete, message: 'Crawl finished'))
         rescue StandardError => e
           Rails.logger.error("Crawl SSE error: #{e.class} - #{e.message}")
+          Rails.logger.error(e.backtrace.first(10).join("\n"))
           begin
             sse&.write(::SSEMessageSchema.format(:error, message: e.message))
           rescue StandardError => write_error
