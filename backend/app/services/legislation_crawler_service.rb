@@ -198,6 +198,11 @@ class LegislationCrawlerService
         break
       end
 
+      # Initialize operation_id for first iteration (before any web_search)
+      if iteration == 1 && current_operation_id.nil?
+        current_operation_id = next_operation_id
+      end
+
       # Process tool uses
       has_tool_use = false
       tool_results = []
@@ -243,7 +248,7 @@ class LegislationCrawlerService
               if data.is_a?(Hash) && data['results'] && data['results'].any?
                 if category
                   all_results[category] = data
-                  emit(:search_result, result_count: data['results'].length)
+                  emit(:search_result, operation_id: current_operation_id, result_count: data['results'].length)
                 elsif web_search_count <= max_web_searches
                   emit(:warning, message: 'Could not detect category from search')
                 end

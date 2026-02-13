@@ -9,7 +9,7 @@ module SSEMessageSchema
 
     # Web search execution (hierarchical with operation_id)
     search_started: { fields: [:operation_id, :category, :query, :index, :total], required_fields: [:operation_id, :query] },
-    search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:operation_id, :result_count] },
+    search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:result_count] },
     search: { fields: [:count, :total, :category, :query], required_fields: [:count, :total, :query] },
 
     # Claude thinking (structured for UI rendering, linked via operation_id)
