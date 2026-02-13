@@ -185,7 +185,17 @@ class LegislationCrawlerService
           messages: messages,
           timeout: 300  # Pass timeout to client
         )
-        Rails.logger.info("Claude responded with stop_reason: #{response.stop_reason}")
+        Rails.logger.info("Claude responded!")
+        Rails.logger.info("Response stop_reason: #{response.stop_reason}")
+        Rails.logger.info("Response content blocks: #{response.content.length}")
+        response.content.each_with_index do |block, idx|
+          Rails.logger.info("  Block #{idx}: type=#{block.type}")
+          if block.type == :text
+            Rails.logger.info("    Text length: #{block.text.length}")
+          elsif block.type == :thinking
+            Rails.logger.info("    Thinking length: #{block.thinking.to_s.length}")
+          end
+        end
       end
     rescue Timeout::Error => e
       Rails.logger.error("Claude API timeout after 300s: #{e.message}")
