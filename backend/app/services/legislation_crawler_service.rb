@@ -265,7 +265,9 @@ class LegislationCrawlerService
       messages << { role: "assistant", content: response.content }
       messages << { role: "user", content: tool_results }
 
+      emit(:phase, message: "Waiting for Claude to analyze results...")
       start_time = Time.current
+      Rails.logger.info("Starting Claude message.create call (iteration #{iteration})")
       response = @client.messages.create(
         model: MODEL,
         max_tokens: MAX_TOKENS,
@@ -277,6 +279,7 @@ class LegislationCrawlerService
         messages: messages
       )
       elapsed = ((Time.current - start_time) * 1000).round
+      Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
       emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
     end
 
