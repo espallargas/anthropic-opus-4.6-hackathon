@@ -210,11 +210,14 @@ class LegislationCrawlerService
             end
 
             if web_search_count > max_web_searches
+              emit(:phase, message: "Maximum web searches reached (6/6)")
               tool_result = { error: "Maximum web search limit reached (6)", results: [] }.to_json
             else
+              emit(:phase, message: "Searching for: #{category_label}")
               emit(:search, count: web_search_count, total: max_web_searches, category: category_label, query: query)
               # Execute the tool
               tool_result = Tools::Executor.call(block.name, block.input)
+              emit(:phase, message: "Processing #{category_label} results...")
             end
           else
             tool_result = Tools::Executor.call(block.name, block.input)
@@ -253,8 +256,15 @@ class LegislationCrawlerService
           thinking_text = block.thinking.to_s.strip
           Rails.logger.info("Got thinking block: #{thinking_text.length} chars")
           if thinking_text.length > 0
-            Rails.logger.info("Emitting thinking block")
-            emit(:thinking, text: thinking_text, is_summary: false)
+            # Break thinking into chunks to simulate streaming
+            # Send in 3-4 chunks with small delays
+            chunk_size = (thinking_text.length / 3).ceil
+            chunks = thinking_text.scan(/.{1,#{chunk_size}}/m)
+
+            chunks.each_with_index do |chunk, idx|
+              sleep(0.1) if idx > 0  # Small delay between chunks
+              emit(:thinking, text: chunk, is_summary: false)
+            end
           end
         end
       end

@@ -205,9 +205,25 @@ export function CrawlProgressBox({
 
                 // Update UI with smooth transitions
                 setTimeout(() => {
-                  // Special handling for thinking blocks: add to completed items instead of replacing currentStatus
+                  // Special handling for thinking blocks: accumulate text in a single thinking item
                   if (data.type === 'thinking') {
-                    setCompletedItems((prev) => [...prev, progressItem])
+                    // Check if last item is thinking - if so, append text to it
+                    setCompletedItems((prev) => {
+                      const lastItem = prev[prev.length - 1]
+                      if (lastItem && lastItem.type === 'thinking') {
+                        // Append to existing thinking block
+                        return [
+                          ...prev.slice(0, -1),
+                          {
+                            ...lastItem,
+                            text: (lastItem.text || '') + progressItem.text
+                          }
+                        ]
+                      } else {
+                        // New thinking block
+                        return [...prev, progressItem]
+                      }
+                    })
                   } else {
                     if (currentStatus && currentStatus.status === 'in-progress') {
                       const completedItem = { ...currentStatus, status: 'done' }
@@ -303,20 +319,18 @@ export function CrawlProgressBox({
                   <div className="mt-0.5 flex-shrink-0">{getIcon(item)}</div>
                   <div className="min-w-0 flex-1">
                     {item.type === 'thinking' ? (
-                      // Thinking blocks get special rendering
-                      <details className="cursor-pointer">
-                        <summary className="text-blue-300/70 hover:text-blue-300 font-mono">
-                          🧠 Show thinking {item.is_summary ? '(summarized)' : ''}
-                        </summary>
-                        {item.text && (
-                          <div className="mt-2 rounded bg-blue-900/20 p-2 space-y-2">
-                            <p className="text-xs font-semibold text-blue-300">Thinking content:</p>
-                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80">
+                      // Thinking blocks - Anthropic style floating box
+                      <div className="rounded-lg bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-700/30 p-3 my-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-400 text-sm">🧠</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-blue-300 mb-2">Claude is thinking...</p>
+                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/70 leading-relaxed">
                               {item.text}
                             </p>
                           </div>
-                        )}
-                      </details>
+                        </div>
+                      </div>
                     ) : (
                       // Regular messages
                       <>
