@@ -315,7 +315,7 @@ class LegislationCrawlerService
     legislation_results = generate_legislation_from_searches(all_results)
 
     doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
-    emit(:phase, message: "Preparing database save", document_count: doc_count)
+    emit(:phase, message: "Preparing database save (#{doc_count} documents)")
 
     legislation_results
   end
@@ -523,28 +523,49 @@ class LegislationCrawlerService
       end
     end
 
-    # Insert new legislations
-    Legislation.insert_all(legislations_to_insert) if legislations_to_insert.any?
+    # Insert new legislations in batches with progress updates
+    if legislations_to_insert.any?
+      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...")
+      Legislation.insert_all(legislations_to_insert)
+
+      # Query actual DB count and emit batch_saved update
+      current_count = @country.legislations.count
+      emit(:batch_saved, total_saved: current_count)
+
+      # Small delay to ensure DB write is flushed
+      sleep(0.5)
+    end
 
     # Update existing with new versions
-    legislations_to_update.each do |update|
-      old_leg = Legislation.find(update[:existing_id])
+    if legislations_to_update.any?
+      emit(:phase, message: "Processing #{legislations_to_update.count} updates...")
 
-      # Create new version
-      new_leg = Legislation.create!(
-        country_id: @country.id,
-        category: Legislation.categories[update[:new_category]],
-        title: update[:new_doc][:title],
-        content: update[:new_doc][:content],
-        summary: update[:new_doc][:summary],
-        source_url: update[:new_doc][:source_url],
-        date_effective: update[:new_doc][:date_effective],
-        is_deprecated: update[:new_doc][:is_deprecated],
-        crawled_at: Time.current
-      )
+      legislations_to_update.each do |update|
+        old_leg = Legislation.find(update[:existing_id])
 
-      # Mark old as deprecated
-      old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+        # Create new version
+        new_leg = Legislation.create!(
+          country_id: @country.id,
+          category: Legislation.categories[update[:new_category]],
+          title: update[:new_doc][:title],
+          content: update[:new_doc][:content],
+          summary: update[:new_doc][:summary],
+          source_url: update[:new_doc][:source_url],
+          date_effective: update[:new_doc][:date_effective],
+          is_deprecated: update[:new_doc][:is_deprecated],
+          crawled_at: Time.current
+        )
+
+        # Mark old as deprecated
+        old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+      end
+
+      # Query actual DB count and emit batch_saved update
+      current_count = @country.legislations.count
+      emit(:batch_saved, total_saved: current_count)
+
+      # Small delay to ensure DB write is flushed
+      sleep(0.5)
     end
   end
 end

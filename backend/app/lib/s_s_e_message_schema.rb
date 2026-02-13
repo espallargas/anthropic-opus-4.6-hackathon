@@ -24,6 +24,9 @@ module SSEMessageSchema
     # Status updates
     warning: { fields: [:message], required_fields: [:message] },
 
+    # Real-time document count updates
+    batch_saved: { fields: [:total_saved], required_fields: [:total_saved] },
+
     # Error handling
     error: { fields: [:message, :code], required_fields: [:message] },
 

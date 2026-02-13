@@ -9,7 +9,7 @@ interface CrawlProgressBoxProps {
 }
 
 interface ProgressItem {
-  type: 'phase' | 'search' | 'search_result' | 'thinking' | 'complete' | 'error' | 'timing'
+  type: 'phase' | 'search' | 'search_result' | 'thinking' | 'complete' | 'error' | 'timing' | 'batch_saved'
   message?: string
   text?: string
   category?: string
@@ -19,6 +19,7 @@ interface ProgressItem {
   total?: number
   result_count?: number
   document_count?: number
+  total_saved?: number
   elapsed_ms?: number
   status: 'pending' | 'in-progress' | 'done' | 'error'
 }
@@ -100,6 +101,13 @@ export function CrawlProgressBox({
     warning: (data) => ({
       type: 'phase',
       message: `⚠ ${data.message}`,
+      status: 'done'
+    }),
+
+    batch_saved: (data) => ({
+      type: 'batch_saved',
+      message: `📊 ${data.total_saved} documents stored`,
+      total_saved: data.total_saved,
       status: 'done'
     }),
 
@@ -224,7 +232,16 @@ export function CrawlProgressBox({
                         return [...prev, progressItem]
                       }
                     })
+                  } else if (data.type === 'phase' || data.type === 'search' || data.type === 'search_result' || data.type === 'timing' || data.type === 'warning' || data.type === 'batch_saved') {
+                    // Progress messages go directly to completed items (always visible, never replaced)
+                    setCompletedItems((prev) => [...prev, progressItem])
+                    // Update document count from batch_saved messages
+                    if (data.type === 'batch_saved' && progressItem.total_saved) {
+                      setDocumentCount(progressItem.total_saved)
+                      memoizedOnDocCountUpdate(progressItem.total_saved)
+                    }
                   } else {
+                    // Status-bearing messages (claude_text, etc.) go to currentStatus
                     if (currentStatus && currentStatus.status === 'in-progress') {
                       const completedItem = { ...currentStatus, status: 'done' }
                       setCompletedItems((prev) => [...prev, completedItem])
@@ -278,29 +295,42 @@ export function CrawlProgressBox({
     return <div className="h-4 w-4 rounded-full border border-white/20" />
   }
 
+  const formatTime = () => {
+    return new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  }
+
   return (
-    <div className="flex w-[600px] flex-col border-l border-white/10 bg-black/95">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <div className="flex w-[600px] flex-col rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3.5">
         <div className="flex-1">
-          <h3 className="text-sm font-semibold">{countryName}</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
           {documentCount > 0 && (
-            <p className="mt-0.5 text-xs text-green-400/70">{documentCount} docs</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-400/80">
+              <span>📊</span>
+              <span>{documentCount} documents stored</span>
+            </p>
           )}
         </div>
         <button
           onClick={onComplete}
           className="text-white/40 transition-colors hover:text-white/80"
+          title="Close"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <div className="space-y-2 text-xs">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="space-y-3 text-xs">
           {completedItems.length === 0 && !currentStatus ? (
             <div className="flex items-center gap-2 text-white/50">
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Connecting...</span>
+              <span>Connecting to crawler...</span>
             </div>
           ) : (
             <>
@@ -308,24 +338,27 @@ export function CrawlProgressBox({
               {completedItems.map((item, idx) => (
                 <div
                   key={`completed-${idx}`}
-                  className={`flex items-start gap-2 transition-all duration-200 ${
+                  className={`animate-fadeIn flex items-start gap-3 transition-all duration-200 ${
                     item.status === 'done'
-                      ? 'text-white/40'
+                      ? 'text-white/50'
                       : item.status === 'error'
                         ? 'text-red-400/70'
                         : 'text-white/60'
                   }`}
+                  style={{
+                    animation: 'fadeIn 0.3s ease-in-out'
+                  }}
                 >
-                  <div className="mt-0.5 flex-shrink-0">{getIcon(item)}</div>
+                  <div className="mt-1 flex-shrink-0">{getIcon(item)}</div>
                   <div className="min-w-0 flex-1">
                     {item.type === 'thinking' ? (
                       // Thinking blocks - Anthropic style floating box
-                      <div className="rounded-lg bg-gradient-to-r from-blue-900/30 to-blue-800/20 border border-blue-700/30 p-3 my-2">
-                        <div className="flex items-start gap-2">
-                          <span className="text-blue-400 text-sm">🧠</span>
+                      <div className="rounded-lg bg-gradient-to-br from-blue-950/40 to-blue-900/20 border border-blue-700/40 p-3 my-2 shadow-lg">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 text-base">🧠</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-blue-300 mb-2">Claude is thinking...</p>
-                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/70 leading-relaxed">
+                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80 leading-relaxed max-h-40 overflow-hidden">
                               {item.text}
                             </p>
                           </div>
@@ -333,11 +366,11 @@ export function CrawlProgressBox({
                       </div>
                     ) : (
                       // Regular messages
-                      <>
+                      <div className="flex flex-col gap-0.5">
                         {item.message && (
-                          <p className="break-words whitespace-pre-wrap font-mono">{item.message}</p>
+                          <p className="break-words whitespace-pre-wrap font-mono leading-relaxed">{item.message}</p>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -346,7 +379,7 @@ export function CrawlProgressBox({
               {/* Current status (loading) */}
               {currentStatus && (
                 <div
-                  className={`flex items-start gap-2 transition-all duration-200 ${
+                  className={`flex items-start gap-3 transition-all duration-200 p-1.5 rounded ${
                     currentStatus.status === 'in-progress'
                       ? 'text-white/60'
                       : currentStatus.status === 'error'
@@ -354,32 +387,27 @@ export function CrawlProgressBox({
                         : 'text-white/40'
                   }`}
                 >
-                  <div className="mt-0.5 flex-shrink-0">{getIcon(currentStatus)}</div>
+                  <div className="mt-1 flex-shrink-0">{getIcon(currentStatus)}</div>
                   <div className="min-w-0 flex-1">
                     {currentStatus.type === 'thinking' ? (
-                      // Thinking blocks get special rendering
-                      <details className="cursor-pointer" open>
-                        <summary className="text-blue-300/70 hover:text-blue-300 font-mono">
-                          🧠 Show thinking {currentStatus.is_summary ? '(summarized)' : ''}
-                        </summary>
+                      // Thinking blocks - in-progress view
+                      <div className="rounded-lg bg-gradient-to-br from-blue-950/40 to-blue-900/20 border border-blue-700/40 p-3 shadow-lg">
+                        <p className="text-xs font-semibold text-blue-300 mb-2">Claude is thinking...</p>
                         {currentStatus.text && (
-                          <div className="mt-2 rounded bg-blue-900/20 p-2 space-y-2">
-                            <p className="text-xs font-semibold text-blue-300">Thinking content:</p>
-                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80">
-                              {currentStatus.text}
-                            </p>
-                          </div>
+                          <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80 leading-relaxed max-h-48 overflow-auto">
+                            {currentStatus.text}
+                          </p>
                         )}
-                      </details>
+                      </div>
                     ) : (
                       // Regular messages
-                      <>
+                      <div className="flex flex-col gap-0.5">
                         {currentStatus.message && (
-                          <p className="break-words whitespace-pre-wrap font-mono">
+                          <p className="break-words whitespace-pre-wrap font-mono leading-relaxed">
                             {currentStatus.message}
                           </p>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -390,8 +418,8 @@ export function CrawlProgressBox({
       </div>
 
       {isComplete && (
-        <div className="border-t border-white/10 px-4 py-2 text-center">
-          <p className="text-xs font-medium text-green-400/70">Complete</p>
+        <div className="border-t border-white/10 bg-white/[0.02] px-4 py-3 text-center">
+          <p className="text-xs font-medium text-emerald-400/80">✓ Crawl complete</p>
         </div>
       )}
     </div>

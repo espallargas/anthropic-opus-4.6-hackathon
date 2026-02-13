@@ -22,7 +22,10 @@ export function AdminPage() {
 
   const handleCrawlComplete = useCallback(() => {
     setCrawlInProgress(false)
-    refetch()
+    // Delay refetch to ensure all DB writes are flushed (backend emits batch_saved + 500ms delay)
+    setTimeout(() => {
+      refetch()
+    }, 2500)
   }, [refetch])
 
   if (loading) {
