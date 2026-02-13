@@ -47,10 +47,10 @@ class LegislationCrawlerService
   def emit(type, **data)
     begin
       message = ::SSEMessageSchema.format(type, data)
-      message_json = message.to_json
-      Rails.logger.info("[EMIT] #{type}: #{message_json[0..100]}")
+      Rails.logger.info("[EMIT] #{type}: #{message.to_json[0..100]}")
       if @sse
-        @sse.write(message_json)
+        # SSE.write expects a hash, will convert to JSON automatically with 'data: ' prefix
+        @sse.write(message)
         Rails.logger.info("[EMIT_SUCCESS] #{type} written to SSE")
       else
         Rails.logger.warn("[EMIT_WARNING] SSE is nil, cannot write #{type}")
@@ -59,8 +59,7 @@ class LegislationCrawlerService
       Rails.logger.error("Emit error for type #{type}: #{e.class} - #{e.message}")
       Rails.logger.error(e.backtrace.join("\n"))
       # Try to send error message anyway
-      error_msg = { type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) }
-      @sse&.write(error_msg.to_json)
+      @sse&.write({ type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) })
     end
   end
 
