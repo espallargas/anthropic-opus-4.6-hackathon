@@ -168,6 +168,8 @@ export function CrawlProgressBox({
     }
     crawlStartedRef.current = true
 
+    let isMounted = true
+
     const startCrawl = async () => {
       try {
         console.log(`[CrawlProgressBox] ✅ Starting crawl for ${countryCode}`)
@@ -228,7 +230,7 @@ export function CrawlProgressBox({
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                processMessage(data)
+                if (isMounted) processMessage(data)
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
               }
@@ -250,6 +252,10 @@ export function CrawlProgressBox({
     }
 
     startCrawl()
+
+    return () => {
+      isMounted = false
+    }
   }, [countryCode, processMessage, onComplete])
 
 
