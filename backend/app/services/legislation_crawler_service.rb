@@ -268,19 +268,27 @@ class LegislationCrawlerService
       emit(:phase, message: "Waiting for Claude to analyze results...")
       start_time = Time.current
       Rails.logger.info("Starting Claude message.create call (iteration #{iteration})")
-      response = @client.messages.create(
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        thinking: {
-          type: "adaptive"
-        },
-        system_: system_prompt,
-        tools: Tools::Definitions::TOOLS,
-        messages: messages
-      )
-      elapsed = ((Time.current - start_time) * 1000).round
-      Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
-      emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
+
+      begin
+        response = @client.messages.create(
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          thinking: {
+            type: "adaptive"
+          },
+          system_: system_prompt,
+          tools: Tools::Definitions::TOOLS,
+          messages: messages
+        )
+        elapsed = ((Time.current - start_time) * 1000).round
+        Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
+        emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
+      rescue StandardError => e
+        Rails.logger.error("Claude API error in iteration #{iteration}: #{e.class} - #{e.message}")
+        Rails.logger.error(e.backtrace.first(5).join("\n"))
+        emit(:error, message: "Claude error: #{e.message}")
+        raise
+      end
     end
 
     # Generate legislation from collected search results
