@@ -273,7 +273,9 @@ class LegislationCrawlerService
 
   def build_user_prompt
     <<~PROMPT
-      Your task: Use the web_search tool to find immigration legislation for #{@country.name}.
+      Your task: Use the web_search tool to find SPECIFIC immigration legislation for #{@country.name}.
+
+      Focus on finding OFFICIAL LAW NAMES and REFERENCE NUMBERS (e.g., "Lei 13.445/2017" not "Official Legislation 2024").
 
       You MUST call the web_search tool 6 times, once for each category below:
 
@@ -284,7 +286,11 @@ class LegislationCrawlerService
       5. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:complementary]}"
       6. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:auxiliary]}"
 
-      Make sure to use the web_search tool for each query. Do not skip any categories.
+      IMPORTANT:
+      - Search results should contain SPECIFIC law names and reference numbers
+      - Do not accept generic results like "Official Legislation 2024"
+      - Only use search results that include real law names
+      - Make sure to use the web_search tool for each query. Do not skip any categories.
     PROMPT
   end
 
@@ -305,8 +311,16 @@ class LegislationCrawlerService
         results_array = data.is_a?(Hash) ? data['results'] || data['data'] || [] : data
 
         results_array.each_with_index do |item, idx|
+          # Use the title from search result directly, it should be a proper law name
+          # If it's too generic, add category prefix for clarity
+          title = item['title'].to_s.strip
+          if title.blank? || title =~ /^\d+$/ || title =~ /^(Official|Legislation|Procedure)/i
+            # Fallback to prefixed title only if search result is too generic
+            title = "#{CATEGORIES[category]} #{idx + 1}: #{title}"
+          end
+
           results[category] << {
-            title: "#{CATEGORIES[category]} #{idx + 1}: #{item['title']}",
+            title: title,
             content: "#{item['snippet'] || item['description']}\n\nSource: #{item['url']}",
             summary: item['snippet'] || item['description'],
             source_url: item['url'],
