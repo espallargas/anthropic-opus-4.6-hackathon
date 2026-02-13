@@ -65,7 +65,8 @@ class LegislationCrawlerService
   end
 
   def crawl
-    Rails.logger.info("[CRAWL] SSE object: #{@sse.class}, nil? #{@sse.nil?}")
+    Rails.logger.info("[CRAWL_START] SSE class: #{@sse.class}, nil? #{@sse.nil?}")
+    Rails.logger.info("[CRAWL_START] Country: #{@country.name}")
     emit(:phase, message: "Starting crawl for #{@country.name}")
 
     existing_count = @country.legislations.count
