@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 interface CrawlProgressBoxProps {
@@ -22,6 +22,14 @@ export function CrawlProgressBox({
 }: CrawlProgressBoxProps) {
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([])
   const [isComplete, setIsComplete] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new items appear
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [progressItems])
 
   useEffect(() => {
     const startCrawl = async () => {
@@ -37,8 +45,8 @@ export function CrawlProgressBox({
           setProgressItems([{ type: 'error', message: `Error: ${response.statusText}`, status: 'error' }])
           setTimeout(() => {
             setIsComplete(true)
-            setTimeout(() => onComplete(), 1500)
-          }, 500)
+            setTimeout(() => onComplete(), 1200)
+          }, 300)
           return
         }
 
@@ -47,14 +55,15 @@ export function CrawlProgressBox({
           setProgressItems([{ type: 'error', message: 'No response stream', status: 'error' }])
           setTimeout(() => {
             setIsComplete(true)
-            setTimeout(() => onComplete(), 1500)
-          }, 500)
+            setTimeout(() => onComplete(), 1200)
+          }, 300)
           return
         }
 
         const decoder = new TextDecoder()
         let buffer = ''
         let currentSearch = 0
+        const seenSearches = new Set<number>()
 
         while (true) {
           const { done, value } = await reader.read()
@@ -86,38 +95,38 @@ export function CrawlProgressBox({
                     })
                   }
                   // Search messages
-                  else if (msg.includes('Claude called') || msg.includes('Found') || msg.includes('results')) {
-                    if (msg.includes('Claude called')) {
-                      currentSearch++
+                  else if (msg.includes('Claude called')) {
+                    currentSearch++
+                    // Only add if we haven't seen this search number yet
+                    if (!seenSearches.has(currentSearch)) {
+                      seenSearches.add(currentSearch)
                       setProgressItems((prev) => [
                         ...prev,
                         { type: 'search', message: `Search ${currentSearch}/6`, status: 'in-progress' },
                       ])
-                    } else if (msg.includes('Found') && msg.includes('results')) {
-                      setProgressItems((prev) => {
-                        const updated = [...prev]
-                        const lastIdx = updated.length - 1
-                        if (lastIdx >= 0 && updated[lastIdx].status === 'in-progress') {
-                          updated[lastIdx].status = 'done'
-                        }
-                        return updated
-                      })
                     }
+                  } else if (msg.includes('Found') && msg.includes('results')) {
+                    setProgressItems((prev) => {
+                      const updated = [...prev]
+                      const lastIdx = updated.length - 1
+                      if (lastIdx >= 0 && updated[lastIdx].status === 'in-progress') {
+                        updated[lastIdx].status = 'done'
+                      }
+                      return updated
+                    })
                   }
                   // Save messages
-                  else if (msg.includes('Saving') || msg.includes('Processed')) {
-                    if (msg.includes('Processed')) {
-                      const match = msg.match(/(\d+)\s+documents/)
-                      if (match) {
-                        setProgressItems((prev) => [
-                          ...prev,
-                          { type: 'save', message: `Saving ${match[1]} documents`, status: 'in-progress' },
-                        ])
-                      }
+                  else if (msg.includes('Processed')) {
+                    const match = msg.match(/(\d+)\s+documents/)
+                    if (match) {
+                      setProgressItems((prev) => [
+                        ...prev,
+                        { type: 'save', message: `Saving ${match[1]} documents`, status: 'in-progress' },
+                      ])
                     }
                   }
                   // Complete message
-                  else if (msg.includes('Crawl complete') || msg.includes('documents stored')) {
+                  else if (msg.includes('documents stored')) {
                     setProgressItems((prev) => {
                       const updated = [...prev]
                       const lastIdx = updated.length - 1
@@ -130,11 +139,11 @@ export function CrawlProgressBox({
                 } else if (data.type === 'crawl_complete') {
                   setMessages((prev) => [...prev, '✓ Crawl complete!'])
                   setIsComplete(true)
-                  setTimeout(() => onComplete(), 1500)
+                  setTimeout(() => onComplete(), 900)
                 } else if (data.type === 'error') {
                   setProgressItems((prev) => [...prev, { type: 'error', message: `Error: ${data.error}`, status: 'error' }])
                   setIsComplete(true)
-                  setTimeout(() => onComplete(), 2000)
+                  setTimeout(() => onComplete(), 1500)
                 }
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
@@ -145,7 +154,7 @@ export function CrawlProgressBox({
       } catch (error) {
         setProgressItems([{ type: 'error', message: `Connection error`, status: 'error' }])
         setIsComplete(true)
-        setTimeout(() => onComplete(), 2000)
+        setTimeout(() => onComplete(), 1500)
       }
     }
 
@@ -166,13 +175,10 @@ export function CrawlProgressBox({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-      <div className="flex w-full max-w-2xl h-96 flex-col border border-white/10 bg-black/98 rounded-lg shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
+      <div className="flex w-full max-w-3xl h-[600px] flex-col border border-white/10 bg-black/98 rounded-lg shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold tracking-tight">Crawling Legislation</h3>
-            {!isComplete && <Loader2 className="h-4 w-4 animate-spin text-blue-400/60" />}
-          </div>
+          <h3 className="text-lg font-semibold tracking-tight">Crawling Legislation</h3>
           <button
             onClick={onComplete}
             className="text-white/40 hover:text-white/80 transition-colors"
@@ -181,10 +187,10 @@ export function CrawlProgressBox({
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 py-4">
-          <div className="space-y-3">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-2">
             {progressItems.length === 0 ? (
-              <div className="flex items-center gap-2 text-white/50 text-sm">
+              <div className="flex items-center gap-2 text-white/50 text-xs">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Connecting...</span>
               </div>
@@ -192,13 +198,13 @@ export function CrawlProgressBox({
               progressItems.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-start gap-3 text-sm transition-all duration-300 ${
-                    item.status === 'done' ? 'text-white/60' : item.status === 'error' ? 'text-red-400/70' : 'text-white/80'
+                  className={`flex items-start gap-3 text-xs transition-all duration-200 ${
+                    item.status === 'done' ? 'text-white/50' : item.status === 'error' ? 'text-red-400/70' : 'text-white/70'
                   }`}
                 >
                   <div className="flex-shrink-0 mt-0.5">{getIcon(item)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate font-mono leading-relaxed">{item.message}</p>
+                    <p className="truncate font-mono">{item.message}</p>
                   </div>
                 </div>
               ))
@@ -208,7 +214,7 @@ export function CrawlProgressBox({
 
         {isComplete && (
           <div className="border-t border-white/10 px-6 py-3 text-center">
-            <p className="text-xs text-green-400/70 font-medium">Closing in 1.5s...</p>
+            <p className="text-xs text-green-400/70 font-medium">Closing...</p>
           </div>
         )}
       </div>
