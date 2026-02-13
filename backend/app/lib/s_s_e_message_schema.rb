@@ -20,6 +20,7 @@ module SSEMessageSchema
 
     # Metadata and diagnostics
     timing: { fields: [:message, :elapsed_ms], required_fields: [:message] },
+    tokens: { fields: [:input_tokens, :output_tokens, :total_budget], required_fields: [:input_tokens, :output_tokens] },
     debug: { fields: [:block_type], required_fields: [] },
 
     # Status updates

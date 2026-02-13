@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
-import { CrawlerOperationGroup } from './CrawlerOperationGroup'
+import { X } from 'lucide-react'
+import { ThinkingPanel } from './ThinkingPanel'
+import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
 import '../styles/crawler.css'
 
 interface CrawlProgressBoxProps {
@@ -10,24 +11,17 @@ interface CrawlProgressBoxProps {
   onDocCountUpdate?: (count: number) => void
 }
 
-interface ProgressMessage {
-  type: string
-  [key: string]: string | number | boolean | undefined
-}
-
-interface OperationState {
-  operationId: string
-  category: string
-  query: string
-  index: number
-  total: number
-  status: 'pending' | 'running' | 'done' | 'error'
-  messages: ProgressMessage[]
-}
-
 interface SSEMessage {
   type: string
   [key: string]: string | number | boolean | undefined
+}
+
+interface CategoryState {
+  id: string
+  name: string
+  description: string
+  status: CategoryStatus
+  resultCount: number
 }
 
 export function CrawlProgressBox({
@@ -36,16 +30,57 @@ export function CrawlProgressBox({
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
-  const [operations, setOperations] = useState<Map<string, OperationState>>(new Map())
-  const [operationOrder, setOperationOrder] = useState<string[]>([])
-  const [statusMessages, setStatusMessages] = useState<ProgressMessage[]>([])
+  const [thinkingText, setThinkingText] = useState('')
+  const [categories, setCategories] = useState<CategoryState[]>([
+    {
+      id: 'federal_laws',
+      name: 'Federal Laws',
+      description: 'Constitutional & main laws',
+      status: 'pending',
+      resultCount: 0,
+    },
+    {
+      id: 'regulations',
+      name: 'Regulations',
+      description: 'Official procedures',
+      status: 'pending',
+      resultCount: 0,
+    },
+    {
+      id: 'consular',
+      name: 'Consular Rules',
+      description: 'Visa & embassies',
+      status: 'pending',
+      resultCount: 0,
+    },
+    {
+      id: 'jurisdictional',
+      name: 'Jurisdictional',
+      description: 'Regional rules',
+      status: 'pending',
+      resultCount: 0,
+    },
+    {
+      id: 'complementary',
+      name: 'Health & Complementary',
+      description: 'Health requirements',
+      status: 'pending',
+      resultCount: 0,
+    },
+    {
+      id: 'auxiliary',
+      name: 'Auxiliary',
+      description: 'Statistics & quotas',
+      status: 'pending',
+      resultCount: 0,
+    },
+  ])
+  const [statusMessages, setStatusMessages] = useState<string[]>([])
   const [isComplete, setIsComplete] = useState(false)
   const [documentCount, setDocumentCount] = useState(0)
-  const [progressSummary, setProgressSummary] = useState<{ completed: number; total: number }>({
-    completed: 0,
-    total: 0,
-  })
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [inputTokens, setInputTokens] = useState(0)
+  const [outputTokens, setOutputTokens] = useState(0)
+
   const crawlStartedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
@@ -55,115 +90,56 @@ export function CrawlProgressBox({
     onCompleteRef.current = onComplete
   }, [onComplete])
 
-  // Track doc count changes separately to avoid setState during render
+  // Track doc count changes
   useEffect(() => {
     if (documentCount > 0 && onDocCountUpdate) {
       onDocCountUpdate(documentCount)
     }
   }, [documentCount, onDocCountUpdate])
 
-  // Auto-scroll to bottom when new operations added, not on every update
-  useEffect(() => {
-    if (scrollRef.current && operationOrder.length > 0) {
-      // Only scroll if we added a new operation (check last one)
-      const lastOpId = operationOrder[operationOrder.length - 1]
-      const lastOp = operations.get(lastOpId)
-      if (lastOp && lastOp.messages.length <= 1) {
-        // Just added, scroll down
-        setTimeout(() => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-          }
-        }, 0)
-      }
-    }
-  }, [operationOrder, operations])
-
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
-      console.log(`[SSE] ${data.type}`, data)
-      setOperations((prevOps) => {
-        const newOps = new Map(prevOps)
+    console.log(`[SSE] ${data.type}`, data)
 
-        if (data.type === 'search_started') {
-          // Create new operation
-          const opId = data.operation_id
-          newOps.set(opId, {
-            operationId: opId,
-            category: data.category,
-            query: data.query,
-            index: data.index,
-            total: data.total,
-            status: 'running',
-            messages: [],
-          })
-          // Add to order if not already there
-          setOperationOrder((prev) => (prev.includes(opId) ? prev : [...prev, opId]))
-        } else if (data.type === 'search_result') {
-          // Add result message to operation
-          const opId = data.operation_id
-          if (newOps.has(opId)) {
-            const op = newOps.get(opId)!
-            op.messages.push({
-              type: 'search_result',
-              message: `✅ Found ${data.result_count} results`,
-              result_count: data.result_count,
-            })
-            op.status = 'done'
-          }
-        } else if (data.type === 'thinking') {
-          // Add thinking to current or most recent operation
-          const opId = data.operation_id
-          if (opId && newOps.has(opId)) {
-            const op = newOps.get(opId)!
-            // Check if last message is thinking - if so, append
-            const lastMsg = op.messages[op.messages.length - 1]
-            if (lastMsg && lastMsg.type === 'thinking') {
-              lastMsg.text = (lastMsg.text || '') + data.text
-            } else {
-              op.messages.push({
-                type: 'thinking',
-                text: data.text,
-                is_summary: data.is_summary || false,
-              })
-            }
-          }
-        }
-
-        // Handle status messages and special cases (outside the if/else chain)
-        if (
-          data.type !== 'search_started' &&
-          data.type !== 'search_result' &&
-          data.type !== 'thinking'
-        ) {
-          setStatusMessages((prev) => [...prev, data])
-        }
-
-        // Update progress summary
-        if (data.type === 'search_started') {
-          setProgressSummary((prev) => ({
-            completed: prev.completed,
-            total: data.total,
-          }))
-        }
-
-        // Handle completion
-        if (data.type === 'complete') {
-          setDocumentCount(data.document_count || 0)
-          setIsComplete(true)
-          setTimeout(() => onCompleteRef.current(), 1200)
-        } else if (data.type === 'batch_saved') {
-          setDocumentCount(data.total_saved || 0)
-        } else if (data.type === 'error') {
-          setIsComplete(true)
-          setTimeout(() => onCompleteRef.current(), 1500)
-        }
-
-        return newOps
-      })
-    },
-    [onComplete],
-  )
+    if (data.type === 'thinking') {
+      setThinkingText((prev) => prev + ((data.text as string) || ''))
+    } else if (data.type === 'search_started') {
+      const category = data.category as string
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.name === category ? { ...cat, status: 'searching' as CategoryStatus } : cat,
+        ),
+      )
+    } else if (data.type === 'search_result') {
+      const category = data.category as string
+      const resultCount = (data.result_count as number) || 0
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.name === category ? { ...cat, status: 'done' as CategoryStatus, resultCount } : cat,
+        ),
+      )
+    } else if (data.type === 'phase' && data.message) {
+      setStatusMessages((prev) => [...prev, data.message as string])
+    } else if (data.type === 'tokens') {
+      setInputTokens((data.input_tokens as number) || 0)
+      setOutputTokens((data.output_tokens as number) || 0)
+    } else if (data.type === 'complete') {
+      setDocumentCount((data.document_count as number) || 0)
+      setIsComplete(true)
+      setTimeout(() => onCompleteRef.current(), 1200)
+    } else if (data.type === 'batch_saved') {
+      setDocumentCount((data.total_saved as number) || 0)
+    } else if (data.type === 'error') {
+      setStatusMessages((prev) => [...prev, `Error: ${data.message}`])
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.status === 'searching' ? { ...cat, status: 'error' as CategoryStatus } : cat,
+        ),
+      )
+      setIsComplete(true)
+      setTimeout(() => onCompleteRef.current(), 1500)
+    }
+  }, [])
 
   // Update processMessageRef after it's defined
   useEffect(() => {
@@ -171,11 +147,8 @@ export function CrawlProgressBox({
   }, [processMessage])
 
   useEffect(() => {
-    // Prevent double-firing in React Strict Mode
     if (crawlStartedRef.current) {
-      console.warn(
-        `[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}, skipping`,
-      )
+      console.warn(`[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}`)
       return
     }
     crawlStartedRef.current = true
@@ -184,26 +157,18 @@ export function CrawlProgressBox({
       try {
         console.log(`[CrawlProgressBox] ✅ Starting crawl for ${countryCode}`)
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 300000)
 
         const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
         })
 
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-          setStatusMessages((prev) => [
-            ...prev,
-            {
-              type: 'error',
-              message: `Error: ${response.statusText}`,
-            },
-          ])
+          setStatusMessages((prev) => [...prev, `Error: ${response.statusText}`])
           setIsComplete(true)
           setTimeout(() => onCompleteRef.current(), 1200)
           return
@@ -211,35 +176,18 @@ export function CrawlProgressBox({
 
         const reader = response.body?.getReader()
         if (!reader) {
-          console.error('[CrawlProgressBox] No response.body.getReader()')
-          setStatusMessages((prev) => [
-            ...prev,
-            {
-              type: 'error',
-              message: 'No response stream',
-            },
-          ])
+          setStatusMessages((prev) => [...prev, 'Error: No response stream'])
           setIsComplete(true)
           setTimeout(() => onCompleteRef.current(), 1200)
           return
         }
 
-        console.log('[CrawlProgressBox] Reader acquired, starting to read stream')
         const decoder = new TextDecoder()
         let buffer = ''
-        let lineCount = 0
-        let dataLineCount = 0
 
         while (true) {
           const { done, value } = await reader.read()
-          if (done) {
-            console.log(`[CrawlProgressBox] Stream done. Total lines: ${lineCount}, data lines: ${dataLineCount}`)
-            break
-          }
-
-          if (value && value.length > 0) {
-            console.log(`[CrawlProgressBox] Received ${value.length} bytes`)
-          }
+          if (done) break
 
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
@@ -247,35 +195,20 @@ export function CrawlProgressBox({
 
           for (let i = 0; i < lines.length - 1; i++) {
             const line = lines[i].trim()
-            lineCount++
-
-            // Log first few lines to debug format
-            if (lineCount <= 5) {
-              console.log(`[SSE line ${lineCount}] "${line.slice(0, 100)}"`)
-            }
-
             if (line.startsWith('data: ')) {
-              dataLineCount++
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                console.log(`[SSE received ${dataLineCount}] type=${data.type}`)
-                processMessageRef.current(data)
+                processMessageRef.current?.(data)
               } catch (e) {
-                console.error('Failed to parse SSE message:', e, 'line:', line.slice(0, 100))
+                console.error('[SSE] Parse error:', e)
               }
             }
           }
         }
       } catch (error) {
         console.error('Crawl connection error:', error)
-        setStatusMessages((prev) => [
-          ...prev,
-          {
-            type: 'error',
-            message: 'Connection error',
-          },
-        ])
+        setStatusMessages((prev) => [...prev, 'Connection error'])
         setIsComplete(true)
         setTimeout(() => onCompleteRef.current(), 1500)
       }
@@ -285,24 +218,16 @@ export function CrawlProgressBox({
   }, [countryCode])
 
   return (
-    <div className="flex w-[600px] flex-col rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="flex h-[700px] w-[1000px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3.5">
-        <div className="flex-1">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
+        <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
-          <div className="mt-1 flex items-center gap-3">
-            {documentCount > 0 && (
-              <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-400/80">
-                <span>📊</span>
-                <span>{documentCount} documents</span>
-              </p>
-            )}
-            {progressSummary.total > 0 && (
-              <p className="text-xs text-white/50">
-                {progressSummary.completed}/{progressSummary.total} searches
-              </p>
-            )}
-          </div>
+          {documentCount > 0 && (
+            <p className="mt-1 text-xs font-medium text-emerald-400/80">
+              📊 {documentCount} documents
+            </p>
+          )}
         </div>
         <button
           onClick={onComplete}
@@ -313,61 +238,40 @@ export function CrawlProgressBox({
         </button>
       </div>
 
-      {/* Main scroll area */}
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <div className="space-y-3 text-xs">
-          {operationOrder.length === 0 && statusMessages.length === 0 ? (
-            <div className="flex items-center gap-2 text-white/50">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Connecting to crawler...</span>
-            </div>
-          ) : (
-            <>
-              {/* Status messages (phase, timing, etc.) - filter out empty messages */}
-              {statusMessages
-                .filter((msg) => msg.message && msg.message.trim())
-                .map((msg, idx) => (
-                  <div
-                    key={`status-${idx}`}
-                    className={`animate-fadeIn flex items-start gap-2 rounded px-2 py-1 ${
-                      msg.type === 'error' ? 'text-red-400/70' : 'text-white/50'
-                    }`}
-                    style={{ animation: 'fadeIn 0.3s ease-in-out' }}
-                  >
-                    {msg.type === 'error' ? (
-                      <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
-                    ) : (
-                      <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-400/60" />
-                    )}
-                    <p className="font-mono break-words">{msg.message}</p>
+      {/* Main content - 2 column layout */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Left: Thinking panel (40%) */}
+        <div className="w-[40%] border-r border-white/10">
+          <ThinkingPanel
+            thinkingText={thinkingText}
+            inputTokens={inputTokens}
+            outputTokens={outputTokens}
+          />
+        </div>
+
+        {/* Right: Categories + status (60%) */}
+        <div className="flex w-[60%] flex-col">
+          <CategoriesPanel categories={categories} />
+
+          {/* Status messages footer */}
+          {statusMessages.length > 0 && (
+            <div className="max-h-24 overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
+              <div className="space-y-1">
+                {statusMessages.slice(-3).map((msg, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-white/60">
+                    <span className="mt-0.5 flex-shrink-0">→</span>
+                    <span className="break-words">{msg}</span>
                   </div>
                 ))}
-
-              {/* Operation groups */}
-              {operationOrder.map((opId) => {
-                const op = operations.get(opId)
-                if (!op) return null
-                return (
-                  <CrawlerOperationGroup
-                    key={opId}
-                    operationId={op.operationId}
-                    category={op.category}
-                    query={op.query}
-                    index={op.index}
-                    total={op.total}
-                    messages={op.messages}
-                    status={op.status}
-                  />
-                )
-              })}
-            </>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
       {/* Footer */}
       {isComplete && (
-        <div className="border-t border-white/10 bg-white/[0.02] px-4 py-3 text-center">
+        <div className="border-t border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
           <p className="text-xs font-medium text-emerald-400/80">✓ Crawl complete</p>
         </div>
       )}

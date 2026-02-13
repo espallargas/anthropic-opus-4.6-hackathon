@@ -1,33 +1,6 @@
 class LegislationCrawlerService
   MODEL = 'claude-opus-4-6'
-  MAX_TOKENS = 16000  # Increased to accommodate thinking budget
-
-  CATEGORIES = {
-    federal_laws: "Federal Laws",
-    regulations: "Regulations",
-    consular: "Consular Rules",
-    jurisdictional: "Jurisdictional Rules",
-    complementary: "Health & Complementary",
-    auxiliary: "Auxiliary Information"
-  }.freeze
-
-  SEARCH_QUERIES = {
-    federal_laws: "main immigration law constitution",
-    regulations: "immigration regulations ministry official",
-    consular: "visa requirements documents embassies",
-    jurisdictional: "regional immigration rules provinces",
-    complementary: "health requirements vaccines medical",
-    auxiliary: "immigration statistics occupation demand"
-  }.freeze
-
-  SEARCH_DESCRIPTIONS = {
-    federal_laws: "main immigration laws and constitutional provisions",
-    regulations: "official regulations and procedures",
-    consular: "visa requirements and embassy procedures",
-    jurisdictional: "regional and provincial immigration rules",
-    complementary: "health requirements and complementary laws",
-    auxiliary: "statistics, quotas and occupational lists"
-  }.freeze
+  MAX_TOKENS = 128000  # Max tokens for extended thinking budget
 
   def initialize(country, sse = nil)
     @country = country
@@ -184,34 +157,75 @@ class LegislationCrawlerService
   def build_response_from_stream(operation_id = nil, **options)
     collector = StreamResponseCollector.new
     event_count = 0
+    search_count = 0
+    category_map = {
+      'federal' => 'Federal Laws',
+      'regulation' => 'Regulations',
+      'consular' => 'Consular Rules',
+      'visa' => 'Consular Rules',
+      'embassy' => 'Consular Rules',
+      'regional' => 'Jurisdictional',
+      'provincial' => 'Jurisdictional',
+      'jurisdiction' => 'Jurisdictional',
+      'health' => 'Health & Complementary',
+      'complementary' => 'Health & Complementary',
+      'vaccine' => 'Health & Complementary',
+      'statistic' => 'Auxiliary',
+      'quota' => 'Auxiliary',
+      'occupation' => 'Auxiliary'
+    }
 
-    # Use .each to iterate over stream events (do NOT use block syntax, it doesn't work)
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
       Rails.logger.info("Stream event ##{event_count}: #{event.type}")
 
-      # Emit thinking blocks in real-time as they arrive
+      # Emit thinking blocks in real-time
       if event.type == 'content_block_delta'
         if event.delta.respond_to?(:thinking) && event.delta.thinking
-          Rails.logger.info("  -> Emitting thinking block: #{event.delta.thinking[0..50]}...")
           emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id)
-        elsif event.delta.respond_to?(:text) && event.delta.text
-          Rails.logger.info("  -> Text delta: #{event.delta.text[0..50]}...")
-        else
-          Rails.logger.info("  -> Other delta type - respond_to keys: #{event.delta.respond_to?(:thinking)}, #{event.delta.respond_to?(:text)}")
         end
       end
 
-      # Log content block events
+      # Detect and emit web_search tool calls
       if event.type == 'content_block_start'
-        Rails.logger.info("  -> Content block start: #{event.content_block.type}")
+        if event.content_block.type == 'tool_use' && event.content_block.name == 'web_search'
+          search_count += 1
+          # Emit search_started - we'll get the query in the input delta
+          Rails.logger.info("  -> Tool use (web_search) ##{search_count} started")
+        end
+      end
+
+      # Capture query from input deltas
+      if event.type == 'content_block_delta'
+        if event.delta.respond_to?(:input) && event.delta.input
+          query = event.delta.input.to_s
+          if query.length > 10
+            # Infer category from query
+            category = 'Federal Laws'
+            category_map.each do |keyword, cat_name|
+              if query.downcase.include?(keyword.downcase)
+                category = cat_name
+                break
+              end
+            end
+            emit(:search_started, operation_id: operation_id, category: category, query: query, index: search_count, total: 6)
+            Rails.logger.info("  -> web_search query: #{query[0..50]}... (category: #{category})")
+          end
+        end
+      end
+
+      # Emit token tracking
+      if event.type == 'message_delta' && event.delta.respond_to?(:usage)
+        input_tokens = event.delta.usage.input_tokens || 0
+        output_tokens = event.delta.usage.output_tokens || 0
+        emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
       end
 
       collector.add_event(event)
     end
 
-    Rails.logger.info("Stream completed with #{event_count} events, #{collector.content.length} content blocks")
+    Rails.logger.info("Stream completed with #{event_count} events, #{collector.content.length} content blocks, #{search_count} searches")
     collector
   end
 
@@ -318,7 +332,8 @@ class LegislationCrawlerService
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
-            type: "adaptive"
+            type: "enabled",
+            budget_tokens: "max"
           },
           system_: system_prompt,
           messages: messages
@@ -345,165 +360,9 @@ class LegislationCrawlerService
       raise
     end
 
-    # Process tool use calls and continue conversation
-    all_results = {}
-    iteration = 0
-    max_iterations = 3
-    web_search_count = 0
-    max_web_searches = 15
-    max_searches_reached = false
-
-    while iteration < max_iterations
-      iteration += 1
-
-      # Check if we got a stop reason
-      if response.stop_reason == "end_turn"
-        emit(:phase, message: "Search complete")
-        break
-      end
-
-      # Process tool uses from native web_search
-      has_tool_use = false
-      tool_results = []
-
-      if iteration > 1 && response.content.any?
-        emit(:phase, message: "Processing #{response.content.length} response blocks...")
-      end
-
-      response.content.each do |block|
-        if block.type == :tool_use
-          has_tool_use = true
-          tool_name = block.name
-
-          if tool_name == "web_search"
-            web_search_count += 1
-            category = determine_category_from_input(block.input)
-            category_label = SEARCH_DESCRIPTIONS[category] || "legislation"
-            query = if block.input.is_a?(Hash)
-              (block.input['query'] || block.input[:query])
-            else
-              block.input.to_s
-            end
-
-            if web_search_count > max_web_searches
-              if !max_searches_reached
-                emit(:phase, message: "Maximum web searches reached (#{max_web_searches}/#{max_web_searches})")
-                max_searches_reached = true
-              end
-              tool_result = { error: "Maximum web search limit reached (#{max_web_searches})", results: [] }.to_json
-            else
-              current_operation_id = next_operation_id
-              emit(:search_started, operation_id: current_operation_id, category: category_label, query: query, index: web_search_count, total: max_web_searches)
-              emit(:phase, message: "Searching for: #{category_label}")
-              emit(:search, count: web_search_count, total: max_web_searches, category: category_label, query: query)
-              # Claude's native web_search will be handled by the API
-              # We'll extract results from the tool_result in the API response
-              tool_result = nil  # Will be filled from API response
-              emit(:phase, message: "Processing #{category_label} results...")
-            end
-          end
-
-          # Parse and collect web_search results from API response
-          if block.type == :tool_use && block.name == "web_search"
-            category = determine_category_from_input(block.input)
-            category_label = SEARCH_DESCRIPTIONS[category] || "legislation"
-
-            # Extract tool result from the API response (it comes as tool_use block with result)
-            if block.respond_to?(:content) && block.content.present?
-              begin
-                # For web_search, Claude returns structured results
-                tool_result_content = block.content
-                data = if tool_result_content.is_a?(String)
-                  JSON.parse(tool_result_content)
-                else
-                  tool_result_content
-                end
-
-                if data.is_a?(Hash) && (data['results'] || data['content'])
-                  result_array = data['results'] || data['content']
-                  if category
-                    all_results[category] = { 'results' => result_array }
-                    result_count = result_array.is_a?(Array) ? result_array.length : 1
-                    emit(:search_result, operation_id: current_operation_id, result_count: result_count)
-                  elsif web_search_count <= max_web_searches
-                    emit(:warning, message: 'Could not detect category from search')
-                  end
-                end
-              rescue JSON::ParserError => e
-                Rails.logger.warn("Failed to parse web_search result: #{e.message}")
-                emit(:error, message: 'Failed to parse web_search response')
-              end
-            end
-          end
-
-          # Build tool_result for conversation continuation
-          tool_results << {
-            type: "tool_result",
-            tool_use_id: block.id,
-            content: tool_result || ""
-          }
-        elsif block.type == :text
-          if block.text.length > 0
-            emit(:claude_text, text: block.text)
-          end
-        elsif block.type == :thinking
-          thinking_text = block.thinking.to_s.strip
-          Rails.logger.info("Got thinking block: #{thinking_text.length} chars")
-          if thinking_text.length > 0
-            emit(:thinking, text: thinking_text, is_summary: false, operation_id: current_operation_id)
-          end
-        end
-      end
-
-      # If no tool uses, we're done
-      Rails.logger.info("Iteration #{iteration} - has_tool_use: #{has_tool_use}, response.stop_reason: #{response.stop_reason}")
-      break unless has_tool_use
-
-      # Continue conversation with tool results
-      emit(:phase, message: "Analyzing results...")
-
-      # Only include tool_use blocks in conversation, NOT thinking blocks
-      # (thinking blocks are too large and not needed for next iteration)
-      assistant_content = response.content.select { |block| block.type == :tool_use }
-      if assistant_content.any?
-        messages << { role: "assistant", content: assistant_content }
-        messages << { role: "user", content: tool_results }
-      end
-
-      if iteration > 1
-        emit(:phase, message: "Waiting for Claude to analyze results (iteration #{iteration}/#{max_iterations})...")
-      end
-      start_time = Time.current
-
-      begin
-        # Generate new operation_id for next iteration
-        current_operation_id = next_operation_id
-
-        response = build_response_from_stream(
-          current_operation_id,
-          model: MODEL,
-          max_tokens: MAX_TOKENS,
-          thinking: {
-            type: "adaptive"
-          },
-          system_: system_prompt,
-          messages: messages
-        )
-        elapsed = ((Time.current - start_time) * 1000).round
-        elapsed_sec = (elapsed / 1000.0).round(1)
-        Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
-        emit(:phase, message: "✓ Claude responded in #{elapsed_sec}s - processing...")
-        emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
-      rescue StandardError => e
-        Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
-        emit(:error, message: "Claude error: #{e.message}")
-        raise
-      end
-    end
-
-    # Generate legislation from collected search results
-    emit(:phase, message: "Processing search results")
-    legislation_results = generate_legislation_from_searches(all_results)
+    # Extract JSON results from text blocks
+    emit(:phase, message: "Extracting legislation results")
+    legislation_results = extract_legislation_from_response(response)
 
     doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
     emit(:phase, message: "Preparing database save (#{doc_count} documents)")
@@ -511,153 +370,115 @@ class LegislationCrawlerService
     legislation_results
   end
 
-  def determine_category_from_input(input)
-    # Extract query text
-    query_text = if input.is_a?(Hash)
-      (input[:query] || input['query']).to_s
-    elsif input.respond_to?(:query)
-      input.query.to_s
-    elsif input.respond_to?(:[])
-      (input[:query] || input['query']).to_s
-    else
-      input.to_s
-    end
-
-    query_lower = query_text.downcase
-
-    # Match category by finding the search term from SEARCH_QUERIES in the query
-    best_match = nil
-    best_match_length = 0
-
-    SEARCH_QUERIES.each do |category, search_term|
-      search_lower = search_term.downcase
-      if query_lower.include?(search_lower)
-        if search_lower.length > best_match_length
-          best_match = category
-          best_match_length = search_lower.length
-        end
-      end
-    end
-
-    best_match
-  end
 
   def build_user_prompt
     <<~PROMPT
-      Your task: Use the web_search tool to find SPECIFIC immigration legislation for #{@country.name}.
+      Your task: Research immigration legislation for #{@country.name} across 6 categories.
 
-      Focus on finding OFFICIAL LAW NAMES and REFERENCE NUMBERS (e.g., "Lei 13.445/2017" not "Official Legislation 2024").
+      Execute web_search calls IN PARALLEL for each category (you can call multiple searches at once):
 
-      You MUST call the web_search tool at least 6 times, once for each category below, and can do additional searches (up to 15 total) to find more comprehensive results:
+      1. **Federal Laws**: National/Federal immigration laws and constitutional provisions for #{@country.name}
+      2. **Regulations**: Official regulations and procedures
+      3. **Consular**: Visa requirements and embassy/consular procedures
+      4. **Jurisdictional**: Regional or provincial immigration rules
+      5. **Complementary**: Health requirements and complementary laws
+      6. **Auxiliary**: Immigration statistics, quotas, and occupational lists
 
-      1. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:federal_laws]}"
-      2. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:regulations]}"
-      3. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:consular]}"
-      4. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:jurisdictional]}"
-      5. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:complementary]}"
-      6. Call web_search with query: "#{@country.name} #{SEARCH_QUERIES[:auxiliary]}"
+      For each category, formulate 1-2 effective search queries and execute them. You can call multiple web_search in parallel.
 
-      You can do additional searches (7-15) to refine results or search for alternative terms if the initial searches don't return good results.
+      CRITICAL RULES:
+      ✅ Search ONLY for #{@country.name} legislation
+      ✅ Verify source URLs are from #{@country.name} government domain
+      ❌ REJECT laws from other countries, generic titles, or entries without specific law numbers
 
-      ⚠️ CRITICAL: YOU ARE SEARCHING FOR #{@country.name.upcase} LEGISLATION ONLY ⚠️
+      After all searches complete, analyze results and return ONLY this JSON (no other text):
 
-      MANDATORY FILTERING RULES:
-      ❌ REJECT ALL laws that are NOT from #{@country.name}
-      ❌ REJECT Brazilian laws (Lei, Decreto, Constituição Federal)
-      ❌ REJECT German laws (BGB, StGB, etc.)
-      ❌ REJECT any law in Portuguese from Brazil
-      ❌ REJECT any law with "Brasil", "Brazil", "brasileiro" in it
-      ❌ REJECT generic/placeholder titles: "Official Legislation", "Regulations and Procedures", "2024 Updates"
-      ❌ REJECT titles that start with just a dash "-" or are single words
-      ❌ REJECT titles without a law number or specific name
-
-      ✅ ONLY ACCEPT laws that are explicitly from #{@country.name}
-      ✅ Verify each result source URL is from #{@country.name} government domain
-      ✅ Check that the law is applicable in #{@country.name}, not in another country
-
-      EXAMPLE - IF SEARCHING FOR BELGIUM:
-      ✅ ACCEPT: "Belgian Immigration Law", "Loi sur l'Immigration (Belgium)", "Royal Decree on Entry (Belgium)"
-      ❌ REJECT: "Lei 13.445/2017" (Brazilian), "Constituição Federal" (Brazilian), any Portuguese-language Brazilian law
-
-      If search results only contain laws from OTHER COUNTRIES or generic placeholders, return EMPTY RESULTS for that category.
-      IMPORTANT: Better to have no results than to include wrong country data.
-
-      IMPORTANT:
-      - Search results should contain SPECIFIC law names and reference numbers
-      - Do not accept generic results like "Official Legislation 2024"
-      - Only use search results that include real law names with proper reference numbers
-      - Make sure to use the web_search tool for each query. Do not skip any categories.
-      - Prefer results with: year/number, official source, and descriptive title
-    PROMPT
-  end
-
-  def generate_legislation_from_searches(search_results)
-    results = {}
-
-    search_results.each do |category, json_or_hash|
-      results[category] = []
-
-      begin
-        # Handle both JSON string and Hash responses
-        data = if json_or_hash.is_a?(String)
-          JSON.parse(json_or_hash)
-        else
-          json_or_hash
-        end
-
-        results_array = data.is_a?(Hash) ? data['results'] || data['data'] || [] : data
-
-        results_array.each_with_index do |item, idx|
-          # Use the title from search result directly
-          title = item['title'].to_s.strip
-
-          # Skip very generic/placeholder titles
-          if title.blank? || title =~ /^\d+$/ ||
-             title =~ /^(Official|Legislation|Procedure|Regulations|Updates|Rules|Immigration|Law|Document)/i ||
-             title =~ /^-\s/ ||
-             title =~ /^\w+\s+(1|2|3|4|5|6)$/
-            next
-          end
-
-          results[category] << {
-            title: title,
-            content: "#{item['snippet'] || item['description']}\n\nSource: #{item['url']}",
-            summary: item['snippet'] || item['description'],
-            source_url: item['url'],
-            date_effective: parse_date(item['date']),
-            is_deprecated: false,
-            deprecation_notice: nil
-          }
-        end
-      rescue JSON::ParserError, TypeError, NoMethodError => e
-        # If parsing fails, continue
-      end
-    end
-
-    results
-  end
-
-  def build_extraction_prompt(search_results)
-    prompt = "Extract immigration legislation for #{@country.name} from these search results.\n\n"
-
-    search_results.each do |category, results|
-      prompt += "**#{CATEGORIES[category]}**\n"
-      prompt += "#{results}\n\n"
-    end
-
-    prompt += <<~TEXT
-      Based on these search results, return ONLY valid JSON (no other text) with extracted legislation in this format:
       {
-        "federal_laws": [{"title": "...", "summary": "...", "source_url": "...", "date_effective": "...", "is_deprecated": false}],
+        "federal_laws": [
+          {"title": "Official Law Name/Reference", "summary": "2-3 sentence summary", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
+        ],
         "regulations": [...],
         "consular": [...],
         "jurisdictional": [...],
         "complementary": [...],
         "auxiliary": [...]
       }
-    TEXT
 
-    prompt
+      IMPORTANT:
+      - Execute searches in parallel when possible (call multiple web_search at once)
+      - Include 1-3 quality entries per category
+      - Use EXACT official law names with reference numbers
+      - Dates in YYYY-MM-DD format
+      - Empty arrays if no results found for category
+    PROMPT
+  end
+
+  def extract_legislation_from_response(response)
+    category_map = {
+      'federal_laws' => 'Federal Laws',
+      'regulations' => 'Regulations',
+      'consular' => 'Consular Rules',
+      'jurisdictional' => 'Jurisdictional',
+      'complementary' => 'Health & Complementary',
+      'auxiliary' => 'Auxiliary'
+    }
+
+    results = {
+      federal_laws: [],
+      regulations: [],
+      consular: [],
+      jurisdictional: [],
+      complementary: [],
+      auxiliary: []
+    }
+
+    # Find text block with JSON
+    json_text = nil
+    response.content.each do |block|
+      next unless block.type == :text
+      json_text = block.text
+      break if json_text&.include?('"federal_laws"')
+    end
+
+    return results if json_text.blank?
+
+    begin
+      # Extract JSON from text
+      json_match = json_text.match(/\{[\s\S]*\}/)
+      return results unless json_match
+
+      data = JSON.parse(json_match[0])
+      return results unless data.is_a?(Hash)
+
+      # Process each category and emit search_result
+      ['federal_laws', 'regulations', 'consular', 'jurisdictional', 'complementary', 'auxiliary'].each do |category|
+        category_sym = category.to_sym
+        category_label = category_map[category]
+        items = data[category] || []
+
+        items.each do |item|
+          next unless item.is_a?(Hash)
+          next if item['title'].blank?
+
+          results[category_sym] << {
+            title: item['title'].to_s.strip,
+            content: item['summary'].to_s,
+            summary: item['summary'].to_s,
+            source_url: item['source_url'].to_s,
+            date_effective: parse_date(item['date_effective']),
+            is_deprecated: false,
+            deprecation_notice: nil
+          }
+        end
+
+        # Emit search result for this category
+        emit(:search_result, category: category_label, result_count: results[category_sym].length)
+      end
+    rescue JSON::ParserError, StandardError => e
+      Rails.logger.warn("Failed to parse legislation JSON: #{e.message}")
+    end
+
+    results
   end
 
   def parse_claude_results(results)
