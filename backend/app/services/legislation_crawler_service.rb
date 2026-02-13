@@ -206,6 +206,10 @@ class LegislationCrawlerService
       has_tool_use = false
       tool_results = []
 
+      if iteration > 1 && response.content.any?
+        emit(:phase, message: "Processing #{response.content.length} response blocks...")
+      end
+
       response.content.each do |block|
         if block.type == :tool_use
           has_tool_use = true
@@ -291,7 +295,7 @@ class LegislationCrawlerService
       end
 
       if iteration > 1
-        emit(:phase, message: "Waiting for Claude to analyze results...")
+        emit(:phase, message: "Waiting for Claude to analyze results (iteration #{iteration}/#{max_iterations})...")
       end
       start_time = Time.current
 
@@ -307,7 +311,9 @@ class LegislationCrawlerService
           messages: messages
         )
         elapsed = ((Time.current - start_time) * 1000).round
+        elapsed_sec = (elapsed / 1000.0).round(1)
         Rails.logger.info("Claude responded in #{elapsed}ms (iteration #{iteration})")
+        emit(:phase, message: "✓ Claude responded in #{elapsed_sec}s - processing...")
         emit(:timing, message: "Claude responded", elapsed_ms: elapsed)
       rescue StandardError => e
         Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
