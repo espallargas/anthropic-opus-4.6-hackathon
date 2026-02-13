@@ -44,11 +44,11 @@ export function AdminPage() {
     <div className="flex h-screen w-full bg-black text-white">
       {/* Main admin panel */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div className="mx-auto max-w-4xl space-y-8 p-6">
           {/* Header */}
           <div>
             <h1 className="text-xl font-semibold">Legislation Admin</h1>
-            <p className="text-xs text-white/40 mt-1">Manage country legislation</p>
+            <p className="mt-1 text-xs text-white/40">Manage country legislation</p>
           </div>
 
           {/* Active countries section (green + yellow) */}

@@ -22,10 +22,8 @@ export function CountrySection({
 
   return (
     <div>
-      <h2 className="mb-3 text-xs font-semibold text-white/50 uppercase tracking-wide">
-        {title}
-      </h2>
-      <div className="space-y-0 border border-white/10 rounded divide-y divide-white/10">
+      <h2 className="mb-3 text-xs font-semibold tracking-wide text-white/50 uppercase">{title}</h2>
+      <div className="space-y-0 divide-y divide-white/10 rounded border border-white/10">
         {countries.map((country) => (
           <CountryListItem
             key={country.code}

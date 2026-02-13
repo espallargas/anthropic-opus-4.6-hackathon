@@ -36,7 +36,7 @@ export function CountryListItem({
 
   return (
     <div className="space-y-0">
-      <div className="flex items-center gap-3 px-2 py-2 transition-all hover:bg-white/5 rounded">
+      <div className="flex items-center gap-3 rounded px-2 py-2 transition-all hover:bg-white/5">
         {/* Status dot */}
         <div className={`h-2 w-2 rounded-full ${statusColor} flex-shrink-0`} />
 
@@ -44,8 +44,8 @@ export function CountryListItem({
         <span className="text-lg">{country.flag_emoji}</span>
 
         {/* Country name + metadata */}
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">{country.name}</div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{country.name}</div>
           {country.last_crawled_at && (
             <div className="text-xs text-white/40">
               atualizado {timeAgo(country.last_crawled_at)}
@@ -55,11 +55,9 @@ export function CountryListItem({
 
         {/* Document count */}
         {currentDocCount > 0 && (
-          <div className="text-xs text-white/60 flex-shrink-0">
+          <div className="flex-shrink-0 text-xs text-white/60">
             {currentDocCount}
-            <span className="text-white/40 ml-1">
-              {currentDocCount === 1 ? 'doc' : 'docs'}
-            </span>
+            <span className="ml-1 text-white/40">{currentDocCount === 1 ? 'doc' : 'docs'}</span>
           </div>
         )}
 
@@ -67,7 +65,7 @@ export function CountryListItem({
         {currentDocCount > 0 && (
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="text-white/40 hover:text-white/60 transition-colors p-1"
+            className="p-1 text-white/40 transition-colors hover:text-white/60"
             title="View legislations"
           >
             <ChevronDown
@@ -80,7 +78,7 @@ export function CountryListItem({
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="text-white/40 hover:text-white/60 transition-colors p-1 disabled:opacity-30"
+          className="p-1 text-white/40 transition-colors hover:text-white/60 disabled:opacity-30"
           title="Refresh legislation"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -89,7 +87,7 @@ export function CountryListItem({
 
       {/* Legislation panel - more compact */}
       {isPanelOpen && currentDocCount > 0 && (
-        <div className="pl-8 pr-2 pb-2">
+        <div className="pr-2 pb-2 pl-8">
           <LegislationPanel
             countryCode={country.code}
             isOpen={isPanelOpen}

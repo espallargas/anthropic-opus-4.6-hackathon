@@ -47,7 +47,9 @@ export function CrawlProgressBox({
         })
 
         if (!response.ok) {
-          setProgressItems([{ type: 'error', message: `Error: ${response.statusText}`, status: 'error' }])
+          setProgressItems([
+            { type: 'error', message: `Error: ${response.statusText}`, status: 'error' },
+          ])
           setTimeout(() => {
             setIsComplete(true)
             setTimeout(() => onComplete(), 1200)
@@ -89,67 +91,107 @@ export function CrawlProgressBox({
                 if (data.type === 'crawl_progress') {
                   const msg = data.message
 
-                  // Phase messages (starting, type, found existing)
-                  if (msg.includes('Starting crawl') || msg.includes('Crawl type') || msg.includes('Found')) {
-                    setProgressItems((prev) => {
-                      const updated = [...prev]
-                      if (updated.length > 0 && updated[updated.length - 1].status === 'pending') {
-                        return updated
-                      }
-                      return [...updated, { type: 'phase', message: msg, status: 'done' }]
-                    })
+                  // Skip internal messages that shouldn't be shown
+                  if (
+                    msg.includes('Skipping existing') ||
+                    msg.includes('Invoking Claude') ||
+                    msg.includes('Processing search')
+                  ) {
+                    return
                   }
-                  // Search messages
-                  else if (msg.includes('Claude called')) {
+
+                  // Phase messages (starting, type, found existing)
+                  if (
+                    msg.includes('Starting crawl') ||
+                    msg.includes('Crawl type') ||
+                    msg.includes('Found')
+                  ) {
+                    setTimeout(() => {
+                      setProgressItems((prev) => {
+                        const updated = [...prev]
+                        if (
+                          updated.length > 0 &&
+                          updated[updated.length - 1].status === 'pending'
+                        ) {
+                          return updated
+                        }
+                        return [...updated, { type: 'phase', message: msg, status: 'done' }]
+                      })
+                    }, 50)
+                  }
+                  // Agent calling tool messages
+                  else if (msg.includes('Claude Agent: Calling')) {
                     currentSearch++
                     // Only add if we haven't seen this search number yet
                     if (!seenSearches.has(currentSearch)) {
                       seenSearches.add(currentSearch)
-                      setProgressItems((prev) => [
-                        ...prev,
-                        { type: 'search', message: `Search ${currentSearch}/6`, status: 'in-progress' },
-                      ])
+                      setTimeout(() => {
+                        setProgressItems((prev) => [
+                          ...prev,
+                          {
+                            type: 'search',
+                            message: `🤖 Search ${currentSearch}/6`,
+                            status: 'in-progress',
+                          },
+                        ])
+                      }, 50)
                     }
-                  } else if (msg.includes('Found') && msg.includes('results')) {
-                    setProgressItems((prev) => {
-                      const updated = [...prev]
-                      const lastIdx = updated.length - 1
-                      if (lastIdx >= 0 && updated[lastIdx].status === 'in-progress') {
-                        updated[lastIdx].status = 'done'
-                      }
-                      return updated
-                    })
+                  } else if (msg.includes('web_search returned') && msg.includes('results')) {
+                    setTimeout(() => {
+                      setProgressItems((prev) => {
+                        const updated = [...prev]
+                        const lastIdx = updated.length - 1
+                        if (lastIdx >= 0 && updated[lastIdx].status === 'in-progress') {
+                          updated[lastIdx].status = 'done'
+                        }
+                        return updated
+                      })
+                    }, 50)
                   }
-                  // Save messages - extract document count
-                  else if (msg.includes('Processed')) {
+                  // Document count update
+                  else if (msg.includes('Processed') && msg.includes('documents')) {
                     const match = msg.match(/(\d+)\s+documents/)
                     if (match) {
                       const count = parseInt(match[1])
                       setDocumentCount(count)
                       onDocCountUpdate?.(count)
-                      setProgressItems((prev) => [
-                        ...prev,
-                        { type: 'save', message: `Saving ${count} documents`, status: 'in-progress' },
-                      ])
+                      setTimeout(() => {
+                        setProgressItems((prev) => [
+                          ...prev,
+                          {
+                            type: 'save',
+                            message: `💾 Saving ${count} documents`,
+                            status: 'in-progress',
+                          },
+                        ])
+                      }, 50)
                     }
                   }
                   // Complete message
-                  else if (msg.includes('documents stored')) {
-                    setProgressItems((prev) => {
-                      const updated = [...prev]
-                      const lastIdx = updated.length - 1
-                      if (lastIdx >= 0) {
-                        updated[lastIdx].status = 'done'
-                      }
-                      return [...updated, { type: 'complete', message: msg, status: 'done' }]
-                    })
+                  else if (msg.includes('complete') && msg.includes('documents')) {
+                    setTimeout(() => {
+                      setProgressItems((prev) => {
+                        const updated = [...prev]
+                        const lastIdx = updated.length - 1
+                        if (lastIdx >= 0) {
+                          updated[lastIdx].status = 'done'
+                        }
+                        return [
+                          ...updated,
+                          { type: 'complete', message: '✅ ' + msg, status: 'done' },
+                        ]
+                      })
+                    }, 50)
                   }
                 } else if (data.type === 'crawl_complete') {
                   setMessages((prev) => [...prev, '✓ Crawl complete!'])
                   setIsComplete(true)
                   setTimeout(() => onComplete(), 900)
                 } else if (data.type === 'error') {
-                  setProgressItems((prev) => [...prev, { type: 'error', message: `Error: ${data.error}`, status: 'error' }])
+                  setProgressItems((prev) => [
+                    ...prev,
+                    { type: 'error', message: `Error: ${data.error}`, status: 'error' },
+                  ])
                   setIsComplete(true)
                   setTimeout(() => onComplete(), 1500)
                 }
@@ -188,18 +230,18 @@ export function CrawlProgressBox({
         <div className="flex-1">
           <h3 className="text-sm font-semibold">{countryName}</h3>
           {documentCount > 0 && (
-            <p className="text-xs text-green-400/70 mt-0.5">{documentCount} docs</p>
+            <p className="mt-0.5 text-xs text-green-400/70">{documentCount} docs</p>
           )}
         </div>
         <button
           onClick={onComplete}
-          className="text-white/40 hover:text-white/80 transition-colors"
+          className="text-white/40 transition-colors hover:text-white/80"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-1.5 text-xs">
           {progressItems.length === 0 ? (
             <div className="flex items-center gap-2 text-white/50">
@@ -211,11 +253,15 @@ export function CrawlProgressBox({
               <div
                 key={idx}
                 className={`flex items-start gap-2 transition-all duration-200 ${
-                  item.status === 'done' ? 'text-white/40' : item.status === 'error' ? 'text-red-400/70' : 'text-white/60'
+                  item.status === 'done'
+                    ? 'text-white/40'
+                    : item.status === 'error'
+                      ? 'text-red-400/70'
+                      : 'text-white/60'
                 }`}
               >
-                <div className="flex-shrink-0 mt-0.5">{getIcon(item)}</div>
-                <div className="flex-1 min-w-0">
+                <div className="mt-0.5 flex-shrink-0">{getIcon(item)}</div>
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-mono">{item.message}</p>
                 </div>
               </div>
@@ -226,7 +272,7 @@ export function CrawlProgressBox({
 
       {isComplete && (
         <div className="border-t border-white/10 px-4 py-2 text-center">
-          <p className="text-xs text-green-400/70 font-medium">Complete</p>
+          <p className="text-xs font-medium text-green-400/70">Complete</p>
         </div>
       )}
     </div>

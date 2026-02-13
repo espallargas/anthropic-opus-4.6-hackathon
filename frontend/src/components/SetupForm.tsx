@@ -72,7 +72,9 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
               <Label htmlFor="origin_country">País de origem</Label>
               <Select value={originCountry} onValueChange={setOriginCountry} disabled={loading}>
                 <SelectTrigger id="origin_country">
-                  <SelectValue placeholder={loading ? 'Carregando...' : 'Selecione seu país de origem'} />
+                  <SelectValue
+                    placeholder={loading ? 'Carregando...' : 'Selecione seu país de origem'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {sortedCountries.map((country) => (
@@ -96,9 +98,15 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="destination_country">País de destino</Label>
-              <Select value={destinationCountry} onValueChange={setDestinationCountry} disabled={loading}>
+              <Select
+                value={destinationCountry}
+                onValueChange={setDestinationCountry}
+                disabled={loading}
+              >
                 <SelectTrigger id="destination_country">
-                  <SelectValue placeholder={loading ? 'Carregando...' : 'Selecione seu país de destino'} />
+                  <SelectValue
+                    placeholder={loading ? 'Carregando...' : 'Selecione seu país de destino'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {sortedCountries.map((country) => (
