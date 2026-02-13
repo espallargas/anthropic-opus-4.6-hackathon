@@ -34,6 +34,7 @@ class LegislationCrawlerService
     @sse = sse
     @client = Rails.application.config.x.anthropic
     @operation_id_counter = 0
+    @current_operation_id = nil
   end
 
   # Generate a unique operation ID for grouping related messages
@@ -80,6 +81,113 @@ class LegislationCrawlerService
   end
 
   private
+
+  # StreamResponseCollector builds a response object from streaming events
+  # This allows us to use the same iteration logic whether streaming or not
+  class StreamResponseCollector
+    attr_reader :content, :stop_reason, :model, :usage
+
+    def initialize
+      @content = []
+      @stop_reason = nil
+      @model = nil
+      @usage = nil
+      @current_block = nil
+      @thinking_text = ""
+      @text_buffer = ""
+    end
+
+    def add_event(event)
+      case event.type
+      when 'content_block_start'
+        # Start a new content block
+        @current_block = {
+          type: event.content_block.type,
+          id: event.content_block.id,
+          index: event.index,
+          text: "",
+          thinking: "",
+          name: event.content_block.name,
+          input: event.content_block.input,
+          tool_use_id: event.content_block.id
+        }
+
+      when 'content_block_delta'
+        # Append delta to current block
+        if @current_block
+          if event.delta.respond_to?(:text) && event.delta.text
+            @current_block[:text] ||= ""
+            @current_block[:text] += event.delta.text
+          elsif event.delta.respond_to?(:thinking) && event.delta.thinking
+            @current_block[:thinking] ||= ""
+            @current_block[:thinking] += event.delta.thinking
+          elsif event.delta.respond_to?(:input) && event.delta.input
+            @current_block[:input] ||= ""
+            @current_block[:input] += event.delta.input
+          end
+        end
+
+      when 'content_block_stop'
+        # Finalize current block and add to content array
+        if @current_block
+          # Convert to a proper block object
+          block = convert_block(@current_block)
+          @content << block if block
+          @current_block = nil
+        end
+
+      when 'message_stop'
+        # Message finished
+        @stop_reason = event.message.stop_reason if event.message.respond_to?(:stop_reason)
+
+      when 'message_start'
+        @model = event.message.model if event.message.respond_to?(:model)
+      end
+    end
+
+    private
+
+    def convert_block(block_data)
+      case block_data[:type]
+      when 'text'
+        # Return block-like object with text
+        Struct.new(:type, :text).new(:text, block_data[:text])
+      when 'thinking'
+        # Return block-like object with thinking
+        Struct.new(:type, :thinking).new(:thinking, block_data[:thinking])
+      when 'tool_use'
+        # Return block-like object with tool_use properties
+        tool_block = Struct.new(:type, :id, :name, :input).new(
+          :tool_use,
+          block_data[:id],
+          block_data[:name],
+          block_data[:input]
+        )
+        # Make it respond like the SDK's tool_use block
+        def tool_block.respond_to_method?(method_name)
+          [:type, :id, :name, :input].include?(method_name.to_sym)
+        end
+        tool_block
+      end
+    end
+  end
+
+  def build_response_from_stream(**options)
+    collector = StreamResponseCollector.new
+
+    @client.messages.stream(**options) do |event|
+      Rails.logger.debug("Stream event: #{event.type}")
+
+      # Emit thinking blocks in real-time as they arrive
+      if event.type == 'content_block_delta' && event.delta.respond_to?(:thinking)
+        emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: @current_operation_id)
+      end
+
+      collector.add_event(event)
+    end
+
+    collector
+  end
 
   def build_system_prompt(crawl_type, existing_count)
     existing_list = if existing_count > 0
@@ -169,22 +277,21 @@ class LegislationCrawlerService
       }
     ]
 
-    # Call Claude with agentic loop - Claude will autonomously make web_search calls
+    # Call Claude with streaming - use .stream() for real-time event handling
     # The API handles web_search tool execution natively
-    Rails.logger.info("Calling Claude API with #{messages.length} messages, timeout: 300s")
+    Rails.logger.info("Calling Claude API with streaming, timeout: 300s")
 
+    response = nil
     begin
       Timeout.timeout(300) do  # 5 minute timeout
-        response = @client.messages.create(
+        response = build_response_from_stream(
           model: MODEL,
           max_tokens: MAX_TOKENS,
-          thinking: {
-            type: "adaptive"
-          },
+          thinking: { type: "adaptive" },
           system_: system_prompt,
           messages: messages
         )
-        Rails.logger.info("Claude responded!")
+        Rails.logger.info("Claude stream completed!")
         Rails.logger.info("Response stop_reason: #{response.stop_reason}")
         Rails.logger.info("Response content blocks: #{response.content.length}")
         response.content.each_with_index do |block, idx|
@@ -343,7 +450,7 @@ class LegislationCrawlerService
       start_time = Time.current
 
       begin
-        response = @client.messages.create(
+        response = build_response_from_stream(
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
