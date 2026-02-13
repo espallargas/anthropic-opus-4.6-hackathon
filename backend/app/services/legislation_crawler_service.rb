@@ -270,15 +270,7 @@ class LegislationCrawlerService
           thinking_text = block.thinking.to_s.strip
           Rails.logger.info("Got thinking block: #{thinking_text.length} chars")
           if thinking_text.length > 0
-            # Break thinking into chunks to simulate streaming
-            # Send in 3-4 chunks with small delays
-            chunk_size = (thinking_text.length / 3).ceil
-            chunks = thinking_text.scan(/.{1,#{chunk_size}}/m)
-
-            chunks.each_with_index do |chunk, idx|
-              sleep(0.1) if idx > 0  # Small delay between chunks
-              emit(:thinking, text: chunk, is_summary: false, operation_id: current_operation_id)
-            end
+            emit(:thinking, text: thinking_text, is_summary: false, operation_id: current_operation_id)
           end
         end
       end
