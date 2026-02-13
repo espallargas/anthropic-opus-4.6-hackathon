@@ -1,0 +1,158 @@
+/* Fade in animation for smooth appearance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth expand animation for collapsible sections */
+@keyframes expandHeight {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+/* Smooth collapse animation */
+@keyframes collapseHeight {
+  from {
+    opacity: 1;
+    max-height: 500px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+
+/* Subtle spin for loading states */
+@keyframes subtleSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Apply animations as utility classes */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-expandHeight {
+  animation: expandHeight 0.3s ease-in-out forwards;
+}
+
+.animate-collapseHeight {
+  animation: collapseHeight 0.3s ease-in-out forwards;
+}
+
+/* Smooth transitions for operation groups */
+.operation-group {
+  transition: all 0.2s ease-in-out;
+}
+
+.operation-group:hover {
+  border-color: rgb(255 255 255 / 0.2);
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+/* Status badge styling */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+  transition: all 0.2s ease-in-out;
+}
+
+.status-badge.pending {
+  background-color: rgb(107 114 128 / 0.1);
+  color: rgb(209 213 219);
+  border-color: rgb(107 114 128 / 0.3);
+}
+
+.status-badge.running {
+  background-color: rgb(59 130 246 / 0.1);
+  color: rgb(147 197 253);
+  border-color: rgb(59 130 246 / 0.3);
+}
+
+.status-badge.done {
+  background-color: rgb(34 197 94 / 0.1);
+  color: rgb(134 239 172);
+  border-color: rgb(34 197 94 / 0.3);
+}
+
+.status-badge.error {
+  background-color: rgb(239 68 68 / 0.1);
+  color: rgb(252 165 165);
+  border-color: rgb(239 68 68 / 0.3);
+}
+
+/* Thinking block styling */
+.thinking-block {
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, rgb(23 37 84 / 0.4) 0%, rgb(30 41 59 / 0.2) 100%);
+  border: 1px solid rgb(30 58 138 / 0.4);
+  padding: 0.625rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.thinking-block p {
+  color: rgb(147 197 253);
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Timeline line connecting operations (optional) */
+.operation-timeline {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.operation-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.375rem;
+  top: 1.5rem;
+  bottom: -1.5rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgb(59 130 246 / 0.3),
+    rgb(59 130 246 / 0)
+  );
+}
+
+/* Smooth scrolling behavior */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Prevent layout shift when scrollbar appears */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

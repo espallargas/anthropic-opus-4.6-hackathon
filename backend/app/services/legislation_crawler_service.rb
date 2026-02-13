@@ -33,6 +33,13 @@ class LegislationCrawlerService
     @country = country
     @sse = sse
     @client = Rails.application.config.x.anthropic
+    @operation_id_counter = 0
+  end
+
+  # Generate a unique operation ID for grouping related messages
+  def next_operation_id
+    @operation_id_counter += 1
+    "op_#{@operation_id_counter}"
   end
 
   # Single unified emit method - type-safe with schema validation
@@ -180,6 +187,7 @@ class LegislationCrawlerService
     max_iterations = 3  # Reduced from 8 to prevent infinite loops with repetitive results
     web_search_count = 0
     max_web_searches = 6
+    current_operation_id = nil
 
     while iteration < max_iterations
       iteration += 1
@@ -213,6 +221,8 @@ class LegislationCrawlerService
               emit(:phase, message: "Maximum web searches reached (6/6)")
               tool_result = { error: "Maximum web search limit reached (6)", results: [] }.to_json
             else
+              current_operation_id = next_operation_id
+              emit(:search_started, operation_id: current_operation_id, category: category_label, query: query, index: web_search_count, total: max_web_searches)
               emit(:phase, message: "Searching for: #{category_label}")
               emit(:search, count: web_search_count, total: max_web_searches, category: category_label, query: query)
               # Execute the tool
@@ -263,7 +273,7 @@ class LegislationCrawlerService
 
             chunks.each_with_index do |chunk, idx|
               sleep(0.1) if idx > 0  # Small delay between chunks
-              emit(:thinking, text: chunk, is_summary: false)
+              emit(:thinking, text: chunk, is_summary: false, operation_id: current_operation_id)
             end
           end
         end

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { CrawlerOperationGroup } from './CrawlerOperationGroup'
+import '../styles/crawler.css'
 
 interface CrawlProgressBoxProps {
   countryCode: string
@@ -8,25 +10,24 @@ interface CrawlProgressBoxProps {
   onDocCountUpdate?: (count: number) => void
 }
 
-interface ProgressItem {
-  type: 'phase' | 'search' | 'search_result' | 'thinking' | 'complete' | 'error' | 'timing' | 'batch_saved'
-  message?: string
-  text?: string
-  category?: string
-  query?: string
-  is_summary?: boolean
-  count?: number
-  total?: number
-  result_count?: number
-  document_count?: number
-  total_saved?: number
-  elapsed_ms?: number
-  status: 'pending' | 'in-progress' | 'done' | 'error'
+interface ProgressMessage {
+  type: string
+  [key: string]: string | number | boolean | undefined
+}
+
+interface OperationState {
+  operationId: string
+  category: string
+  query: string
+  index: number
+  total: number
+  status: 'pending' | 'running' | 'done' | 'error'
+  messages: ProgressMessage[]
 }
 
 interface SSEMessage {
   type: string
-  [key: string]: any
+  [key: string]: string | number | boolean | undefined
 }
 
 export function CrawlProgressBox({
@@ -35,12 +36,18 @@ export function CrawlProgressBox({
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
-  const [currentStatus, setCurrentStatus] = useState<ProgressItem | null>(null)
-  const [completedItems, setCompletedItems] = useState<ProgressItem[]>([])
+  const [operations, setOperations] = useState<Map<string, OperationState>>(new Map())
+  const [operationOrder, setOperationOrder] = useState<string[]>([])
+  const [statusMessages, setStatusMessages] = useState<ProgressMessage[]>([])
   const [isComplete, setIsComplete] = useState(false)
   const [documentCount, setDocumentCount] = useState(0)
+  const [progressSummary, setProgressSummary] = useState<{ completed: number; total: number }>({
+    completed: 0,
+    total: 0,
+  })
   const scrollRef = useRef<HTMLDivElement>(null)
   const crawlStartedRef = useRef(false)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const memoizedOnDocCountUpdate = useCallback(
     (count: number) => {
@@ -51,83 +58,119 @@ export function CrawlProgressBox({
     [onDocCountUpdate]
   )
 
-  // Auto-scroll to bottom when new items appear
+  // Auto-scroll to bottom when new operations added, not on every update
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (scrollRef.current && operationOrder.length > 0) {
+      // Only scroll if we added a new operation (check last one)
+      const lastOpId = operationOrder[operationOrder.length - 1]
+      const lastOp = operations.get(lastOpId)
+      if (lastOp && lastOp.messages.length <= 1) {
+        // Just added, scroll down
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+          }
+        }, 0)
+      }
     }
-  }, [currentStatus, completedItems])
+  }, [operationOrder, operations])
 
-  // Message handler registry - clean, extensible pattern
-  const messageHandlers: Record<string, (data: any) => ProgressItem | null> = {
-    phase: (data) => ({
-      type: 'phase',
-      message: data.message,
-      status: 'done'
-    }),
+  // Debounced message processing to batch rapid updates
+  const flushMessageQueue = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+  }, [])
 
-    search: (data) => ({
-      type: 'search',
-      message: `🔍 Search ${data.count}/${data.total}: ${data.category}\n   Query: "${data.query}"`,
-      status: 'in-progress'
-    }),
+  // Process queued messages with debouncing
+  const processMessage = useCallback(
+    (data: SSEMessage) => {
+      // Clear existing debounce timer
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
 
-    search_result: (data) => ({
-      type: 'search_result',
-      message: `✅ Found ${data.result_count} results`,
-      status: 'done'
-    }),
+      // Batch process messages to reduce re-renders
+      debounceRef.current = setTimeout(() => {
+        setOperations((prevOps) => {
+          const newOps = new Map(prevOps)
 
-    thinking: (data) => ({
-      type: 'thinking',
-      text: data.text,
-      is_summary: data.is_summary || false,
-      message: `🧠 Claude is thinking${data.is_summary ? ' (summarized)' : ''}...`,
-      status: 'in-progress'
-    }),
+          if (data.type === 'search_started') {
+            // Create new operation
+            const opId = data.operation_id
+            newOps.set(opId, {
+              operationId: opId,
+              category: data.category,
+              query: data.query,
+              index: data.index,
+              total: data.total,
+              status: 'running',
+              messages: [],
+            })
+            // Add to order if not already there
+            setOperationOrder((prev) => (prev.includes(opId) ? prev : [...prev, opId]))
+          } else if (data.type === 'search_result') {
+            // Add result message to operation
+            const opId = data.operation_id
+            if (newOps.has(opId)) {
+              const op = newOps.get(opId)!
+              op.messages.push({
+                type: 'search_result',
+                message: `✅ Found ${data.result_count} results`,
+                result_count: data.result_count,
+              })
+              op.status = 'done'
+            }
+          } else if (data.type === 'thinking') {
+            // Add thinking to current or most recent operation
+            const opId = data.operation_id
+            if (opId && newOps.has(opId)) {
+              const op = newOps.get(opId)!
+              // Check if last message is thinking - if so, append
+              const lastMsg = op.messages[op.messages.length - 1]
+              if (lastMsg && lastMsg.type === 'thinking') {
+                lastMsg.text = (lastMsg.text || '') + data.text
+              } else {
+                op.messages.push({
+                  type: 'thinking',
+                  text: data.text,
+                  is_summary: data.is_summary || false,
+                })
+              }
+            }
+          } else {
+            // Status messages go to statusMessages
+            setStatusMessages((prev) => [...prev, data])
 
-    claude_text: (data) => ({
-      type: 'search',
-      message: `💭 Claude: ${data.text}`,
-      status: 'in-progress'
-    }),
+            // Update progress summary
+            if (data.type === 'search_started') {
+              setProgressSummary((prev) => ({
+                completed: prev.completed,
+                total: data.total,
+              }))
+            }
 
-    timing: (data) => ({
-      type: 'timing',
-      message: `✓ ${data.message} (${data.elapsed_ms}ms)`,
-      status: 'done'
-    }),
+            // Handle completion
+            if (data.type === 'complete') {
+              setDocumentCount(data.document_count || 0)
+              memoizedOnDocCountUpdate(data.document_count || 0)
+              setIsComplete(true)
+              setTimeout(() => onComplete(), 1200)
+            } else if (data.type === 'batch_saved') {
+              setDocumentCount(data.total_saved || 0)
+              memoizedOnDocCountUpdate(data.total_saved || 0)
+            } else if (data.type === 'error') {
+              setIsComplete(true)
+              setTimeout(() => onComplete(), 1500)
+            }
+          }
 
-    warning: (data) => ({
-      type: 'phase',
-      message: `⚠ ${data.message}`,
-      status: 'done'
-    }),
-
-    batch_saved: (data) => ({
-      type: 'batch_saved',
-      message: `📊 ${data.total_saved} documents stored`,
-      total_saved: data.total_saved,
-      status: 'done'
-    }),
-
-    error: (data) => ({
-      type: 'error',
-      message: `Error: ${data.message}`,
-      status: 'error'
-    }),
-
-    complete: (data) => ({
-      type: 'complete',
-      message: `✅ Crawl complete: ${data.document_count} documents stored`,
-      document_count: data.document_count,
-      status: 'done'
-    }),
-
-    // Skip these message types (no UI representation)
-    debug: () => null,
-    tool_use: () => null,
-  }
+          return newOps
+        })
+      }, 50) // 50ms debounce for batching
+    },
+    [memoizedOnDocCountUpdate, onComplete]
+  )
 
   useEffect(() => {
     // Prevent double-firing in React Strict Mode
@@ -141,7 +184,7 @@ export function CrawlProgressBox({
       try {
         console.log(`[CrawlProgressBox] Starting crawl for ${countryCode}`)
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes - crawling can take time with Claude
+        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
 
         const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
           method: 'POST',
@@ -154,11 +197,13 @@ export function CrawlProgressBox({
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-          setCurrentStatus({
-            type: 'error',
-            message: `Error: ${response.statusText}`,
-            status: 'error'
-          })
+          setStatusMessages((prev) => [
+            ...prev,
+            {
+              type: 'error',
+              message: `Error: ${response.statusText}`,
+            },
+          ])
           setIsComplete(true)
           setTimeout(() => onComplete(), 1200)
           return
@@ -166,11 +211,13 @@ export function CrawlProgressBox({
 
         const reader = response.body?.getReader()
         if (!reader) {
-          setCurrentStatus({
-            type: 'error',
-            message: 'No response stream',
-            status: 'error'
-          })
+          setStatusMessages((prev) => [
+            ...prev,
+            {
+              type: 'error',
+              message: 'No response stream',
+            },
+          ])
           setIsComplete(true)
           setTimeout(() => onComplete(), 1200)
           return
@@ -193,74 +240,7 @@ export function CrawlProgressBox({
               try {
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
-
-                const handler = messageHandlers[data.type]
-                if (!handler) {
-                  console.warn(`Unknown message type: ${data.type}`)
-                  continue
-                }
-
-                const progressItem = handler(data)
-                if (!progressItem) {
-                  // Skip messages with no UI representation
-                  continue
-                }
-
-                // Log the message for debugging
-                if (data.type === 'thinking') {
-                  console.log(`[SSE THINKING] text length: ${progressItem.text?.length} chars`)
-                }
-
-                // Update UI with smooth transitions
-                setTimeout(() => {
-                  // Special handling for thinking blocks: accumulate text in a single thinking item
-                  if (data.type === 'thinking') {
-                    // Check if last item is thinking - if so, append text to it
-                    setCompletedItems((prev) => {
-                      const lastItem = prev[prev.length - 1]
-                      if (lastItem && lastItem.type === 'thinking') {
-                        // Append to existing thinking block
-                        return [
-                          ...prev.slice(0, -1),
-                          {
-                            ...lastItem,
-                            text: (lastItem.text || '') + progressItem.text
-                          }
-                        ]
-                      } else {
-                        // New thinking block
-                        return [...prev, progressItem]
-                      }
-                    })
-                  } else if (data.type === 'phase' || data.type === 'search' || data.type === 'search_result' || data.type === 'timing' || data.type === 'warning' || data.type === 'batch_saved') {
-                    // Progress messages go directly to completed items (always visible, never replaced)
-                    setCompletedItems((prev) => [...prev, progressItem])
-                    // Update document count from batch_saved messages
-                    if (data.type === 'batch_saved' && progressItem.total_saved) {
-                      setDocumentCount(progressItem.total_saved)
-                      memoizedOnDocCountUpdate(progressItem.total_saved)
-                    }
-                  } else {
-                    // Status-bearing messages (claude_text, etc.) go to currentStatus
-                    if (currentStatus && currentStatus.status === 'in-progress') {
-                      const completedItem = { ...currentStatus, status: 'done' }
-                      setCompletedItems((prev) => [...prev, completedItem])
-                    }
-                    setCurrentStatus(progressItem)
-                  }
-
-                  // Handle special cases
-                  if (data.type === 'complete') {
-                    setDocumentCount(data.document_count || 0)
-                    memoizedOnDocCountUpdate(data.document_count || 0)
-                    setIsComplete(true)
-                    setTimeout(() => onComplete(), 1200)
-                  } else if (data.type === 'error') {
-                    setIsComplete(true)
-                    setTimeout(() => onComplete(), 1500)
-                  }
-                }, 200)
-
+                processMessage(data)
               } catch (e) {
                 console.error('Failed to parse SSE message:', e)
               }
@@ -269,52 +249,44 @@ export function CrawlProgressBox({
         }
       } catch (error) {
         console.error('Crawl connection error:', error)
-        setCurrentStatus({
-          type: 'error',
-          message: 'Connection error',
-          status: 'error'
-        })
+        setStatusMessages((prev) => [
+          ...prev,
+          {
+            type: 'error',
+            message: 'Connection error',
+          },
+        ])
         setIsComplete(true)
         setTimeout(() => onComplete(), 1500)
       }
     }
 
     startCrawl()
-  }, [countryCode])
+    return () => {
+      flushMessageQueue()
+    }
+  }, [countryCode, processMessage, flushMessageQueue, onComplete])
 
-  const getIcon = (item: ProgressItem) => {
-    if (item.status === 'error') {
-      return <AlertCircle className="h-4 w-4 text-red-400/80" />
-    }
-    if (item.status === 'in-progress') {
-      return <Loader2 className="h-4 w-4 animate-spin text-blue-400/80" />
-    }
-    if (item.status === 'done' || item.type === 'complete') {
-      return <CheckCircle2 className="h-4 w-4 text-green-400/80" />
-    }
-    return <div className="h-4 w-4 rounded-full border border-white/20" />
-  }
-
-  const formatTime = () => {
-    return new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    })
-  }
 
   return (
     <div className="flex w-[600px] flex-col rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3.5">
         <div className="flex-1">
           <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
-          {documentCount > 0 && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-400/80">
-              <span>📊</span>
-              <span>{documentCount} documents stored</span>
-            </p>
-          )}
+          <div className="mt-1 flex items-center gap-3">
+            {documentCount > 0 && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-400/80">
+                <span>📊</span>
+                <span>{documentCount} documents</span>
+              </p>
+            )}
+            {progressSummary.total > 0 && (
+              <p className="text-xs text-white/50">
+                {progressSummary.completed}/{progressSummary.total} searches
+              </p>
+            )}
+          </div>
         </div>
         <button
           onClick={onComplete}
@@ -325,98 +297,57 @@ export function CrawlProgressBox({
         </button>
       </div>
 
+      {/* Main scroll area */}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-3 text-xs">
-          {completedItems.length === 0 && !currentStatus ? (
+          {operationOrder.length === 0 && statusMessages.length === 0 ? (
             <div className="flex items-center gap-2 text-white/50">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>Connecting to crawler...</span>
             </div>
           ) : (
             <>
-              {/* Completed items */}
-              {completedItems.map((item, idx) => (
+              {/* Status messages (phase, timing, etc.) */}
+              {statusMessages.map((msg, idx) => (
                 <div
-                  key={`completed-${idx}`}
-                  className={`animate-fadeIn flex items-start gap-3 transition-all duration-200 ${
-                    item.status === 'done'
-                      ? 'text-white/50'
-                      : item.status === 'error'
-                        ? 'text-red-400/70'
-                        : 'text-white/60'
+                  key={`status-${idx}`}
+                  className={`animate-fadeIn flex items-start gap-2 rounded px-2 py-1 ${
+                    msg.type === 'error' ? 'text-red-400/70' : 'text-white/50'
                   }`}
-                  style={{
-                    animation: 'fadeIn 0.3s ease-in-out'
-                  }}
+                  style={{ animation: 'fadeIn 0.3s ease-in-out' }}
                 >
-                  <div className="mt-1 flex-shrink-0">{getIcon(item)}</div>
-                  <div className="min-w-0 flex-1">
-                    {item.type === 'thinking' ? (
-                      // Thinking blocks - Anthropic style floating box
-                      <div className="rounded-lg bg-gradient-to-br from-blue-950/40 to-blue-900/20 border border-blue-700/40 p-3 my-2 shadow-lg">
-                        <div className="flex items-start gap-2.5">
-                          <span className="mt-0.5 text-base">🧠</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-blue-300 mb-2">Claude is thinking...</p>
-                            <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80 leading-relaxed max-h-40 overflow-hidden">
-                              {item.text}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      // Regular messages
-                      <div className="flex flex-col gap-0.5">
-                        {item.message && (
-                          <p className="break-words whitespace-pre-wrap font-mono leading-relaxed">{item.message}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {msg.type === 'error' ? (
+                    <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-400/60" />
+                  )}
+                  <p className="break-words font-mono">{msg.message}</p>
                 </div>
               ))}
 
-              {/* Current status (loading) */}
-              {currentStatus && (
-                <div
-                  className={`flex items-start gap-3 transition-all duration-200 p-1.5 rounded ${
-                    currentStatus.status === 'in-progress'
-                      ? 'text-white/60'
-                      : currentStatus.status === 'error'
-                        ? 'text-red-400/70'
-                        : 'text-white/40'
-                  }`}
-                >
-                  <div className="mt-1 flex-shrink-0">{getIcon(currentStatus)}</div>
-                  <div className="min-w-0 flex-1">
-                    {currentStatus.type === 'thinking' ? (
-                      // Thinking blocks - in-progress view
-                      <div className="rounded-lg bg-gradient-to-br from-blue-950/40 to-blue-900/20 border border-blue-700/40 p-3 shadow-lg">
-                        <p className="text-xs font-semibold text-blue-300 mb-2">Claude is thinking...</p>
-                        {currentStatus.text && (
-                          <p className="break-words whitespace-pre-wrap font-mono text-xs text-blue-200/80 leading-relaxed max-h-48 overflow-auto">
-                            {currentStatus.text}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      // Regular messages
-                      <div className="flex flex-col gap-0.5">
-                        {currentStatus.message && (
-                          <p className="break-words whitespace-pre-wrap font-mono leading-relaxed">
-                            {currentStatus.message}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Operation groups */}
+              {operationOrder.map((opId) => {
+                const op = operations.get(opId)
+                if (!op) return null
+                return (
+                  <CrawlerOperationGroup
+                    key={opId}
+                    operationId={op.operationId}
+                    category={op.category}
+                    query={op.query}
+                    index={op.index}
+                    total={op.total}
+                    messages={op.messages}
+                    status={op.status}
+                  />
+                )
+              })}
             </>
           )}
         </div>
       </div>
 
+      {/* Footer */}
       {isComplete && (
         <div className="border-t border-white/10 bg-white/[0.02] px-4 py-3 text-center">
           <p className="text-xs font-medium text-emerald-400/80">✓ Crawl complete</p>
