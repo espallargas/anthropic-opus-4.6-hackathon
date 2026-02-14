@@ -1,4 +1,14 @@
 import { useState } from 'react';
+import {
+  Plane,
+  GraduationCap,
+  Briefcase,
+  Users,
+  Shield,
+  TrendingUp,
+  Home,
+  MoreHorizontal,
+} from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface ObjectivePickerProps {
@@ -16,6 +26,17 @@ const OBJECTIVE_KEYS = [
   'setup.objective.permanent_residence',
   'setup.objective.other',
 ] as const;
+
+const OBJECTIVE_ICONS: Record<string, React.ReactNode> = {
+  'setup.objective.temporary_visit': <Plane className="h-4 w-4" />,
+  'setup.objective.education': <GraduationCap className="h-4 w-4" />,
+  'setup.objective.work': <Briefcase className="h-4 w-4" />,
+  'setup.objective.family_reunion': <Users className="h-4 w-4" />,
+  'setup.objective.seek_protection': <Shield className="h-4 w-4" />,
+  'setup.objective.investments': <TrendingUp className="h-4 w-4" />,
+  'setup.objective.permanent_residence': <Home className="h-4 w-4" />,
+  'setup.objective.other': <MoreHorizontal className="h-4 w-4" />,
+};
 
 export function ObjectivePicker({ value, onChange }: ObjectivePickerProps) {
   const { t } = useI18n();
@@ -43,24 +64,24 @@ export function ObjectivePicker({ value, onChange }: ObjectivePickerProps) {
     onChange(text || otherLabel);
   };
 
-  const allOptions = OBJECTIVE_KEYS.map((key) => t(key));
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
-        {allOptions.map((label) => {
+        {OBJECTIVE_KEYS.map((key) => {
+          const label = t(key);
           const isSelected = label === otherLabel ? isOtherSelected : value === label;
           return (
             <button
-              key={label}
+              key={key}
               type="button"
               onClick={() => handlePillClick(label)}
-              className={`cursor-pointer rounded-full px-4 py-2 text-sm transition-all ${
+              className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm transition-all ${
                 isSelected
                   ? 'bg-white/15 text-white ring-1 ring-white/30'
                   : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
+              {OBJECTIVE_ICONS[key]}
               {label}
             </button>
           );

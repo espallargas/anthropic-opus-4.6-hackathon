@@ -1,8 +1,8 @@
-import { AgentCard } from '@/components/AgentCard'
-import type { AgentExecution } from '@/lib/chatStore'
+import { AgentCard } from '@/components/AgentCard';
+import type { AgentExecution } from '@/lib/chatStore';
 
 interface AgentActivityPanelProps {
-  agents: AgentExecution[]
+  agents: AgentExecution[];
 }
 
 export function AgentActivityPanel({ agents }: AgentActivityPanelProps) {
@@ -12,5 +12,5 @@ export function AgentActivityPanel({ agents }: AgentActivityPanelProps) {
         <AgentCard key={`${agent.agentName}-${agent.task}`} agent={agent} />
       ))}
     </div>
-  )
+  );
 }

@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { Bug } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { AgentActivityPanel } from '@/components/AgentActivityPanel'
-import { UsageBadge } from '@/components/UsageBadge'
-import { ThinkingCard } from '@/components/ThinkingCard'
-import type { AgentExecution, ThinkingBlock, UsageReport } from '@/lib/chatStore'
+import { useState } from 'react';
+import { Bug } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AgentActivityPanel } from '@/components/AgentActivityPanel';
+import { UsageBadge } from '@/components/UsageBadge';
+import { ThinkingCard } from '@/components/ThinkingCard';
+import type { AgentExecution, ThinkingBlock, UsageReport } from '@/lib/chatStore';
 
 const MOCK_AGENTS: Record<string, AgentExecution[]> = {
   running: [
@@ -112,7 +112,7 @@ const MOCK_AGENTS: Record<string, AgentExecution[]> = {
       ],
     },
   ],
-}
+};
 
 const MOCK_USAGE: UsageReport = {
   totalInputTokens: 3300,
@@ -122,7 +122,7 @@ const MOCK_USAGE: UsageReport = {
     regulatory_researcher: { input_tokens: 1250, output_tokens: 430 },
     eligibility_analyst: { input_tokens: 1250, output_tokens: 430 },
   },
-}
+};
 
 const MOCK_THINKING: Record<string, ThinkingBlock> = {
   active: {
@@ -135,18 +135,18 @@ const MOCK_THINKING: Record<string, ThinkingBlock> = {
       'I analyzed the visa requirements for Brazilian nationals seeking work permits in Canada. The main pathways are: 1) Express Entry (Federal Skilled Worker) requiring CRS score >= 67, 2) Provincial Nominee Program with job offer, 3) LMIA-based work permit. Given the user profile, Express Entry seems most viable. I should present the options clearly with processing times.',
     status: 'done',
   },
-}
+};
 
-type Scenario = keyof typeof MOCK_AGENTS
-type ThinkingScenario = keyof typeof MOCK_THINKING
+type Scenario = keyof typeof MOCK_AGENTS;
+type ThinkingScenario = keyof typeof MOCK_THINKING;
 
 export function AgentMockControls() {
-  const [active, setActive] = useState<Scenario | null>(null)
-  const [activeThinking, setActiveThinking] = useState<ThinkingScenario | null>(null)
-  const [showUsage, setShowUsage] = useState(false)
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [active, setActive] = useState<Scenario | null>(null);
+  const [activeThinking, setActiveThinking] = useState<ThinkingScenario | null>(null);
+  const [showUsage, setShowUsage] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
 
-  if (import.meta.env.PROD) return null
+  if (import.meta.env.PROD) return null;
 
   return (
     <div className="fixed right-4 bottom-4 z-50">
@@ -191,9 +191,7 @@ export function AgentMockControls() {
             </Button>
           </div>
 
-          <p className="text-[10px] font-medium tracking-wider text-white/40 uppercase">
-            Thinking
-          </p>
+          <p className="text-[10px] font-medium tracking-wider text-white/40 uppercase">Thinking</p>
           <div className="flex flex-wrap gap-1">
             {(Object.keys(MOCK_THINKING) as ThinkingScenario[]).map((key) => (
               <Button
@@ -229,5 +227,5 @@ export function AgentMockControls() {
         </div>
       )}
     </div>
-  )
+  );
 }

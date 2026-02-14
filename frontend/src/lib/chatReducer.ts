@@ -1,22 +1,22 @@
-import type { AgentExecution, ThinkingBlock, ToolCall, UsageReport } from '@/lib/chatStore'
-import type { ChatAction } from '@/lib/sseEventMapper'
+import type { AgentExecution, ThinkingBlock, ToolCall, UsageReport } from '@/lib/chatStore';
+import type { ChatAction } from '@/lib/sseEventMapper';
 
 export interface StreamState {
-  content: string
-  toolCalls: ToolCall[]
-  agentExecutions: AgentExecution[]
-  usageReport: UsageReport | null
-  thinking: ThinkingBlock | null
+  content: string;
+  toolCalls: ToolCall[];
+  agentExecutions: AgentExecution[];
+  usageReport: UsageReport | null;
+  thinking: ThinkingBlock | null;
 }
 
 export function createStreamState(): StreamState {
-  return { content: '', toolCalls: [], agentExecutions: [], usageReport: null, thinking: null }
+  return { content: '', toolCalls: [], agentExecutions: [], usageReport: null, thinking: null };
 }
 
 export function chatStreamReducer(state: StreamState, action: ChatAction): StreamState {
   switch (action.type) {
     case 'THINKING_START':
-      return { ...state, thinking: { content: '', status: 'thinking' } }
+      return { ...state, thinking: { content: '', status: 'thinking' } };
 
     case 'THINKING_TOKEN':
       return {
@@ -25,19 +25,19 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
           content: (state.thinking?.content ?? '') + action.token,
           status: 'thinking',
         },
-      }
+      };
 
     case 'THINKING_END':
       return {
         ...state,
         thinking: state.thinking ? { ...state.thinking, status: 'done' } : null,
-      }
+      };
 
     case 'APPEND_TOKEN':
-      return { ...state, content: state.content + action.token }
+      return { ...state, content: state.content + action.token };
 
     case 'TOOL_START':
-      return { ...state, toolCalls: [...state.toolCalls, action.toolCall] }
+      return { ...state, toolCalls: [...state.toolCalls, action.toolCall] };
 
     case 'TOOL_DONE':
       return {
@@ -47,7 +47,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             ? { ...tc, status: 'done' as const, result: action.result }
             : tc,
         ),
-      }
+      };
 
     case 'AGENT_START':
       return {
@@ -62,7 +62,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             toolCalls: [],
           },
         ],
-      }
+      };
 
     case 'AGENT_TOKEN':
       return {
@@ -72,7 +72,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             ? { ...ae, tokens: (ae.tokens ?? '') + action.token }
             : ae,
         ),
-      }
+      };
 
     case 'AGENT_TOOL_START':
       return {
@@ -82,7 +82,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             ? { ...ae, toolCalls: [...ae.toolCalls, action.toolCall] }
             : ae,
         ),
-      }
+      };
 
     case 'AGENT_TOOL_DONE':
       return {
@@ -99,7 +99,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
               }
             : ae,
         ),
-      }
+      };
 
     case 'AGENT_END':
       return {
@@ -115,13 +115,13 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
               }
             : ae,
         ),
-      }
+      };
 
     case 'USAGE_REPORT':
-      return { ...state, usageReport: action.report }
+      return { ...state, usageReport: action.report };
 
     case 'MESSAGE_END':
     case 'ERROR':
-      return state
+      return state;
   }
 }

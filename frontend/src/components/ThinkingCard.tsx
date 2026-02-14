@@ -1,16 +1,16 @@
-import { useState } from 'react'
-import { Brain, ChevronDown, ChevronRight } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
-import type { ThinkingBlock } from '@/lib/chatStore'
+import { useState } from 'react';
+import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import type { ThinkingBlock } from '@/lib/chatStore';
 
 interface ThinkingCardProps {
-  thinking: ThinkingBlock
+  thinking: ThinkingBlock;
 }
 
 export function ThinkingCard({ thinking }: ThinkingCardProps) {
-  const { t } = useI18n()
-  const isThinking = thinking.status === 'thinking'
-  const [expanded, setExpanded] = useState(false)
+  const { t } = useI18n();
+  const isThinking = thinking.status === 'thinking';
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div
@@ -44,5 +44,5 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
