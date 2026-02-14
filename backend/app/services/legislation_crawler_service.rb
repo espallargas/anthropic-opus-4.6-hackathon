@@ -780,6 +780,7 @@ class LegislationCrawlerService
   def emit_search_results_post_stream(response)
     # FALLBACK: Emit search_results after streaming if they weren't emitted during streaming
     # This ensures categories are always marked as 'done' even if streaming logic fails
+    Rails.logger.info("[EMIT_RESULTS] Starting post-stream emit")
 
     category_map = {
       'federal_laws' => 'Federal Laws',
@@ -792,18 +793,22 @@ class LegislationCrawlerService
 
     # Find text blocks
     text_blocks = response.content.select { |block| block.type == :text }
+    Rails.logger.info("[EMIT_RESULTS] Found #{text_blocks.length} text blocks")
     return if text_blocks.empty?
 
     # Try to parse JSON from concatenated text
     full_text = text_blocks.map { |block| block.text }.join("\n")
+    Rails.logger.info("[EMIT_RESULTS] JSON text length: #{full_text.length} chars")
 
     begin
       # Extract JSON from the text
       json_match = full_text.match(/\{[\s\S]*\}/)
+      Rails.logger.info("[EMIT_RESULTS] JSON match found: #{!json_match.nil?}")
       return unless json_match
 
       json_str = json_match[0]
       data = JSON.parse(json_str)
+      Rails.logger.info("[EMIT_RESULTS] JSON parsed successfully, hash keys: #{data.keys.join(', ')}")
 
       return unless data.is_a?(Hash)
 
