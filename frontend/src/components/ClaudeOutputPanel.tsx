@@ -20,6 +20,20 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
 
   const isJSON = outputText.trim().startsWith('{') || outputText.trim().startsWith('[')
 
+  // Format JSON for display with proper indentation
+  const formattedText = isJSON
+    ? (() => {
+        try {
+          // Parse and re-stringify to ensure proper formatting
+          const parsed = JSON.parse(outputText)
+          return JSON.stringify(parsed, null, 2)
+        } catch {
+          // If parsing fails, return as-is
+          return outputText
+        }
+      })()
+    : outputText
+
   return (
     <div className="flex h-full flex-col border-r border-white/10 bg-green-500/5">
       {/* Header */}
@@ -53,12 +67,14 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
                   lineHeight: '1.5',
                   margin: 0,
                 }}
+                wrapLines={true}
+                wrapLongLines={true}
               >
-                {outputText}
+                {formattedText}
               </SyntaxHighlighter>
             ) : (
               <pre className="px-3 py-2.5 font-mono text-xs break-words whitespace-pre-wrap text-green-200/80">
-                {outputText}
+                {formattedText}
               </pre>
             )
           ) : (
