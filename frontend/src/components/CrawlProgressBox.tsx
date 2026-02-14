@@ -23,6 +23,9 @@ interface CategoryState {
   description: string
   status: CategoryStatus
   resultCount: number
+  searchQuery?: string
+  searchIndex?: number
+  searchTotal?: number
 }
 
 export function CrawlProgressBox({
@@ -117,14 +120,27 @@ export function CrawlProgressBox({
       }
     } else if (data.type === 'search_started') {
       const category = data.category as string
-      console.log('[SEARCH_STARTED] Category:', category, '- Web search called!')
+      const query = (data.query as string) || ''
+      const searchIndex = (data.index as number) || 0
+      const searchTotal = (data.total as number) || 6
+      console.log(
+        '[SEARCH_STARTED] Category:',
+        category,
+        'Query:',
+        query.slice(0, 50),
+        'Index:',
+        searchIndex,
+      )
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log('  -> Marking', category, 'as searching with web_search badge')
+            console.log('  -> Marking', category, 'as searching with query:', query.slice(0, 40))
             return {
               ...cat,
               status: 'searching' as CategoryStatus,
+              searchQuery: query,
+              searchIndex,
+              searchTotal,
               hasWebSearched: true,
             }
           }
@@ -139,7 +155,12 @@ export function CrawlProgressBox({
         prev.map((cat) => {
           if (cat.name === category) {
             console.log('  -> Marking', category, 'as done with', resultCount, 'results')
-            return { ...cat, status: 'done' as CategoryStatus, resultCount }
+            return {
+              ...cat,
+              status: 'done' as CategoryStatus,
+              resultCount,
+              searchQuery: undefined, // Clear query on completion
+            }
           }
           return cat
         }),

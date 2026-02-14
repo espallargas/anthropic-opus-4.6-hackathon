@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, AlertCircle, ChevronRight, Globe } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Globe } from 'lucide-react'
 
 export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error'
 
@@ -9,6 +9,9 @@ interface Category {
   status: CategoryStatus
   resultCount: number
   hasWebSearched?: boolean
+  searchQuery?: string
+  searchIndex?: number
+  searchTotal?: number
 }
 
 interface CategoriesPanelProps {
@@ -52,10 +55,23 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
               {/* Category info */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-current">{category.name}</p>
-                <p className="mt-0.5 line-clamp-2 text-xs text-current/70">
-                  {category.description}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-xs font-medium text-current">{category.name}</p>
+                  {category.searchIndex !== undefined && (
+                    <span className="flex-shrink-0 rounded bg-current/30 px-1.5 py-0.5 text-xs font-medium text-current">
+                      [{category.searchIndex}/{category.searchTotal || 6}]
+                    </span>
+                  )}
+                </div>
+                {category.searchQuery && category.status === 'searching' ? (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-current/70">
+                    🔍 "{category.searchQuery}"
+                  </p>
+                ) : (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-current/70">
+                    {category.description}
+                  </p>
+                )}
               </div>
 
               {/* Web search badge and status indicator */}
@@ -68,7 +84,9 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 )}
                 {category.status === 'done' && category.resultCount > 0 && (
                   <div className="flex-shrink-0 rounded bg-current/20 px-1.5 py-0.5">
-                    <p className="text-xs font-medium text-current">{category.resultCount}</p>
+                    <p className="text-xs font-medium text-current">
+                      {category.resultCount} results
+                    </p>
                   </div>
                 )}
               </div>
