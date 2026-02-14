@@ -14,30 +14,33 @@ class LegislationCrawlerService
 
   CATEGORY_LIST = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary'].freeze
 
+  attr_reader :country, :sse, :client, :thinking_effort
+  attr_accessor :operation_id_counter, :current_operation_id, :thinking_type_emitted, :parse_complete_emitted
+
   def initialize(country, sse = nil)
     @country = country
     @sse = sse
     @client = Rails.application.config.x.anthropic
     @operation_id_counter = 0
     @current_operation_id = nil
-    @thinking_effort = "high"  # Configure thinking effort level: low, medium, high, max
-    @thinking_type_emitted = false  # Track if we've emitted the thinking type
-    @parse_complete_emitted = Set.new  # Track which categories have had parse_complete emitted
+    @thinking_effort = "high"
+    @thinking_type_emitted = false
+    @parse_complete_emitted = Set.new
   end
 
   # Generate a unique operation ID for grouping related messages
   def next_operation_id
-    @operation_id_counter += 1
-    "op_#{@operation_id_counter}"
+    operation_id_counter += 1
+    "op_#{operation_id_counter}"
   end
 
   # Single unified emit method - type-safe with schema validation
   def emit(type, **data);
     begin
       message = ::SSEMessageSchema.format(type, data);
-      return unless @sse;
+      return unless sse;
 
-      @sse.write(message);
+      sse.write(message);
     rescue ActionController::Live::ClientDisconnected
       raise;
     rescue StandardError => e
@@ -46,10 +49,10 @@ class LegislationCrawlerService
   end;
 
   def crawl;
-    emit(:phase, message: "Starting crawl for #{@country.name}");
+    emit(:phase, message: "Starting crawl for #{country.name}");
 
-    existing_count = @country.legislations.count;
-    crawl_type = @country.last_crawled_at.nil? ? "first_crawl" : "update_search";
+    existing_count = country.legislations.count;
+    crawl_type = country.last_crawled_at.nil? ? "first_crawl" : "update_search";
 
     emit(:phase, message: "Found #{existing_count} existing legislations");
 
@@ -59,12 +62,12 @@ class LegislationCrawlerService
     emit(:phase, message: "Saving results to database");
     save_results(results);
 
-    @country.update!(last_crawled_at: Time.current);
+    country.update!(last_crawled_at: Time.current);
 
-    total_docs = @country.legislations.count;
+    total_docs = country.legislations.count;
     emit(:complete, message: "Crawl complete", document_count: total_docs);
 
-    Rails.logger.info("Crawl complete: #{@country.name} - #{total_docs} legislations");
+    Rails.logger.info("Crawl complete: #{country.name} - #{total_docs} legislations");
   end;
 
   private
@@ -208,7 +211,7 @@ class LegislationCrawlerService
 
     server_tool_use_indices = Set.new;
 
-    stream_response = @client.messages.stream(**options)
+    stream_response = client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
 
@@ -260,8 +263,8 @@ class LegislationCrawlerService
           if event.delta.respond_to?(:thinking) && event.delta.thinking
             thinking_text = event.delta.thinking
             # Emit thinking type only once at the start
-            thinking_type = @thinking_type_emitted ? nil : @thinking_effort
-            @thinking_type_emitted = true if !@thinking_type_emitted
+            thinking_type = thinking_type_emitted ? nil : thinking_effort
+            thinking_type_emitted = true if !thinking_type_emitted
             emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id, thinking_type: thinking_type)
           end
         rescue => e
@@ -298,7 +301,7 @@ class LegislationCrawlerService
 
   def build_system_prompt(crawl_type, existing_count)
     existing_list = if existing_count > 0
-      @country.legislations
+      country.legislations
         .select(:title, :date_effective)
         .order(:title)
         .map { |l| "- #{l.title} (effective: #{l.date_effective || 'unknown'})" }
@@ -334,7 +337,7 @@ class LegislationCrawlerService
 
       ## DEDUPLICATION CONTEXT
 
-      Existing legislation in database for #{@country.name}:
+      Existing legislation in database for #{country.name}:
       #{existing_list.present? ? existing_list : "None"}
 
       Rules:
@@ -404,7 +407,7 @@ class LegislationCrawlerService
           system_: system_prompt,
           messages: messages,
           output_config: {
-            effort: @thinking_effort,
+            effort: thinking_effort,
             format: {
               type: "json_schema",
               schema: legislation_schema
@@ -463,18 +466,18 @@ class LegislationCrawlerService
 
   def build_user_prompt;
     <<~PROMPT
-      TASK: Use the web_search tool to research immigration laws for #{@country.name}.
+      TASK: Use the web_search tool to research immigration laws for #{country.name}.
 
       IMPORTANT: You MUST use the web_search tool exactly 6 times, once for each category below.
 
       STEP 1: Execute web_search for each category:
 
-      1. FEDERAL: Use web_search("#{@country.name} constitution national immigration law")
-      2. REGULATIONS: Use web_search("#{@country.name} immigration official regulations ministry")
-      3. VISA: Use web_search("#{@country.name} visa requirements embassy consular procedures")
-      4. REGIONAL: Use web_search("#{@country.name} state provincial regional immigration rules")
-      5. HEALTH: Use web_search("#{@country.name} immigration health medical requirements")
-      6. STATISTICS: Use web_search("#{@country.name} immigration statistics asylum quotas")
+      1. FEDERAL: Use web_search("#{country.name} constitution national immigration law")
+      2. REGULATIONS: Use web_search("#{country.name} immigration official regulations ministry")
+      3. VISA: Use web_search("#{country.name} visa requirements embassy consular procedures")
+      4. REGIONAL: Use web_search("#{country.name} state provincial regional immigration rules")
+      5. HEALTH: Use web_search("#{country.name} immigration health medical requirements")
+      6. STATISTICS: Use web_search("#{country.name} immigration statistics asylum quotas")
 
       Do NOT skip any searches. Execute all 6 web_search calls.
 
@@ -605,9 +608,9 @@ class LegislationCrawlerService
 
         emit(:search_result, category: category_label, result_count: count);
 
-        unless @parse_complete_emitted.include?(category_label)
+        unless parse_complete_emitted.include?(category_label)
           emit(:category_parse_complete, category: category_label, item_count: count);
-          @parse_complete_emitted.add(category_label);
+          parse_complete_emitted.add(category_label);
         end;
       end;
     rescue JSON::ParserError => e
@@ -681,18 +684,18 @@ class LegislationCrawlerService
         items = data[category_key] || [];
         count = items.is_a?(Array) ? items.length : 0;
 
-        next if @parse_complete_emitted.include?(category_label);
+        next if parse_complete_emitted.include?(category_label);
 
         emit(:category_parse_complete, category: category_label, item_count: count);
-        @parse_complete_emitted.add(category_label);
+        parse_complete_emitted.add(category_label);
       end;
     rescue => e
       Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}");
       CATEGORY_LABEL_MAP.each do |_category_key, category_label|
-        next if @parse_complete_emitted.include?(category_label);
+        next if parse_complete_emitted.include?(category_label);
 
         emit(:category_parse_complete, category: category_label, item_count: 0);
-        @parse_complete_emitted.add(category_label);
+        parse_complete_emitted.add(category_label);
       end;
     end;
   end;
@@ -733,7 +736,7 @@ class LegislationCrawlerService
 
     results.each do |category, documents|
       documents.each do |doc|
-        existing = @country.legislations.find_by(title: doc[:title]);
+        existing = country.legislations.find_by(title: doc[:title]);
 
         if existing
           new_date = doc[:date_effective];
@@ -746,7 +749,7 @@ class LegislationCrawlerService
           end;
         else
           legislations_to_insert << {
-            country_id: @country.id,
+            country_id: country.id,
             category: Legislation.categories[category],
             title: doc[:title],
             content: doc[:content],
@@ -766,7 +769,7 @@ class LegislationCrawlerService
       emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...");
       Legislation.insert_all(legislations_to_insert);
 
-      current_count = @country.legislations.count;
+      current_count = country.legislations.count;
       emit(:batch_saved, total_saved: current_count);
 
       sleep(0.5);
@@ -779,7 +782,7 @@ class LegislationCrawlerService
         old_leg = Legislation.find(update[:existing_id]);
 
         new_leg = Legislation.create!(
-          country_id: @country.id,
+          country_id: country.id,
           category: Legislation.categories[update[:new_category]],
           title: update[:new_doc][:title],
           content: update[:new_doc][:content],
@@ -793,7 +796,7 @@ class LegislationCrawlerService
         old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id);
       end;
 
-      current_count = @country.legislations.count;
+      current_count = country.legislations.count;
       emit(:batch_saved, total_saved: current_count);
 
       sleep(0.5);
