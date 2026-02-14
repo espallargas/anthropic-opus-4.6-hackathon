@@ -456,7 +456,7 @@ export function CrawlProgressBox({
           {/* Thinking panel - compact */}
           <div
             className="min-h-0 flex-none overflow-hidden border-b border-white/10"
-            style={{ height: '80px' }}
+            style={{ height: '120px' }}
           >
             <ThinkingPanel
               thinkingText={thinkingText}

@@ -54,28 +54,33 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
 
       {/* Content */}
       {!collapsed && (
-        <div ref={contentRef} className="flex-1 overflow-auto bg-black/20">
+        <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
           {outputText ? (
             isJSON ? (
-              <SyntaxHighlighter
-                language="json"
-                style={nightOwl}
-                customStyle={{
-                  backgroundColor: 'transparent',
-                  padding: '12px',
-                  fontSize: '12px',
-                  lineHeight: '1.5',
-                  margin: 0,
-                }}
-                wrapLines={true}
-                wrapLongLines={true}
-              >
-                {formattedText}
-              </SyntaxHighlighter>
+              <div className="rounded-lg border border-white/10 bg-black/40 p-4">
+                <SyntaxHighlighter
+                  language="json"
+                  style={nightOwl}
+                  customStyle={{
+                    backgroundColor: '#1a1a2e',
+                    padding: '12px',
+                    fontSize: '11px',
+                    lineHeight: '1.6',
+                    margin: 0,
+                    borderRadius: '6px',
+                  }}
+                  wrapLines={true}
+                  wrapLongLines={true}
+                >
+                  {formattedText}
+                </SyntaxHighlighter>
+              </div>
             ) : (
-              <pre className="px-3 py-2.5 font-mono text-xs break-words whitespace-pre-wrap text-green-200/80">
-                {formattedText}
-              </pre>
+              <div className="rounded-lg border border-white/10 bg-black/40 p-4">
+                <pre className="font-mono text-xs break-words whitespace-pre-wrap text-green-200/80">
+                  {formattedText}
+                </pre>
+              </div>
             )
           ) : (
             <div className="flex h-full items-center justify-center">
