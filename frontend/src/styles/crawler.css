@@ -63,8 +63,8 @@
 }
 
 .operation-group:hover {
-  border-color: rgb(255 255 255 / 0.2);
-  background-color: rgb(255 255 255 / 0.04);
+  border-color: var(--input);
+  background-color: var(--accent);
 }
 
 /* Status badge styling */
@@ -80,15 +80,15 @@
 }
 
 .status-badge.pending {
-  background-color: rgb(107 114 128 / 0.1);
-  color: rgb(209 213 219);
-  border-color: rgb(107 114 128 / 0.3);
+  background-color: color-mix(in oklch, var(--muted) 30%, transparent);
+  color: var(--muted-foreground);
+  border-color: var(--border);
 }
 
 .status-badge.running {
-  background-color: rgb(59 130 246 / 0.1);
-  color: rgb(147 197 253);
-  border-color: rgb(59 130 246 / 0.3);
+  background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in oklch, var(--primary) 30%, transparent);
 }
 
 .status-badge.done {
@@ -98,23 +98,23 @@
 }
 
 .status-badge.error {
-  background-color: rgb(239 68 68 / 0.1);
-  color: rgb(252 165 165);
-  border-color: rgb(239 68 68 / 0.3);
+  background-color: color-mix(in oklch, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
 }
 
 /* Thinking block styling */
 .thinking-block {
   border-radius: 0.5rem;
-  background: linear-gradient(135deg, rgb(23 37 84 / 0.4) 0%, rgb(30 41 59 / 0.2) 100%);
-  border: 1px solid rgb(30 58 138 / 0.4);
+  background: color-mix(in oklch, var(--card) 40%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ring) 25%, transparent);
   padding: 0.625rem;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   animation: fadeIn 0.3s ease-in-out;
 }
 
 .thinking-block p {
-  color: rgb(147 197 253);
+  color: var(--muted-foreground);
   font-family: 'Monaco', 'Courier New', monospace;
   font-size: 0.75rem;
   line-height: 1.5;
@@ -135,7 +135,11 @@
   top: 1.5rem;
   bottom: -1.5rem;
   width: 1px;
-  background: linear-gradient(to bottom, rgb(59 130 246 / 0.3), rgb(59 130 246 / 0));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--primary) 30%, transparent),
+    transparent
+  );
 }
 
 /* Smooth scrolling behavior */
