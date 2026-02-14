@@ -113,11 +113,9 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
                 {/* Show items being documented while parsing JSON */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <div className="flex-shrink-0 rounded bg-yellow-500/20 px-1.5 py-0.5">
-                    <p className="text-xs font-medium text-yellow-300">
-                      📝 {category.itemsBeingDocumented} docs
-                    </p>
-                  </div>
+                  <span className="text-xs font-medium text-white/60">
+                    {category.itemsBeingDocumented}
+                  </span>
                 )}
 
                 {category.status === 'done' && category.resultCount > 0 && (
