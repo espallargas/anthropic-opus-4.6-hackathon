@@ -62,10 +62,17 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
             <div className="flex items-start gap-2.5">
               {/* Status icon - color changes based on what's been completed */}
               <div className="mt-0.5 flex-shrink-0 text-current">
-                {category.status === 'done' && category.webResultsCrawled ? (
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                ) : category.status === 'done' && category.legislationsParsed ? (
+                {category.itemsBeingDocumented &&
+                category.itemsBeingDocumented > 0 &&
+                !category.legislationsParsed ? (
+                  // Loading while parsing
+                  <Loader2 className="h-3 w-3 animate-spin text-purple-400" />
+                ) : category.legislationsParsed ? (
+                  // Purple checkmark when legislations parsed
                   <CheckCircle2 className="h-3 w-3 text-purple-400" />
+                ) : category.webResultsCrawled ? (
+                  // Green checkmark when web results crawled
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
                 ) : (
                   STATUS_ICONS[category.status]
                 )}
@@ -76,7 +83,11 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 <div className="flex items-center gap-2">
                   <p
                     className={`truncate text-xs font-medium ${
-                      category.webResultsCrawled ? 'text-emerald-300' : 'text-current'
+                      category.legislationsParsed
+                        ? 'text-purple-300'
+                        : category.webResultsCrawled
+                          ? 'text-emerald-300'
+                          : 'text-current'
                     }`}
                   >
                     {category.name}
@@ -122,18 +133,19 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   <span className="text-xs font-medium text-blue-300">Searching...</span>
                 )}
 
-                {/* Web results from search - green when crawled */}
-                {category.resultCount > 0 && (
-                  <span
-                    className={`text-xs font-medium ${
-                      category.webResultsCrawled ? 'text-emerald-300' : 'text-blue-300'
-                    }`}
-                  >
-                    {category.resultCount} web results crawled
-                  </span>
-                )}
+                {/* Web results from search - only show if not parsing legislations yet */}
+                {category.resultCount > 0 &&
+                  (!category.itemsBeingDocumented || category.itemsBeingDocumented === 0) && (
+                    <span
+                      className={`text-xs font-medium ${
+                        category.webResultsCrawled ? 'text-emerald-300' : 'text-blue-300'
+                      }`}
+                    >
+                      {category.resultCount} web results crawled
+                    </span>
+                  )}
 
-                {/* Show legislations being parsed - purple when complete */}
+                {/* Show legislations being parsed - hide web results when parsing starts */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
                   <span
                     className={`text-xs font-medium ${
