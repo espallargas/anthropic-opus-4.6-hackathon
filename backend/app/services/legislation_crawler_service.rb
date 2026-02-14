@@ -485,89 +485,30 @@ class LegislationCrawlerService
 
 
   def build_legislation_schema
+    legislation_item = {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Official law/regulation name" },
+        summary: { type: "string", description: "Brief 1-2 sentence description" },
+        source_url: { type: "string", description: "URL source" },
+        date_effective: { type: ["string", "null"], description: "YYYY-MM-DD format or null" }
+      },
+      required: ["title", "summary", "source_url"],
+      additionalProperties: false
+    }
+
     {
       type: "object",
       properties: {
-        federal_laws: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string", description: "Official law name" },
-              summary: { type: "string", description: "Brief 1-2 sentence description" },
-              source_url: { type: "string", description: "URL source" },
-              date_effective: { type: "string", description: "YYYY-MM-DD format" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        },
-        regulations: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string", description: "Official regulation name" },
-              summary: { type: "string", description: "Brief 1-2 sentence description" },
-              source_url: { type: "string", description: "URL source" },
-              date_effective: { type: "string", description: "YYYY-MM-DD format" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        },
-        consular: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              source_url: { type: "string" },
-              date_effective: { type: "string" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        },
-        jurisdictional: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              source_url: { type: "string" },
-              date_effective: { type: "string" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        },
-        complementary: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              source_url: { type: "string" },
-              date_effective: { type: "string" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        },
-        auxiliary: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              source_url: { type: "string" },
-              date_effective: { type: "string" }
-            },
-            required: ["title", "summary", "source_url"]
-          }
-        }
+        federal_laws: { type: "array", items: legislation_item },
+        regulations: { type: "array", items: legislation_item },
+        consular: { type: "array", items: legislation_item },
+        jurisdictional: { type: "array", items: legislation_item },
+        complementary: { type: "array", items: legislation_item },
+        auxiliary: { type: "array", items: legislation_item }
       },
-      required: ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"]
+      required: ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"],
+      additionalProperties: false
     }
   end
 
