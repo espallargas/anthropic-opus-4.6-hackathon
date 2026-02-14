@@ -36,7 +36,8 @@ export function Sidebar({
 
   return (
     <aside
-      className={`${collapsed ? 'w-16' : 'w-64'} hidden flex-col border-r border-white/10 bg-black transition-[width] duration-300 ease-in-out md:flex`}
+      className="hidden flex-col border-r border-white/10 bg-black transition-[width] duration-300 ease-in-out md:flex"
+      style={{ width: '100%', height: '100%' }}
     >
       {/* Collapse toggle */}
       <div className="flex items-center justify-end border-b border-white/10 p-2">
