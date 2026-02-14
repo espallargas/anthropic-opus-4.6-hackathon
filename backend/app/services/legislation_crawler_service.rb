@@ -224,7 +224,7 @@ class LegislationCrawlerService
       # Log only content_block_start for debugging
       event_type = event.type.to_s
       if event_type == 'content_block_start'
-        block_type = event.content_block.type
+        block_type = event.content_block.type.to_s
         puts "[EVENT] content_block_start index=#{event.index} block_type=#{block_type}"
         $stdout.flush
 
@@ -244,7 +244,8 @@ class LegislationCrawlerService
             if search_num <= category_list.length
               category = category_list[search_num - 1]
 
-              Rails.logger.info("[SEARCH] Started: #{search_num}/6 - #{category}")
+              puts "[REAL_TIME] Emitting search_started NOW for #{category} (#{search_num}/6)"
+              $stdout.flush
 
               emit(:search_started,
                 category: category,
@@ -280,29 +281,6 @@ class LegislationCrawlerService
       end
 
 
-      # Detect final text block completion - when we have JSON results
-      # This is the earliest moment we can emit results while still streaming
-      if event.type.to_s == 'content_block_stop' && !text_block_completed
-        # Check if this might be a text block with JSON
-        if collector.content.length > 0
-          last_block = collector.content.last
-          # If we have a text block, check if it contains JSON
-          if last_block && last_block.type == :text && last_block.respond_to?(:text)
-            if last_block.text && last_block.text.include?('"federal_laws"')
-              Rails.logger.info("  ✓ TEXT BLOCK contains JSON results!")
-              text_block_completed = true
-              emit_search_results_for_stream(collector)
-            end
-          end
-        end
-      end
-
-      # Also trigger on message_stop as fallback
-      if event.type.to_s == 'message_stop' && !text_block_completed
-        Rails.logger.info("  📨 MESSAGE_STOP - fallback emission")
-        text_block_completed = true
-        emit_search_results_for_stream(collector)
-      end
 
       # Emit token tracking
       if event.type.to_s == 'message_delta' && event.delta.respond_to?(:usage)
