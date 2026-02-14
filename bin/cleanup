@@ -1,6 +1,6 @@
 #!/bin/bash
 # Clean up dev server processes (Foreman, Rails, Vite)
-# Only kills processes started by bin/dev
+# Ensures processes, PIDs, PID files, and ports are all cleaned
 
 echo "🧹 Cleaning up dev processes..."
 
@@ -10,23 +10,30 @@ pkill -f "foreman start" 2>/dev/null || true
 # Wait a moment for graceful shutdown
 sleep 1
 
-# If Foreman didn't cleanup, manually kill Rails and Vite
+# Manually kill Rails and Vite if still running
 pkill -9 -f "bin/rails server" 2>/dev/null || true
 pkill -9 -f "bin/vite" 2>/dev/null || true
+pkill -9 -f "foreman" 2>/dev/null || true
 
 # Clean up PID files
 rm -f backend/tmp/pids/server.pid
+rm -f backend/tmp/pids/*.pid 2>/dev/null || true
 
-# Wait a moment
-sleep 1
+# Force kill processes using the ports
+lsof -ti :3000 | xargs kill -9 2>/dev/null || true
+lsof -ti :5173 | xargs kill -9 2>/dev/null || true
+
+# Wait for ports to be released
+sleep 2
 
 # Verify ports are free
 if lsof -i :3000,:5173 2>/dev/null | grep -v COMMAND; then
-  echo "⚠️  Ports still in use, forcing cleanup..."
-  pkill -9 -f "bin/rails" || true
-  pkill -9 -f "vite" || true
-  sleep 1
+  echo "❌ Ports still in use after cleanup!"
+  echo "   Run 'lsof -i :3000,:5173' to see what's using them"
+  exit 1
 else
+  echo "✓ Processes terminated"
+  echo "✓ PID files removed"
   echo "✓ Ports 3000 and 5173 are free"
 fi
 
