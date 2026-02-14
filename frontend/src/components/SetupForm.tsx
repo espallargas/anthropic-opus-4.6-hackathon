@@ -14,7 +14,7 @@ interface SetupFormProps {
 const TOTAL_STEPS = 4;
 
 export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
@@ -82,6 +82,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
         destination_country: destination,
         objective,
         additional_info: '',
+        locale,
       });
       return;
     }

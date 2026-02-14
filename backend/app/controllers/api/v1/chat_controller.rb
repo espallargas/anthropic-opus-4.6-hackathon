@@ -8,21 +8,25 @@ module Api
       THINKING_BUDGET = 10_000
       MAX_TURNS = 10
 
+      LOCALE_TO_LANGUAGE = { 'pt-BR' => 'Portuguese', 'en' => 'English' }.freeze
+
       SYSTEM_PROMPT_TEMPLATE = <<~PROMPT.freeze
-        Você é um assistente especializado em processos de imigração.
+        You are a specialist assistant in immigration processes.
 
-        Dados do usuário:
-        - País de origem: %<origin_country>s
-        - Nacionalidade: %<nationality>s
-        - País de destino: %<destination_country>s
-        - Objetivo: %<objective>s
-        - Informações adicionais: %<additional_info>s
+        User data:
+        - Origin country: %<origin_country>s
+        - Nationality: %<nationality>s
+        - Destination country: %<destination_country>s
+        - Objective: %<objective>s
+        - Additional information: %<additional_info>s
 
-        Responda de forma clara e prática. Cite requisitos legais quando relevante.
-        Sempre pergunte se precisa de mais detalhes para dar uma resposta precisa.
+        LANGUAGE: Always respond in %<language>s, unless the user writes in a different language or explicitly asks you to use another language.
 
-        Você tem acesso a ferramentas para buscar requisitos de visto e prazos de processamento.
-        Use-as quando o usuário perguntar sobre documentos, requisitos ou prazos.
+        Respond clearly and practically. Cite legal requirements when relevant.
+        Always ask if you need more details to provide an accurate answer.
+
+        You have access to tools to search for visa requirements and processing timelines.
+        Use them when the user asks about documents, requirements, or timelines.
       PROMPT
 
       DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Be concise and direct.".freeze
@@ -146,11 +150,14 @@ module Api
         vars = params[:system_vars]
         return DEFAULT_SYSTEM_PROMPT if vars.blank?
 
+        language = LOCALE_TO_LANGUAGE[vars[:locale].to_s] || 'English'
+
         format(SYSTEM_PROMPT_TEMPLATE, origin_country: vars[:origin_country].to_s,
                                        nationality: vars[:nationality].to_s,
                                        destination_country: vars[:destination_country].to_s,
                                        objective: vars[:objective].to_s,
-                                       additional_info: vars[:additional_info].to_s.presence || "Nenhuma")
+                                       additional_info: vars[:additional_info].to_s.presence || "None",
+                                       language: language)
       end
     end
   end

@@ -36,7 +36,7 @@ export interface UseChatStoreReturn {
   chats: Chat[];
   activeChatId: string | null;
   activeChat: Chat | null;
-  createChat: (systemVars: SystemVars) => string;
+  createChat: (systemVars: SystemVars, initialMessages?: ChatMessage[]) => string;
   selectChat: (id: string) => void;
   deleteChat: (id: string) => void;
   updateMessages: (id: string, messages: ChatMessage[]) => void;
@@ -61,12 +61,15 @@ export function useChatStore(): UseChatStoreReturn {
 
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null;
 
-  const createChat = useCallback((systemVars: SystemVars): string => {
-    const chat = createChatRecord(systemVars);
-    setChats((prev) => [chat, ...prev]);
-    setActiveChatId(chat.id);
-    return chat.id;
-  }, []);
+  const createChat = useCallback(
+    (systemVars: SystemVars, initialMessages?: ChatMessage[]): string => {
+      const chat = createChatRecord(systemVars, initialMessages);
+      setChats((prev) => [chat, ...prev]);
+      setActiveChatId(chat.id);
+      return chat.id;
+    },
+    [],
+  );
 
   const selectChat = useCallback((id: string) => {
     setActiveChatId(id);

@@ -6,8 +6,9 @@ import { Sidebar } from '@/components/Sidebar';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useChatStore } from './hooks/useChatStore';
-import type { SystemVars } from './lib/chatStore';
+import type { SystemVars, ChatMessage } from './lib/chatStore';
 import { useI18n } from './lib/i18n';
+import { getCountryNameLocalized } from './lib/countries';
 import { AgentMockControls } from '@/components/AgentMockControls';
 
 function App() {
@@ -21,7 +22,29 @@ function App() {
   const isAdmin = location.pathname === '/admin';
 
   const handleSetup = (vars: SystemVars) => {
-    store.createChat(vars);
+    const natNames = vars.nationality
+      .split(', ')
+      .map((code) => getCountryNameLocalized(code, t))
+      .join(', ');
+
+    const greeting = [
+      t('greeting.intro'),
+      '',
+      `- **${t('greeting.nationalities')}**: ${natNames}`,
+      `- **${t('greeting.origin')}**: ${getCountryNameLocalized(vars.origin_country, t)}`,
+      `- **${t('greeting.destination')}**: ${getCountryNameLocalized(vars.destination_country, t)}`,
+      `- **${t('greeting.objective')}**: ${vars.objective}`,
+      '',
+      t('greeting.closing'),
+    ].join('\n');
+
+    const initialMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: greeting,
+    };
+
+    store.createChat(vars, [initialMessage]);
     setShowSetup(false);
   };
 

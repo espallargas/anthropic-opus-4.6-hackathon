@@ -62,6 +62,7 @@ export interface SystemVars {
   destination_country: string;
   objective: string;
   additional_info: string;
+  locale: string;
 }
 
 export interface Chat {
@@ -92,12 +93,12 @@ export function saveChats(chats: Chat[]): void {
   }
 }
 
-export function createChat(systemVars: SystemVars): Chat {
+export function createChat(systemVars: SystemVars, initialMessages: ChatMessage[] = []): Chat {
   const now = Date.now();
   return {
     id: crypto.randomUUID(),
     systemVars,
-    messages: [],
+    messages: initialMessages,
     createdAt: now,
     updatedAt: now,
   };
