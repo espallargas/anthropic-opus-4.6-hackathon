@@ -103,7 +103,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
               </div>
 
               {/* Web search badge and status indicator */}
-              <div className="flex flex-shrink-0 items-center gap-1.5">
+              <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 {category.status === 'searching' && (
                   <div className="flex items-center gap-1 rounded-full bg-blue-500/30 px-2 py-0.5">
                     <Globe className="h-2.5 w-2.5 text-blue-300" />
@@ -113,13 +113,15 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
                 {/* Show items being documented while parsing JSON */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span className="text-xs font-medium text-white/60">
-                    {category.itemsBeingDocumented}
-                  </span>
+                  <div className="rounded bg-purple-500/30 px-2 py-0.5">
+                    <p className="text-xs font-medium text-purple-200">
+                      ⚙️ Indexing {category.itemsBeingDocumented}
+                    </p>
+                  </div>
                 )}
 
                 {category.status === 'done' && category.resultCount > 0 && (
-                  <div className="flex-shrink-0 rounded bg-current/20 px-1.5 py-0.5">
+                  <div className="flex-shrink-0 rounded bg-current/20 px-2 py-0.5">
                     <p className="text-xs font-medium text-current">
                       ✓ {category.resultCount} results
                     </p>

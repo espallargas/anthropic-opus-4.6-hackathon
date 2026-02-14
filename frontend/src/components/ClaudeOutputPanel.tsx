@@ -26,16 +26,38 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
 
   const isJSON = cleanText.startsWith('{') || cleanText.startsWith('[')
 
-  // Format JSON for display with proper indentation
+  // Format JSON for display - handle partial/incomplete JSON
   const formattedText = isJSON
     ? (() => {
         try {
-          // Parse and re-stringify to ensure proper formatting
+          // Try to parse and re-stringify complete JSON
           const parsed = JSON.parse(cleanText)
           return JSON.stringify(parsed, null, 2)
         } catch {
-          // If parsing fails, return as-is
-          return cleanText
+          // If parsing fails, it might be incomplete JSON - format it manually
+          try {
+            // Add closing brackets if missing to make it valid
+            let testText = cleanText
+            const openBraces = (testText.match(/{/g) || []).length
+            const closeBraces = (testText.match(/}/g) || []).length
+            const openBrackets = (testText.match(/\[/g) || []).length
+            const closeBrackets = (testText.match(/]/g) || []).length
+
+            // Add missing closing braces and brackets
+            if (openBraces > closeBraces) {
+              testText += '}'.repeat(openBraces - closeBraces)
+            }
+            if (openBrackets > closeBrackets) {
+              testText += ']'.repeat(openBrackets - closeBrackets)
+            }
+
+            // Try parsing the completed version
+            const parsed = JSON.parse(testText)
+            return JSON.stringify(parsed, null, 2)
+          } catch {
+            // If all else fails, return as-is
+            return cleanText
+          }
         }
       })()
     : cleanText
