@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { X, Pause } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 import { ThinkingPanel } from './ThinkingPanel'
 import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
 import { ClaudeOutputPanel } from './ClaudeOutputPanel'
@@ -46,49 +47,50 @@ export function CrawlProgressBox({
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
+  const { t } = useI18n()
   const [thinkingText, setThinkingText] = useState('')
   const [thinkingType, setThinkingType] = useState<string | null>(null)
   const [claudeOutputText, setClaudeOutputText] = useState('')
   const [categories, setCategories] = useState<CategoryState[]>([
     {
       id: 'federal_laws',
-      name: 'Federal Laws',
-      description: 'Constitutional & main laws',
+      name: t('admin.category.federal_laws'),
+      description: t('admin.category.federal_laws.description'),
       status: 'pending',
       resultCount: 0,
     },
     {
       id: 'regulations',
-      name: 'Regulations',
-      description: 'Official procedures',
+      name: t('admin.category.regulations'),
+      description: t('admin.category.regulations.description'),
       status: 'pending',
       resultCount: 0,
     },
     {
       id: 'consular',
-      name: 'Consular Rules',
-      description: 'Visa & embassies',
+      name: t('admin.category.consular'),
+      description: t('admin.category.consular.description'),
       status: 'pending',
       resultCount: 0,
     },
     {
       id: 'jurisdictional',
-      name: 'Jurisdictional',
-      description: 'Regional rules',
+      name: t('admin.category.jurisdictional'),
+      description: t('admin.category.jurisdictional.description'),
       status: 'pending',
       resultCount: 0,
     },
     {
       id: 'complementary',
-      name: 'Health & Complementary',
-      description: 'Health requirements',
+      name: t('admin.category.complementary'),
+      description: t('admin.category.complementary.description'),
       status: 'pending',
       resultCount: 0,
     },
     {
       id: 'auxiliary',
-      name: 'Auxiliary',
-      description: 'Statistics & quotas',
+      name: t('admin.category.auxiliary'),
+      description: t('admin.category.auxiliary.description'),
       status: 'pending',
       resultCount: 0,
     },
@@ -443,7 +445,7 @@ export function CrawlProgressBox({
           <div className="mt-1 flex gap-3">
             {documentCount > 0 && (
               <p className="text-xs font-medium text-emerald-400/80">
-                📊 {documentCount} documents saved
+                📊 {documentCount} {t('admin.crawl.documents_saved')}
               </p>
             )}
           </div>
@@ -453,7 +455,7 @@ export function CrawlProgressBox({
             <button
               onClick={handlePause}
               className="text-white/40 transition-colors hover:text-white/80"
-              title="Pause crawl"
+              title={t('admin.crawl.pause')}
             >
               <Pause className="h-4 w-4" />
             </button>
@@ -461,7 +463,7 @@ export function CrawlProgressBox({
           <button
             onClick={onComplete}
             className="text-white/40 transition-colors hover:text-white/80"
-            title="Close"
+            title={t('admin.crawl.close')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -503,9 +505,9 @@ export function CrawlProgressBox({
           {currentPhase ? (
             <span>{currentPhase}</span>
           ) : isComplete ? (
-            <span className="text-emerald-400/80">✓ Crawl complete</span>
+            <span className="text-emerald-400/80">{t('admin.crawl.complete')}</span>
           ) : (
-            <span>Starting crawl...</span>
+            <span>{t('admin.crawl.starting')}</span>
           )}
         </div>
       </div>
@@ -514,22 +516,22 @@ export function CrawlProgressBox({
       {showPauseConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="rounded-lg border border-white/20 bg-black/95 p-6 shadow-xl">
-            <h3 className="mb-2 text-sm font-semibold text-white">Stop crawl?</h3>
+            <h3 className="mb-2 text-sm font-semibold text-white">{t('admin.crawl.stop_confirm')}</h3>
             <p className="mb-4 text-xs text-white/70">
-              Progress will be discarded. All data is only saved at the end.
+              {t('admin.crawl.stop_description')}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleCancelPause}
                 className="rounded border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10"
               >
-                Cancel
+                {t('admin.crawl.stop_cancel')}
               </button>
               <button
                 onClick={handleConfirmStop}
                 className="rounded border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
               >
-                Stop & Close
+                {t('admin.crawl.stop_confirm_button')}
               </button>
             </div>
           </div>

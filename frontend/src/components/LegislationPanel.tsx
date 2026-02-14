@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch, type CountryDetailsResponse, type Legislation } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { ChevronDown } from 'lucide-react'
 
 interface LegislationPanelProps {
@@ -8,19 +9,23 @@ interface LegislationPanelProps {
   onToggle: () => void
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  federal_laws: 'Federal Laws',
-  regulations: 'Regulations',
-  consular: 'Consular Rules',
-  jurisdictional: 'Jurisdictional Rules',
-  complementary: 'Health & Complementary',
-  auxiliary: 'Auxiliary Information',
+function getCategoryLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    federal_laws: t('admin.category.federal_laws'),
+    regulations: t('admin.category.regulations'),
+    consular: t('admin.category.consular'),
+    jurisdictional: t('admin.category.jurisdictional'),
+    complementary: t('admin.category.complementary'),
+    auxiliary: t('admin.category.auxiliary'),
+  }
 }
 
 export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps) {
+  const { t } = useI18n()
   const [legislations, setLegislations] = useState<Record<string, Legislation[]>>({})
   const [loading, setLoading] = useState(false)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+  const categoryLabels = getCategoryLabels(t)
 
   useEffect(() => {
     if (!isOpen) return
@@ -45,9 +50,9 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
   return (
     <div className="space-y-1 text-xs">
       {loading ? (
-        <p className="px-2 py-1 text-white/40">Loading...</p>
+        <p className="px-2 py-1 text-white/40">{t('admin.legislation_panel.loading')}</p>
       ) : Object.keys(legislations).length === 0 ? (
-        <p className="px-2 py-1 text-white/40">No legislations</p>
+        <p className="px-2 py-1 text-white/40">{t('admin.legislation_panel.empty')}</p>
       ) : (
         Object.entries(legislations).map(([category, laws]) => (
           <div key={category}>
@@ -59,7 +64,7 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
                 className={`h-3 w-3 flex-shrink-0 transition-transform ${expandedCategory === category ? 'rotate-180' : ''}`}
               />
               <span className="truncate">
-                {CATEGORY_LABELS[category]} ({laws.length})
+                {categoryLabels[category]} ({laws.length})
               </span>
             </button>
 

@@ -1,4 +1,5 @@
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error'
 
@@ -91,13 +92,14 @@ function getParsingColors(
 }
 
 export function CategoriesPanel({ categories }: CategoriesPanelProps) {
+  const { t } = useI18n()
   console.log('[CATEGORIES_DEBUG]', categories.map(c => ({ name: c.name, legislationsParsed: c.legislationsParsed, itemsBeingDocumented: c.itemsBeingDocumented })))
 
   return (
     <div className="flex h-full flex-col bg-black/30">
       {/* Header */}
       <div className="border-b border-white/10 bg-white/[0.02] px-3 py-2.5">
-        <p className="text-xs font-semibold text-white">Categories</p>
+        <p className="text-xs font-semibold text-white">{t('admin.categories.title')}</p>
       </div>
 
       {/* Categories list */}
@@ -187,7 +189,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
               {/* Status indicators - stacked right column */}
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 {category.status === 'searching' && (
-                  <span className="text-xs font-medium text-blue-300">Searching...</span>
+                  <span className="text-xs font-medium text-blue-300">{t('admin.categories.searching')}</span>
                 )}
 
                 {/* Web results from search - only show if not parsing legislations yet */}
@@ -198,7 +200,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                         category.webResultsCrawled ? 'text-violet-300' : 'text-blue-300'
                       }`}
                     >
-                      {category.resultCount} web results crawled
+                      {category.resultCount} {t('admin.categories.results_crawled')}
                     </span>
                   )}
 
@@ -217,8 +219,8 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                     }`}
                   >
                     {category.legislationsParsed
-                      ? `${category.itemsBeingDocumented} legislations`
-                      : `${category.itemsBeingDocumented} legislations parsed`}
+                      ? `${category.itemsBeingDocumented} ${t('admin.units.legislations')}`
+                      : `${category.itemsBeingDocumented} ${t('admin.categories.parsed')}`}
                   </span>
                 )}
               </div>

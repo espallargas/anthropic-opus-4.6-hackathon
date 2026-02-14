@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RefreshCw, ChevronDown } from 'lucide-react'
 import type { Country } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { LegislationPanel } from './LegislationPanel'
 import { timeAgo } from '@/lib/time'
 
@@ -11,6 +12,7 @@ interface CountryListItemProps {
 }
 
 export function CountryListItem({ country, onCrawlStart, docCount }: CountryListItemProps) {
+  const { t } = useI18n()
   const [isLoading, setIsLoading] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
@@ -42,7 +44,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
           <div className="truncate text-sm font-medium">{country.name}</div>
           {country.last_crawled_at && (
             <div className="text-xs text-white/40">
-              atualizado {timeAgo(country.last_crawled_at)}
+              {t('admin.country_item.updated')} {timeAgo(country.last_crawled_at)}
             </div>
           )}
         </div>
@@ -51,7 +53,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         {currentDocCount > 0 && (
           <div className="flex-shrink-0 text-xs text-white/60">
             {currentDocCount}
-            <span className="ml-1 text-white/40">{currentDocCount === 1 ? 'doc' : 'docs'}</span>
+            <span className="ml-1 text-white/40">{currentDocCount === 1 ? t('admin.units.doc') : t('admin.units.docs')}</span>
           </div>
         )}
 
@@ -60,7 +62,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
             className="p-1 text-white/40 transition-colors hover:text-white/60"
-            title="View legislations"
+            title={t('admin.country_item.view_legislations')}
           >
             <ChevronDown
               className={`h-4 w-4 transition-transform ${isPanelOpen ? 'rotate-180' : ''}`}
@@ -73,7 +75,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
           onClick={handleRefresh}
           disabled={isLoading}
           className="p-1 text-white/40 transition-colors hover:text-white/60 disabled:opacity-30"
-          title="Refresh legislation"
+          title={t('admin.country_item.refresh_legislation')}
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>

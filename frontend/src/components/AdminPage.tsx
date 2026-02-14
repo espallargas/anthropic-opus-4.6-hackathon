@@ -1,10 +1,12 @@
 import { useAdminCountries } from '@/hooks/useAdminCountries'
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { CountrySection } from './CountrySection'
 import { CrawlProgressBox } from './CrawlProgressBox'
 
 export function AdminPage() {
   const { active, pending, loading, refetch } = useAdminCountries()
+  const { t } = useI18n()
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
   const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null)
   const [crawlInProgress, setCrawlInProgress] = useState(false)
@@ -32,7 +34,7 @@ export function AdminPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white">
-        <p className="text-sm text-white/50">Loading...</p>
+        <p className="text-sm text-white/50">{t('admin.crawl.loading')}</p>
       </div>
     )
   }
@@ -44,15 +46,15 @@ export function AdminPage() {
         <div className="mx-auto max-w-4xl space-y-8 p-6">
           {/* Header */}
           <div>
-            <h1 className="text-xl font-semibold">Legislation Admin</h1>
-            <p className="mt-1 text-xs text-white/40">Manage country legislation</p>
+            <h1 className="text-xl font-semibold">{t('admin.header.title')}</h1>
+            <p className="mt-1 text-xs text-white/40">{t('admin.header.description')}</p>
           </div>
 
           {/* Active countries section (green + yellow) */}
           {active.length > 0 && (
             <div>
               <CountrySection
-                title="Active"
+                title={t('admin.section.active')}
                 countries={active}
                 onCrawlStart={handleCrawlStart}
                 liveDocCount={liveDocCount}
@@ -64,7 +66,7 @@ export function AdminPage() {
           {pending.length > 0 && (
             <div>
               <CountrySection
-                title="Pending"
+                title={t('admin.section.pending')}
                 countries={pending}
                 onCrawlStart={handleCrawlStart}
                 liveDocCount={liveDocCount}
