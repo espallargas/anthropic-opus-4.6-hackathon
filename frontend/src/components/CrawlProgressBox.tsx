@@ -167,6 +167,7 @@ export function CrawlProgressBox({
     if (!claudeOutputText) return
 
     const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
+    console.log('[JSON_COUNTS]', categoryCounts)
 
     setCategories((prev) =>
       prev.map((cat) => {
@@ -187,15 +188,16 @@ export function CrawlProgressBox({
         }
 
         // If this category had items before but doesn't anymore (moved to next category)
-        // AND it's not already marked as parsed, mark it as complete
+        // Mark it as complete
         if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && !cat.legislationsParsed) {
-          console.log(`[JSON_MONITOR] ${cat.name}: moved to next category, marking as complete!`)
+          console.log(`[JSON_MONITOR] ${cat.name}: moved to next category (count was ${cat.itemsBeingDocumented}), marking as complete!`)
           return {
             ...cat,
             legislationsParsed: true, // Done parsing this category!
           }
         }
 
+        // If already marked as parsed, keep it that way
         return cat
       }),
     )
