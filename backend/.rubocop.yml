@@ -1,0 +1,68 @@
+plugins:
+  - rubocop-rails
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  Exclude:
+    - bin/**/*
+    - db/**/*
+    - vendor/**/*
+    - tmp/**/*
+    - log/**/*
+    - coverage/**/*
+
+Layout/LineLength:
+  Max: 120
+  AllowHeredoc: true
+  AllowURI: true
+  AllowedPatterns:
+    - '^\s*#'
+    - '^\s*puts'
+    - '^\s*raise'
+
+# Style rules
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# Rails-specific
+Rails/FindBy:
+  Enabled: true
+
+Rails/FindEach:
+  Enabled: true
+
+Rails/SkipsModelValidations:
+  Enabled: true
+
+# Metrics
+Metrics/AbcSize:
+  Max: 25
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/ClassLength:
+  Max: 500
+
+Metrics/BlockLength:
+  Enabled: false
+
+# Naming
+Naming/MethodParameterName:
+  MinNameLength: 1
+
+Naming/RescuedExceptionsVariableName:
+  PreferredName: e

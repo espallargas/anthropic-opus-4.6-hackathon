@@ -1,18 +1,19 @@
 class LegislationCrawlerService
-  MODEL = 'claude-opus-4-6'
-  MAX_TOKENS = 128000
+  MODEL = "claude-opus-4-6".freeze
+  MAX_TOKENS = 128_000
   TIMEOUT_SECONDS = 300
 
   CATEGORY_LABEL_MAP = {
-    'federal_laws' => 'Federal Laws',
-    'regulations' => 'Regulations',
-    'consular' => 'Consular Rules',
-    'jurisdictional' => 'Jurisdictional',
-    'complementary' => 'Health & Complementary',
-    'auxiliary' => 'Auxiliary'
+    "federal_laws" => "Federal Laws",
+    "regulations" => "Regulations",
+    "consular" => "Consular Rules",
+    "jurisdictional" => "Jurisdictional",
+    "complementary" => "Health & Complementary",
+    "auxiliary" => "Auxiliary"
   }.freeze
 
-  CATEGORY_LIST = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary'].freeze
+  CATEGORY_LIST = ["Federal Laws", "Regulations", "Consular Rules", "Jurisdictional", "Health & Complementary",
+                   "Auxiliary"].freeze
 
   attr_reader :country, :sse, :client, :thinking_effort
   attr_accessor :operation_id_counter, :current_operation_id, :thinking_type_emitted, :parse_complete_emitted
@@ -35,40 +36,38 @@ class LegislationCrawlerService
   end
 
   # Single unified emit method - type-safe with schema validation
-  def emit(type, **data);
-    begin
-      message = ::SSEMessageSchema.format(type, data);
-      return unless sse;
+  def emit(type, **data)
+    message = ::SSEMessageSchema.format(type, data)
+    return unless sse
 
-      sse.write(message);
-    rescue ActionController::Live::ClientDisconnected
-      raise;
-    rescue StandardError => e
-      Rails.logger.error("[EMIT_ERROR] #{type}: #{e.class} - #{e.message}");
-    end;
-  end;
+    sse.write(message)
+  rescue ActionController::Live::ClientDisconnected
+    raise
+  rescue StandardError => e
+    Rails.logger.error("[EMIT_ERROR] #{type}: #{e.class} - #{e.message}")
+  end
 
-  def crawl;
-    emit(:phase, message: "Starting crawl for #{country.name}");
+  def crawl
+    emit(:phase, message: "Starting crawl for #{country.name}")
 
-    existing_count = country.legislations.count;
-    crawl_type = country.last_crawled_at.nil? ? "first_crawl" : "update_search";
+    existing_count = country.legislations.count
+    crawl_type = country.last_crawled_at.nil? ? "first_crawl" : "update_search"
 
-    emit(:phase, message: "Found #{existing_count} existing legislations");
+    emit(:phase, message: "Found #{existing_count} existing legislations")
 
-    system_prompt = build_system_prompt(crawl_type, existing_count);
-    results = call_claude_crawler(system_prompt);
+    system_prompt = build_system_prompt(crawl_type, existing_count)
+    results = call_claude_crawler(system_prompt)
 
-    emit(:phase, message: "Saving results to database");
-    save_results(results);
+    emit(:phase, message: "Saving results to database")
+    save_results(results)
 
-    country.update!(last_crawled_at: Time.current);
+    country.update!(last_crawled_at: Time.current)
 
-    total_docs = country.legislations.count;
-    emit(:complete, message: "Crawl complete", document_count: total_docs);
+    total_docs = country.legislations.count
+    emit(:complete, message: "Crawl complete", document_count: total_docs)
 
-    Rails.logger.info("Crawl complete: #{country.name} - #{total_docs} legislations");
-  end;
+    Rails.logger.info("Crawl complete: #{country.name} - #{total_docs} legislations")
+  end
 
   private
 
@@ -110,7 +109,7 @@ class LegislationCrawlerService
         }
 
         # Capture web_search_tool_result content
-        if event.content_block.type == 'web_search_tool_result' && event.content_block.respond_to?(:content)
+        if event.content_block.type == "web_search_tool_result" && event.content_block.respond_to?(:content)
           @current_block[:content] = event.content_block.content
           @web_search_results = event.content_block.content
         end
@@ -137,7 +136,13 @@ class LegislationCrawlerService
           block = convert_block(@current_block)
           if block
             @content << block
-            Rails.logger.debug("[COLLECTOR] Added content block: type=#{@current_block[:type]}, text_len=#{@current_block[:text].length rescue 0}")
+            Rails.logger.debug do
+              "[COLLECTOR] Added content block: type=#{@current_block[:type]}, text_len=#{begin
+                @current_block[:text].length
+              rescue StandardError
+                0
+              end}"
+            end
           end
           @current_block = nil
         end
@@ -157,13 +162,13 @@ class LegislationCrawlerService
       block_type = block_data[:type].to_s
 
       case block_type
-      when 'text'
+      when "text"
         # Return block-like object with text
         Struct.new(:type, :text).new(:text, block_data[:text])
-      when 'thinking'
+      when "thinking"
         # Return block-like object with thinking
         Struct.new(:type, :thinking).new(:thinking, block_data[:thinking])
-      when 'tool_use'
+      when "tool_use"
         # Return block-like object with tool_use properties
         tool_block = Struct.new(:type, :id, :name, :input).new(
           :tool_use,
@@ -176,22 +181,22 @@ class LegislationCrawlerService
           [:type, :id, :name, :input].include?(method_name.to_sym)
         end
         tool_block
-      when 'server_tool_use'
+      when "server_tool_use"
         # web_search tool - similar to tool_use but from server
-        tool_block = Struct.new(:type, :id, :name, :input).new(
+        Struct.new(:type, :id, :name, :input).new(
           :server_tool_use,
           block_data[:id],
           block_data[:name],
           block_data[:input]
         )
-        tool_block
-      when 'web_search_tool_result'
+
+      when "web_search_tool_result"
         # web_search results block
-        result_block = Struct.new(:type, :content).new(
+        Struct.new(:type, :content).new(
           :web_search_tool_result,
           block_data[:content]
         )
-        result_block
+
       else
         Rails.logger.warn("[COLLECTOR] Unknown block type: #{block_type.inspect} (#{block_data[:type].class})")
         nil
@@ -199,29 +204,25 @@ class LegislationCrawlerService
     end
   end
 
-  def build_response_from_stream(operation_id = nil, **options)
-    Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection");
-    collector = StreamResponseCollector.new;
-    event_count = 0;
-    search_count = 0;
-    current_search_id = nil;
-    search_started_ids = Set.new;
-    text_block_completed = false;
-    current_block_type = nil;
+  def build_response_from_stream(operation_id = nil, **)
+    Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection")
+    collector = StreamResponseCollector.new
+    event_count = 0
+    Set.new
 
-    server_tool_use_indices = Set.new;
+    server_tool_use_indices = Set.new
 
-    stream_response = client.messages.stream(**options)
+    stream_response = client.messages.stream(**)
     stream_response.each do |event|
       event_count += 1
 
       # Detect web_search tool use blocks during streaming
       event_type = event.type.to_s
-      if event_type == 'content_block_start'
+      if event_type == "content_block_start"
         block_type = event.content_block.type.to_s
 
         # Detect web_search_tool_result which indicates a search happened
-        if block_type == 'web_search_tool_result' && !server_tool_use_indices.include?(event.index)
+        if block_type == "web_search_tool_result" && server_tool_use_indices.exclude?(event.index)
           server_tool_use_indices.add(event.index)
           search_num = server_tool_use_indices.size
 
@@ -232,42 +233,42 @@ class LegislationCrawlerService
             # Count result objects in the content
             if content.is_a?(Array)
               result_count = content.length
-            elsif content.is_a?(String) && content.include?('[')
+            elsif content.is_a?(String) && content.include?("[")
               # Try to parse as JSON array to count
               begin
                 parsed = JSON.parse(content)
                 result_count = parsed.is_a?(Array) ? parsed.length : 0
-              rescue
+              rescue StandardError
                 # Fallback: count by occurrences of "title" field
-                result_count = content.scan(/"title"/).length
+                result_count = content.scan('"title"').length
               end
             end
           end
 
           if search_num <= CATEGORY_LIST.length
-            category = CATEGORY_LIST[search_num - 1];
+            category = CATEGORY_LIST[search_num - 1]
 
             emit(:search_result,
-              category: category,
-              result_count: result_count,
-              index: search_num,
-              total: 6
-            );
-          end;
+                 category: category,
+                 result_count: result_count,
+                 index: search_num,
+                 total: 6)
+          end
         end
       end
 
       # Emit thinking blocks in real-time (every chunk)
-      if event.type.to_s == 'content_block_delta'
+      if event.type.to_s == "content_block_delta"
         begin
           if event.delta.respond_to?(:thinking) && event.delta.thinking
             thinking_text = event.delta.thinking
             # Emit thinking type only once at the start
             thinking_type = thinking_type_emitted ? nil : thinking_effort
-            thinking_type_emitted = true if !thinking_type_emitted
-            emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id, thinking_type: thinking_type)
+            true unless thinking_type_emitted
+            emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id,
+                            thinking_type: thinking_type)
           end
-        rescue => e
+        rescue StandardError
           # Silent
         end
 
@@ -277,18 +278,16 @@ class LegislationCrawlerService
             # Emit Claude's text output in real-time
             emit(:claude_text, text: text)
           end
-        rescue => e
+        rescue StandardError
           # Silent
         end
       end
 
-
-
       # Emit token tracking
-      if event.type.to_s == 'message_delta' && event.delta.respond_to?(:usage)
+      if event.type.to_s == "message_delta" && event.delta.respond_to?(:usage)
         input_tokens = event.delta.usage.input_tokens || 0
         output_tokens = event.delta.usage.output_tokens || 0
-        emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
+        emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128_000)
       end
 
       collector.add_event(event)
@@ -298,17 +297,16 @@ class LegislationCrawlerService
     collector
   end
 
-
-  def build_system_prompt(crawl_type, existing_count)
-    existing_list = if existing_count > 0
-      country.legislations
-        .select(:title, :date_effective)
-        .order(:title)
-        .map { |l| "- #{l.title} (effective: #{l.date_effective || 'unknown'})" }
-        .join("\n")
-    else
-      "None"
-    end
+  def build_system_prompt(_crawl_type, existing_count)
+    existing_list = if existing_count.positive?
+                      country.legislations
+                             .select(:title, :date_effective)
+                             .order(:title)
+                             .map { |l| "- #{l.title} (effective: #{l.date_effective || 'unknown'})" }
+                             .join("\n")
+                    else
+                      "None"
+                    end
 
     <<~PROMPT
       # System: Immigration Legislation Researcher
@@ -338,7 +336,7 @@ class LegislationCrawlerService
       ## DEDUPLICATION CONTEXT
 
       Existing legislation in database for #{country.name}:
-      #{existing_list.present? ? existing_list : "None"}
+      #{existing_list.presence || 'None'}
 
       Rules:
       - IDENTICAL TITLE + SAME DATE = do not include (duplicate)
@@ -381,9 +379,9 @@ class LegislationCrawlerService
       }
     ]
 
-    current_operation_id = next_operation_id;
+    current_operation_id = next_operation_id
 
-    response = nil;
+    response = nil
     begin
       Timeout.timeout(TIMEOUT_SECONDS) do
         # Define web_search tool - Opus 4.6 supports native web_search
@@ -413,28 +411,27 @@ class LegislationCrawlerService
               schema: legislation_schema
             }
           }
-        );
-        emit_search_results_post_stream(response);
+        )
+        emit_search_results_post_stream(response)
       end
     rescue Timeout::Error => e
-      Rails.logger.error("Claude API timeout after #{TIMEOUT_SECONDS}s: #{e.message}");
-      emit(:error, message: "Claude API timeout - request took too long");
-      raise;
-    rescue => e
-      Rails.logger.error("Claude API error: #{e.class} - #{e.message}");
-      emit(:error, message: "Claude API error: #{e.message}");
-      raise;
-    end;
+      Rails.logger.error("Claude API timeout after #{TIMEOUT_SECONDS}s: #{e.message}")
+      emit(:error, message: "Claude API timeout - request took too long")
+      raise
+    rescue StandardError => e
+      Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
+      emit(:error, message: "Claude API error: #{e.message}")
+      raise
+    end
 
-    emit(:phase, message: "Extracting legislation results");
-    legislation_results = extract_legislation_from_response(response);
+    emit(:phase, message: "Extracting legislation results")
+    legislation_results = extract_legislation_from_response(response)
 
-    doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 };
-    emit(:phase, message: "Preparing database save (#{doc_count} documents)");
+    doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
+    emit(:phase, message: "Preparing database save (#{doc_count} documents)")
 
-    legislation_results;
+    legislation_results
   end
-
 
   def build_legislation_schema
     legislation_item = {
@@ -443,9 +440,9 @@ class LegislationCrawlerService
         title: { type: "string", description: "Official law/regulation name" },
         summary: { type: "string", description: "Brief 1-2 sentence description" },
         source_url: { type: "string", description: "URL source" },
-        date_effective: { type: ["string", "null"], description: "YYYY-MM-DD format or null" }
+        date_effective: { type: %w[string null], description: "YYYY-MM-DD format or null" }
       },
-      required: ["title", "summary", "source_url"],
+      required: %w[title summary source_url],
       additionalProperties: false
     }
 
@@ -459,12 +456,12 @@ class LegislationCrawlerService
         complementary: { type: "array", items: legislation_item },
         auxiliary: { type: "array", items: legislation_item }
       },
-      required: ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"],
+      required: %w[federal_laws regulations consular jurisdictional complementary auxiliary],
       additionalProperties: false
     }
   end
 
-  def build_user_prompt;
+  def build_user_prompt
     <<~PROMPT
       TASK: Use the web_search tool to research immigration laws for #{country.name}.
 
@@ -497,7 +494,7 @@ class LegislationCrawlerService
     PROMPT
   end
 
-  def extract_legislation_from_response(response);
+  def extract_legislation_from_response(response)
     results = {
       federal_laws: [],
       regulations: [],
@@ -511,6 +508,7 @@ class LegislationCrawlerService
     json_text = nil
     response.content.each do |block|
       next unless block.type == :text
+
       json_text = block.text
       break if json_text&.include?('"federal_laws"')
     end
@@ -526,12 +524,12 @@ class LegislationCrawlerService
       markdown_match = json_text.match(/```(?:json)?\s*(\{[\s\S]*\})(?:\s*```)?/m)
 
       json_to_parse = if markdown_match
-        markdown_match[1]
-      else
-        # Fallback to raw JSON extraction
-        raw_match = json_text.match(/(\{[\s\S]*\})/)
-        raw_match[1] if raw_match
-      end
+                        markdown_match[1]
+                      else
+                        # Fallback to raw JSON extraction
+                        raw_match = json_text.match(/(\{[\s\S]*\})/)
+                        raw_match[1] if raw_match
+                      end
 
       return results unless json_to_parse
 
@@ -539,26 +537,25 @@ class LegislationCrawlerService
       return results unless data.is_a?(Hash)
 
       # First pass: extract all items from each category
-      CATEGORY_LABEL_MAP.keys.each do |category|
+      CATEGORY_LABEL_MAP.each_key do |category|
         category_sym = category.to_sym
-        items = data[category] || [];
+        items = data[category] || []
 
         items.each do |item|
           next unless item.is_a?(Hash)
-          next if item['title'].blank?
+          next if item["title"].blank?
 
           results[category_sym] << {
-            title: item['title'].to_s.strip,
-            content: item['summary'].to_s,
-            summary: item['summary'].to_s,
-            source_url: item['source_url'].to_s,
-            date_effective: parse_date(item['date_effective']),
+            title: item["title"].to_s.strip,
+            content: item["summary"].to_s,
+            summary: item["summary"].to_s,
+            source_url: item["source_url"].to_s,
+            date_effective: parse_date(item["date_effective"]),
             is_deprecated: false,
             deprecation_notice: nil
           }
         end
       end
-
     rescue JSON::ParserError, StandardError => e
       Rails.logger.warn("Failed to parse legislation JSON: #{e.message}")
     end
@@ -566,33 +563,33 @@ class LegislationCrawlerService
     results
   end
 
-  def emit_search_results_for_stream(collector);
+  def emit_search_results_for_stream(collector)
     # Find text blocks that might contain JSON
-    text_blocks = collector.content.select { |block| block.type == :text };
-    return if text_blocks.empty?;
+    text_blocks = collector.content.select { |block| block.type == :text }
+    return if text_blocks.empty?
 
-    full_text = text_blocks.map { |block| block.text }.join("\n");
+    full_text = text_blocks.map(&:text).join("\n")
 
     begin
-      json_match = full_text.match(/\{[\s\S]*\}/);
-      return unless json_match;
+      json_match = full_text.match(/\{[\s\S]*\}/)
+      return unless json_match
 
-      json_str = json_match[0];
-      data = JSON.parse(json_str);
+      json_str = json_match[0]
+      data = JSON.parse(json_str)
 
-      return unless data.is_a?(Hash);
+      return unless data.is_a?(Hash)
 
-      search_index = 0;
+      search_index = 0
       CATEGORY_LABEL_MAP.each do |category_key, category_label|
-        search_index += 1;
-        items = data[category_key] || [];
-        count = items.is_a?(Array) ? items.length : 0;
+        search_index += 1
+        items = data[category_key] || []
+        count = items.is_a?(Array) ? items.length : 0
 
-        if items.is_a?(Array) && items.length > 0
+        if items.is_a?(Array) && items.length.positive?
           items.each_with_index do |item, idx|
-            title = item['title'] || 'Unknown';
-            url = item['source_url'] || '';
-            snippet = item['summary'] || '';
+            title = item["title"] || "Unknown"
+            url = item["source_url"] || ""
+            snippet = item["summary"] || ""
 
             emit(
               :web_search_result,
@@ -602,28 +599,28 @@ class LegislationCrawlerService
               snippet: snippet,
               index: idx + 1,
               total: count
-            );
-          end;
-        end;
+            )
+          end
+        end
 
-        emit(:search_result, category: category_label, result_count: count);
+        emit(:search_result, category: category_label, result_count: count)
 
         unless parse_complete_emitted.include?(category_label)
-          emit(:category_parse_complete, category: category_label, item_count: count);
-          parse_complete_emitted.add(category_label);
-        end;
-      end;
+          emit(:category_parse_complete, category: category_label, item_count: count)
+          parse_complete_emitted.add(category_label)
+        end
+      end
     rescue JSON::ParserError => e
-      Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}");
-      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
-        emit(:search_result, category: category_label, result_count: 0);
-      end;
-    rescue => e
-      Rails.logger.warn("Error emitting search_results: #{e.message}");
-      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
-        emit(:search_result, category: category_label, result_count: 0);
-      end;
-    end;
+      Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
+      CATEGORY_LABEL_MAP.each_value do |category_label|
+        emit(:search_result, category: category_label, result_count: 0)
+      end
+    rescue StandardError => e
+      Rails.logger.warn("Error emitting search_results: #{e.message}")
+      CATEGORY_LABEL_MAP.each_value do |category_label|
+        emit(:search_result, category: category_label, result_count: 0)
+      end
+    end
   end
 
   def emit_web_search_results(result_block)
@@ -638,69 +635,91 @@ class LegislationCrawlerService
 
         # Emit each result so frontend can display progress
         results.each_with_index do |result, idx|
-          begin
-            title = result.respond_to?(:title) ? result.title : (result['title'] rescue 'Unknown')
-            url = result.respond_to?(:url) ? result.url : (result['url'] rescue '')
-            snippet = result.respond_to?(:snippet) ? result.snippet : (result['snippet'] rescue '')
+          title = if result.respond_to?(:title)
+                    result.title
+                  else
+                    begin
+                      result["title"]
+                    rescue StandardError
+                      "Unknown"
+                    end
+                  end
+          url = if result.respond_to?(:url)
+                  result.url
+                else
+                  begin
+                    result["url"]
+                  rescue StandardError
+                    ""
+                  end
+                end
+          snippet = if result.respond_to?(:snippet)
+                      result.snippet
+                    else
+                      begin
+                        result["snippet"]
+                      rescue StandardError
+                        ""
+                      end
+                    end
 
-            Rails.logger.info("[WEB_SEARCH_RESULTS] Result #{idx + 1}: #{title[0..40]}")
+          Rails.logger.info("[WEB_SEARCH_RESULTS] Result #{idx + 1}: #{title[0..40]}")
 
-            emit(
-              :web_search_result,
-              title: title,
-              url: url,
-              snippet: snippet,
-              index: idx + 1,
-              total: results.length
-            )
-          rescue => e
-            Rails.logger.warn("[WEB_SEARCH_RESULTS] Error processing result #{idx}: #{e.message}")
-          end
+          emit(
+            :web_search_result,
+            title: title,
+            url: url,
+            snippet: snippet,
+            index: idx + 1,
+            total: results.length
+          )
+        rescue StandardError => e
+          Rails.logger.warn("[WEB_SEARCH_RESULTS] Error processing result #{idx}: #{e.message}")
         end
       else
         Rails.logger.warn("[WEB_SEARCH_RESULTS] result_block.content is not an array or doesn't exist")
       end
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("[WEB_SEARCH_RESULTS] Error emitting web search results: #{e.message}")
     end
   end
 
-  def emit_search_results_post_stream(response);
-    text_blocks = response.content.select { |block| block.type == :text };
-    return if text_blocks.empty?;
+  def emit_search_results_post_stream(response)
+    text_blocks = response.content.select { |block| block.type == :text }
+    return if text_blocks.empty?
 
-    full_text = text_blocks.map { |block| block.text }.join("\n");
+    full_text = text_blocks.map(&:text).join("\n")
 
     begin
-      json_match = full_text.match(/\{[\s\S]*\}/);
-      return unless json_match;
+      json_match = full_text.match(/\{[\s\S]*\}/)
+      return unless json_match
 
-      json_str = json_match[0];
-      data = JSON.parse(json_str);
+      json_str = json_match[0]
+      data = JSON.parse(json_str)
 
-      return unless data.is_a?(Hash);
+      return unless data.is_a?(Hash)
 
       CATEGORY_LABEL_MAP.each do |category_key, category_label|
-        items = data[category_key] || [];
-        count = items.is_a?(Array) ? items.length : 0;
+        items = data[category_key] || []
+        count = items.is_a?(Array) ? items.length : 0
 
-        next if parse_complete_emitted.include?(category_label);
+        next if parse_complete_emitted.include?(category_label)
 
-        emit(:category_parse_complete, category: category_label, item_count: count);
-        parse_complete_emitted.add(category_label);
-      end;
-    rescue => e
-      Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}");
-      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
-        next if parse_complete_emitted.include?(category_label);
+        emit(:category_parse_complete, category: category_label, item_count: count)
+        parse_complete_emitted.add(category_label)
+      end
+    rescue StandardError => e
+      Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}")
+      CATEGORY_LABEL_MAP.each_value do |category_label|
+        next if parse_complete_emitted.include?(category_label)
 
-        emit(:category_parse_complete, category: category_label, item_count: 0);
-        parse_complete_emitted.add(category_label);
-      end;
-    end;
-  end;
+        emit(:category_parse_complete, category: category_label, item_count: 0)
+        parse_complete_emitted.add(category_label)
+      end
+    end
+  end
 
-  def parse_claude_results(results);
+  def parse_claude_results(results)
     parsed = {}
 
     results.each do |category_str, documents|
@@ -709,13 +728,13 @@ class LegislationCrawlerService
 
       parsed[category_sym] = documents.map do |doc|
         {
-          title: doc['title'] || 'Untitled',
-          content: doc['content'] || doc['summary'] || 'Content not available',
-          summary: doc['summary'],
-          source_url: doc['source_url'] || 'https://example.com',
-          date_effective: parse_date(doc['date_effective']),
-          is_deprecated: doc['is_deprecated'] || false,
-          deprecation_notice: doc['deprecation_notice']
+          title: doc["title"] || "Untitled",
+          content: doc["content"] || doc["summary"] || "Content not available",
+          summary: doc["summary"],
+          source_url: doc["source_url"] || "https://example.com",
+          date_effective: parse_date(doc["date_effective"]),
+          is_deprecated: doc["is_deprecated"] || false,
+          deprecation_notice: doc["deprecation_notice"]
         }
       end
     end
@@ -723,30 +742,30 @@ class LegislationCrawlerService
     parsed
   end
 
-  def parse_date(date_str);
-    return nil if date_str.blank?;
-    Date.parse(date_str.to_s);
-  rescue StandardError
-    nil;
-  end;
+  def parse_date(date_str)
+    return nil if date_str.blank?
 
-  def save_results(results);
-    legislations_to_insert = [];
-    legislations_to_update = [];
+    Date.parse(date_str.to_s)
+  rescue StandardError
+    nil
+  end
+
+  def save_results(results)
+    legislations_to_insert = []
+    legislations_to_update = []
 
     results.each do |category, documents|
       documents.each do |doc|
-        existing = country.legislations.find_by(title: doc[:title]);
+        existing = country.legislations.find_by(title: doc[:title])
 
         if existing
-          new_date = doc[:date_effective];
-          old_date = existing.date_effective;
+          new_date = doc[:date_effective]
+          old_date = existing.date_effective
 
-          if new_date && old_date && new_date > old_date
-            legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category };
-          else
-            next;
-          end;
+          next unless new_date && old_date && new_date > old_date
+
+          legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category }
+
         else
           legislations_to_insert << {
             country_id: country.id,
@@ -760,46 +779,46 @@ class LegislationCrawlerService
             crawled_at: Time.current,
             created_at: Time.current,
             updated_at: Time.current
-          };
-        end;
-      end;
-    end;
+          }
+        end
+      end
+    end
 
     if legislations_to_insert.any?
-      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...");
-      Legislation.insert_all(legislations_to_insert);
+      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...")
+      Legislation.insert_all(legislations_to_insert)
 
-      current_count = country.legislations.count;
-      emit(:batch_saved, total_saved: current_count);
+      current_count = country.legislations.count
+      emit(:batch_saved, total_saved: current_count)
 
-      sleep(0.5);
-    end;
+      sleep(0.5)
+    end
 
-    if legislations_to_update.any?
-      emit(:phase, message: "Processing #{legislations_to_update.count} updates...");
+    return unless legislations_to_update.any?
 
-      legislations_to_update.each do |update|
-        old_leg = Legislation.find(update[:existing_id]);
+    emit(:phase, message: "Processing #{legislations_to_update.count} updates...")
 
-        new_leg = Legislation.create!(
-          country_id: country.id,
-          category: Legislation.categories[update[:new_category]],
-          title: update[:new_doc][:title],
-          content: update[:new_doc][:content],
-          summary: update[:new_doc][:summary],
-          source_url: update[:new_doc][:source_url],
-          date_effective: update[:new_doc][:date_effective],
-          is_deprecated: update[:new_doc][:is_deprecated],
-          crawled_at: Time.current
-        );
+    legislations_to_update.each do |update|
+      old_leg = Legislation.find(update[:existing_id])
 
-        old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id);
-      end;
+      new_leg = Legislation.create!(
+        country_id: country.id,
+        category: Legislation.categories[update[:new_category]],
+        title: update[:new_doc][:title],
+        content: update[:new_doc][:content],
+        summary: update[:new_doc][:summary],
+        source_url: update[:new_doc][:source_url],
+        date_effective: update[:new_doc][:date_effective],
+        is_deprecated: update[:new_doc][:is_deprecated],
+        crawled_at: Time.current
+      )
 
-      current_count = country.legislations.count;
-      emit(:batch_saved, total_saved: current_count);
+      old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+    end
 
-      sleep(0.5);
-    end;
-  end;
+    current_count = country.legislations.count
+    emit(:batch_saved, total_saved: current_count)
+
+    sleep(0.5)
+  end
 end
