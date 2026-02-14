@@ -379,7 +379,7 @@ class LegislationCrawlerService
 
       {
         "federal_laws": [
-          {"title": "Law Name/Ref", "summary": "2-3 sentences", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
+          {"title": "Law Name/Ref", "summary": "1-2 sentence brief description", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
         ],
         "regulations": [...],
         "consular": [...],
@@ -392,7 +392,7 @@ class LegislationCrawlerService
 
       - source_url MUST be a real URL from web_search results
       - title MUST match the official law name exactly
-      - summary MUST be 2-3 sentences based on search results
+      - summary MUST be 1-2 sentences, concise and direct
       - date_effective MUST be YYYY-MM-DD format
       - If date unknown, use "2024-01-01" as placeholder
     PROMPT
@@ -507,7 +507,7 @@ class LegislationCrawlerService
       STEP 2: After completing all 6 web_searches, compile results into JSON:
 
       {
-        "federal_laws": [{"title": "Official Law Name (Year)", "content": "Comprehensive description (5-10 sentences) covering what the law does, who it affects, key provisions and requirements", "summary": "Brief 2-3 sentence overview", "source_url": "https://example.com", "date_effective": "YYYY-MM-DD"}],
+        "federal_laws": [{"title": "Official Law Name (Year)", "summary": "Brief 1-2 sentence description", "source_url": "https://example.com", "date_effective": "YYYY-MM-DD"}],
         "regulations": [...same format...],
         "consular": [...same format...],
         "jurisdictional": [...same format...],
