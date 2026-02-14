@@ -17,6 +17,14 @@ interface SSEMessage {
   [key: string]: string | number | boolean | undefined
 }
 
+interface WebSearchResult {
+  title: string
+  url: string
+  snippet: string
+  index: number
+  total: number
+}
+
 interface CategoryState {
   id: string
   name: string
@@ -26,6 +34,7 @@ interface CategoryState {
   searchQuery?: string
   searchIndex?: number
   searchTotal?: number
+  webSearchResults?: WebSearchResult[]
 }
 
 export function CrawlProgressBox({
@@ -147,6 +156,40 @@ export function CrawlProgressBox({
           return cat
         }),
       )
+    } else if (data.type === 'web_search_result') {
+      const title = (data.title as string) || ''
+      const url = (data.url as string) || ''
+      const snippet = (data.snippet as string) || ''
+      const index = (data.index as number) || 0
+      const total = (data.total as number) || 0
+      console.log('[WEB_SEARCH_RESULT]', index, 'of', total, ':', title)
+
+      // Find which category is currently searching and store results
+      setCategories((prev) =>
+        prev.map((cat) => {
+          if (cat.status === 'searching' && cat.searchQuery) {
+            // Store web search result in this category
+            const results = cat.webSearchResults || []
+            return {
+              ...cat,
+              webSearchResults: [
+                ...results,
+                {
+                  title,
+                  url,
+                  snippet,
+                  index,
+                  total,
+                },
+              ],
+            }
+          }
+          return cat
+        }),
+      )
+
+      // Also show in status messages
+      setStatusMessages((prev) => [...prev, `🌐 ${index}/${total}: ${title.substring(0, 40)}...`])
     } else if (data.type === 'search_result') {
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0

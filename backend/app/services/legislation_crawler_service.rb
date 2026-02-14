@@ -79,7 +79,10 @@ class LegislationCrawlerService
       @current_block = nil
       @thinking_text = ""
       @text_buffer = ""
+      @web_search_results = nil
     end
+
+    attr_accessor :web_search_results
 
     def add_event(event)
       event_type = event.type.to_s.to_sym
@@ -94,10 +97,17 @@ class LegislationCrawlerService
           index: event.index,
           text: "",
           thinking: "",
+          content: nil,
           name: event.content_block.respond_to?(:name) ? event.content_block.name : nil,
           input: event.content_block.respond_to?(:input) ? event.content_block.input : nil,
           tool_use_id: block_id
         }
+
+        # Capture web_search_tool_result content
+        if event.content_block.type == 'web_search_tool_result' && event.content_block.respond_to?(:content)
+          @current_block[:content] = event.content_block.content
+          @web_search_results = event.content_block.content
+        end
 
       when :content_block_delta
         # Append delta to current block
@@ -160,6 +170,22 @@ class LegislationCrawlerService
           [:type, :id, :name, :input].include?(method_name.to_sym)
         end
         tool_block
+      when 'server_tool_use'
+        # web_search tool - similar to tool_use but from server
+        tool_block = Struct.new(:type, :id, :name, :input).new(
+          :server_tool_use,
+          block_data[:id],
+          block_data[:name],
+          block_data[:input]
+        )
+        tool_block
+      when 'web_search_tool_result'
+        # web_search results block
+        result_block = Struct.new(:type, :content).new(
+          :web_search_tool_result,
+          block_data[:content]
+        )
+        result_block
       else
         Rails.logger.warn("[COLLECTOR] Unknown block type: #{block_type.inspect} (#{block_data[:type].class})")
         nil
@@ -273,6 +299,26 @@ class LegislationCrawlerService
             emit(:search_started, operation_id: operation_id, category: category, query: input_text, index: search_count, total: 6)
           end
         end
+      end
+
+      # Detect and emit web_search results
+      if event.type.to_s == 'content_block_start'
+        if event.content_block.type == 'web_search_tool_result'
+          Rails.logger.info("  🌐 WEB_SEARCH_RESULT block detected (index: #{event.index})")
+          # Store reference to parse after completion
+          @current_search_result_index = event.index
+        end
+      end
+
+      # Emit web search results when result block completes
+      if event.type.to_s == 'content_block_stop' && @current_search_result_index
+        Rails.logger.info("  🌐 WEB_SEARCH_RESULT complete - processing results")
+        # Find the web_search_tool_result block in collector
+        result_block = collector.content.find { |block| block.respond_to?(:type) && block.type.to_s == 'web_search_tool_result' }
+        if result_block
+          emit_web_search_results(result_block)
+        end
+        @current_search_result_index = nil
       end
 
       # Handle web_search block completion
@@ -689,6 +735,45 @@ class LegislationCrawlerService
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
       end
+    end
+  end
+
+  def emit_web_search_results(result_block)
+    # Extract and emit web search results
+    # result_block.content is an array of search results with title, url, snippet
+    Rails.logger.info("[WEB_SEARCH_RESULTS] Processing web search results")
+
+    begin
+      if result_block.respond_to?(:content) && result_block.content.is_a?(Array)
+        results = result_block.content
+        Rails.logger.info("[WEB_SEARCH_RESULTS] Found #{results.length} web search results")
+
+        # Emit each result so frontend can display progress
+        results.each_with_index do |result, idx|
+          begin
+            title = result.respond_to?(:title) ? result.title : (result['title'] rescue 'Unknown')
+            url = result.respond_to?(:url) ? result.url : (result['url'] rescue '')
+            snippet = result.respond_to?(:snippet) ? result.snippet : (result['snippet'] rescue '')
+
+            Rails.logger.info("[WEB_SEARCH_RESULTS] Result #{idx + 1}: #{title[0..40]}")
+
+            emit(
+              :web_search_result,
+              title: title,
+              url: url,
+              snippet: snippet,
+              index: idx + 1,
+              total: results.length
+            )
+          rescue => e
+            Rails.logger.warn("[WEB_SEARCH_RESULTS] Error processing result #{idx}: #{e.message}")
+          end
+        end
+      else
+        Rails.logger.warn("[WEB_SEARCH_RESULTS] result_block.content is not an array or doesn't exist")
+      end
+    rescue => e
+      Rails.logger.error("[WEB_SEARCH_RESULTS] Error emitting web search results: #{e.message}")
     end
   end
 

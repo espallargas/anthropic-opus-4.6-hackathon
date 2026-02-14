@@ -2,6 +2,14 @@ import { Loader2, CheckCircle2, AlertCircle, Globe } from 'lucide-react'
 
 export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error'
 
+interface WebSearchResult {
+  title: string
+  url: string
+  snippet: string
+  index: number
+  total: number
+}
+
 interface Category {
   id: string
   name: string
@@ -12,6 +20,7 @@ interface Category {
   searchQuery?: string
   searchIndex?: number
   searchTotal?: number
+  webSearchResults?: WebSearchResult[]
 }
 
 interface CategoriesPanelProps {
@@ -64,9 +73,27 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   )}
                 </div>
                 {category.searchQuery && category.status === 'searching' ? (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-current/70">
-                    🔍 "{category.searchQuery}"
-                  </p>
+                  <div className="mt-0.5 space-y-1">
+                    <p className="line-clamp-2 text-xs text-current/70">
+                      🔍 "{category.searchQuery}"
+                    </p>
+                    {category.webSearchResults && category.webSearchResults.length > 0 && (
+                      <div className="max-h-24 space-y-0.5 overflow-y-auto rounded bg-black/30 p-1">
+                        {category.webSearchResults.map((result, idx) => (
+                          <a
+                            key={idx}
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block truncate text-xs text-blue-300 hover:text-blue-100 hover:underline"
+                            title={result.title}
+                          >
+                            {result.index}/{result.total}: {result.title}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="mt-0.5 line-clamp-2 text-xs text-current/70">
                     {category.description}
