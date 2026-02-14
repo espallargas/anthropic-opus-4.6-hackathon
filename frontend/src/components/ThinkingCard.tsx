@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { ThinkingBlock } from '@/lib/chatStore';
@@ -10,7 +10,18 @@ interface ThinkingCardProps {
 export function ThinkingCard({ thinking }: ThinkingCardProps) {
   const { t } = useI18n();
   const isThinking = thinking.status === 'thinking';
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+
+  // Auto-close when thinking completes
+  useEffect(() => {
+    if (!isThinking && expanded) {
+      // Close after a short delay for visual feedback
+      const timer = setTimeout(() => {
+        setExpanded(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isThinking, expanded]);
 
   return (
     <div
@@ -43,7 +54,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
 
       {expanded && thinking.content && (
         <div className="border-t border-white/5 px-3 py-2">
-          <p className="max-h-40 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap text-white/30">
+          <p className="max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap text-white/30">
             {thinking.content}
           </p>
         </div>
