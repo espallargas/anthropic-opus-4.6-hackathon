@@ -187,7 +187,7 @@ export function CrawlProgressBox({
   }, [documentCount, onDocCountUpdate]);
 
   // Count items in real-time as Claude output (JSON) arrives
-  // Only update itemsBeingDocumented during indexing phase
+  // Mark categories as completed when they disappear from the JSON during indexing
   useEffect(() => {
     if (!claudeOutputText) return;
 
@@ -195,15 +195,27 @@ export function CrawlProgressBox({
 
     setCategories((prev) =>
       prev.map((cat) => {
+        const categoryKey = cat.id as keyof typeof categoryCounts;
+        const count = categoryCounts[categoryKey] || 0;
+
+        // If category was in indexing and now has 0 items, mark as completed
+        if (cat.phase === 'indexing' && count === 0 && cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0) {
+          return {
+            ...cat,
+            phase: 'completed',
+            itemsBeingDocumented: 0,
+            legislationsParsed: true,
+          };
+        }
+
         // Only update count during indexing phase
         if (cat.phase === 'indexing') {
-          const categoryKey = cat.id as keyof typeof categoryCounts;
-          const count = categoryCounts[categoryKey] || 0;
           return {
             ...cat,
             itemsBeingDocumented: count,
           };
         }
+
         return cat;
       }),
     );

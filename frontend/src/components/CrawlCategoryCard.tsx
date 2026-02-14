@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 import type { CategoryStatus } from './CategoriesPanel';
 
 interface WebSearchResult {
@@ -31,6 +32,7 @@ interface CrawlCategoryCardProps {
 }
 
 export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
+  const { t } = useI18n();
   const isError = category.status === 'error';
   const [expanded, setExpanded] = useState(true);
 
@@ -80,12 +82,12 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
         )}
         {category.phase === 'indexing' && category.itemsBeingDocumented && (
           <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400/70">
-            {category.itemsBeingDocumented} parsing
+            {category.itemsBeingDocumented} {t('admin.crawl.parsing')}
           </span>
         )}
         {category.phase === 'completed' && category.resultCount > 0 && (
           <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70">
-            {category.resultCount} found
+            {category.resultCount} {t('admin.crawl.found')}
           </span>
         )}
         {expanded ? (
