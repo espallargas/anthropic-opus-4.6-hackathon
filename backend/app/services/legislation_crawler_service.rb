@@ -791,6 +791,7 @@ class LegislationCrawlerService
     # FALLBACK: Emit search_results after streaming if they weren't emitted during streaming
     # This ensures categories are always marked as 'done' even if streaming logic fails
     Rails.logger.info("[POST-STREAM] emit_search_results_post_stream called")
+    Rails.logger.info("[POST-STREAM] SSE is nil? #{@sse.nil?}")
 
     category_map = {
       'federal_laws' => 'Federal Laws',
@@ -829,16 +830,23 @@ class LegislationCrawlerService
         count = items.is_a?(Array) ? items.length : 0
 
         Rails.logger.info("[POST-STREAM] Emitting search_result: #{category_label} (#{count} items)")
-        emit(:search_result, category: category_label, result_count: count)
+        begin
+          emit(:search_result, category: category_label, result_count: count)
+          Rails.logger.info("[POST-STREAM] ✓ Sent search_result for #{category_label}")
+        rescue => e
+          Rails.logger.warn("[POST-STREAM] ✗ Failed to emit search_result for #{category_label}: #{e.message}")
+        end
 
         # Immediately emit category_parse_complete since we have parsed all items from the JSON
         unless @parse_complete_emitted.include?(category_label)
           Rails.logger.info("[POST-STREAM] Emitting category_parse_complete: #{category_label} (#{count} items)")
           begin
             emit(:category_parse_complete, category: category_label, item_count: count)
+            Rails.logger.info("[POST-STREAM] ✓ Sent category_parse_complete for #{category_label}")
             @parse_complete_emitted.add(category_label)
           rescue => emit_error
-            Rails.logger.warn("[POST-STREAM] Failed to emit category_parse_complete for #{category_label}: #{emit_error.message}")
+            Rails.logger.warn("[POST-STREAM] ✗ Failed to emit category_parse_complete for #{category_label}: #{emit_error.message}")
+            Rails.logger.warn(emit_error.backtrace.first(5).join("\n"))
           end
         else
           Rails.logger.info("[POST-STREAM] Skipping duplicate category_parse_complete for #{category_label}")
