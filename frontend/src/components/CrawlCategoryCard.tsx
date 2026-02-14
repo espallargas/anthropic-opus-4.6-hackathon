@@ -74,20 +74,23 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
       >
         {StatusIcon && <StatusIcon className={statusIconClass} />}
-        <span className="flex-1 truncate font-medium text-white/80">{category.name}</span>
-        {category.phase === 'searching' && category.searchQuery && (
-          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-400/70">
-            {category.searchQuery}
+        <div className="flex-1">
+          <span className="truncate font-medium text-white/80">{category.name}</span>
+          <p className="text-[10px] text-white/50">{category.description}</p>
+        </div>
+        {category.phase === 'searching' && (
+          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-400/70 whitespace-nowrap">
+            {t('admin.crawl.searching')} {category.name}
           </span>
         )}
-        {category.phase === 'indexing' && category.itemsBeingDocumented && (
-          <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400/70">
-            {category.itemsBeingDocumented} {t('admin.crawl.parsing')}
+        {category.phase === 'indexing' && category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
+          <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400/70 whitespace-nowrap">
+            {category.itemsBeingDocumented} {t('admin.crawl.documents_indexed')}
           </span>
         )}
-        {category.phase === 'completed' && category.resultCount > 0 && (
-          <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70">
-            {category.resultCount} {t('admin.crawl.found')}
+        {category.phase === 'completed' && (
+          <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70 whitespace-nowrap">
+            {category.resultCount} {t('admin.crawl.documents_indexed')}
           </span>
         )}
         {expanded ? (

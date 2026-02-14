@@ -129,6 +129,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.tokens': 'tokens',
     'admin.crawl.parsing': 'analisando',
     'admin.crawl.found': 'encontrado',
+    'admin.crawl.searching': 'Procurando',
+    'admin.crawl.documents_indexed': 'documentos indexados',
     'admin.thinking.adaptive': 'Adaptativo',
     'admin.thinking.high_effort': 'Alto esforço',
     'countries.us': 'Estados Unidos',
@@ -333,6 +335,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.starting': 'Starting crawl...',
     'admin.crawl.complete': '✓ Crawl complete',
     'admin.crawl.documents_saved': 'documents saved',
+    'admin.crawl.searching': 'Searching',
+    'admin.crawl.documents_indexed': 'documents indexed',
     'admin.crawl.stop_confirm': 'Stop crawl?',
     'admin.crawl.stop_description':
       'Progress will be discarded. All data is only saved at the end.',
