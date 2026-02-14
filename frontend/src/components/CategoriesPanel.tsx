@@ -29,9 +29,9 @@ interface CategoriesPanelProps {
 }
 
 const CATEGORY_COLORS = {
-  pending: 'text-white/50 bg-white/5',
-  searching: 'text-blue-300 bg-blue-500/20 border border-blue-400/30',
-  done: 'text-green-300 bg-green-500/10',
+  pending: 'text-white/50',
+  searching: 'text-blue-300 bg-blue-500/10 border border-blue-400/20',
+  done: 'text-white/70',
   error: 'text-red-300 bg-red-500/10',
 }
 
@@ -108,16 +108,17 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   <span className="text-xs font-medium text-blue-300">Searching...</span>
                 )}
 
-                {/* Show items being documented while parsing JSON */}
-                {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span className="text-xs font-medium text-purple-300">
-                    {category.itemsBeingDocumented} web results found
+                {/* Web results from search */}
+                {category.resultCount > 0 && (
+                  <span className="text-xs font-medium text-blue-300">
+                    {category.resultCount} web results crawled
                   </span>
                 )}
 
-                {category.status === 'done' && category.resultCount > 0 && (
+                {/* Show legislations being parsed - progresses as JSON arrives */}
+                {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
                   <span className="text-xs font-medium text-emerald-300">
-                    {category.resultCount} Results Parted
+                    {category.itemsBeingDocumented} legislations parsed
                   </span>
                 )}
               </div>
