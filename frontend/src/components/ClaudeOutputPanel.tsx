@@ -10,27 +10,78 @@ interface ClaudeOutputPanelProps {
 
 function formatJSON(text: string): string {
   try {
-    // First try to complete the JSON if it's incomplete
-    let testText = text
-    const openBraces = (testText.match(/{/g) || []).length
-    const closeBraces = (testText.match(/}/g) || []).length
-    const openBrackets = (testText.match(/\[/g) || []).length
-    const closeBrackets = (testText.match(/]/g) || []).length
-
-    if (openBraces > closeBraces) {
-      testText += '}'.repeat(openBraces - closeBraces)
-    }
-    if (openBrackets > closeBrackets) {
-      testText += ']'.repeat(openBrackets - closeBrackets)
-    }
-
-    // Parse and format
-    const parsed = JSON.parse(testText)
+    // Try to parse as complete JSON first
+    const parsed = JSON.parse(text)
     return JSON.stringify(parsed, null, 2)
   } catch {
-    // If parsing fails, return as-is
-    return text
+    // If parsing fails, try to complete incomplete JSON
+    try {
+      let testText = text
+      const openBraces = (testText.match(/{/g) || []).length
+      const closeBraces = (testText.match(/}/g) || []).length
+      const openBrackets = (testText.match(/\[/g) || []).length
+      const closeBrackets = (testText.match(/]/g) || []).length
+
+      if (openBraces > closeBraces) {
+        testText += '}'.repeat(openBraces - closeBraces)
+      }
+      if (openBrackets > closeBrackets) {
+        testText += ']'.repeat(openBrackets - closeBrackets)
+      }
+
+      const parsed = JSON.parse(testText)
+      return JSON.stringify(parsed, null, 2)
+    } catch {
+      // If still failing, do manual pretty-print without parsing
+      return prettyPrintJSON(text)
+    }
   }
+}
+
+function prettyPrintJSON(text: string): string {
+  let result = ''
+  let indent = 0
+  let inString = false
+  let prevChar = ''
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    const nextChar = text[i + 1]
+
+    // Handle string detection
+    if (char === '"' && prevChar !== '\\') {
+      inString = !inString
+      result += char
+    } else if (!inString) {
+      if (char === '{' || char === '[') {
+        result += char
+        indent++
+        if (nextChar && nextChar !== '}' && nextChar !== ']') {
+          result += '\n' + '  '.repeat(indent)
+        }
+      } else if (char === '}' || char === ']') {
+        indent = Math.max(0, indent - 1)
+        if (result.trimEnd().endsWith('\n' + '  '.repeat(indent + 1))) {
+          result = result.trimEnd() + '\n' + '  '.repeat(indent) + char
+        } else {
+          result += '\n' + '  '.repeat(indent) + char
+        }
+      } else if (char === ':') {
+        result += ': '
+        if (nextChar === ' ') i++ // Skip next space if it exists
+      } else if (char === ',') {
+        result += ',\n' + '  '.repeat(indent)
+      } else if (char !== ' ' && char !== '\n' && char !== '\t') {
+        result += char
+      }
+    } else {
+      result += char
+    }
+
+    prevChar = char
+  }
+
+  return result.trim()
 }
 
 export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutputPanelProps) {
