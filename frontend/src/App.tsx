@@ -85,11 +85,11 @@ function App() {
                   onNewChat={handleNewChat}
                   onDeleteChat={store.deleteChat}
                 />
-                {/* Resize handle - thin by default, thicker on hover/drag */}
+                {/* Resize handle - larger hit area for better UX */}
                 <div
-                  className={`absolute right-0 top-0 h-full cursor-col-resize select-none transition-all ${isResizing ? 'w-1.5 bg-white/60' : 'w-px bg-white/10 hover:w-1 hover:bg-white/40'}`}
+                  className={`absolute right-0 top-0 h-full w-2 cursor-col-resize select-none transition-colors ${isResizing ? 'bg-white/60' : 'bg-white/5 hover:bg-white/30'}`}
                   onMouseDown={handleMouseDown}
-                  style={{ userSelect: 'none' }}
+                  style={{ userSelect: 'none', marginRight: '-4px' }}
                   title="Arraste para redimensionar"
                 />
               </div>
