@@ -9,9 +9,12 @@ interface GlobeProps {
   className?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GlobeInstance = any;
+
 export function Globe({ origin, destination, className = '' }: GlobeProps) {
   const { t } = useI18n();
-  const globeRef = useRef<HTMLDivElement>(null);
+  const globeRef = useRef<GlobeInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 400, height: 500 });
 
