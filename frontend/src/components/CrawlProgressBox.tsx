@@ -201,6 +201,7 @@ export function CrawlProgressBox({
         // (means it was parsed and moved to next category)
         if (cat.phase === 'indexing' && count === 0) {
           // Always mark as completed when count drops to 0 during indexing
+          console.log(`[CATEGORY_COMPLETE] category=${cat.id}, finalCount=${cat.itemsBeingDocumented}`);
           return {
             ...cat,
             phase: 'completed',
@@ -229,6 +230,11 @@ export function CrawlProgressBox({
       const text = (data.text as string) || '';
       const type = (data.thinking_type as string) || null;
       const operationId = (data.operation_id as string) || 'default';
+
+      // Debug log to verify operation IDs
+      if (text && text.length > 0) {
+        console.log(`[THINKING] op=${operationId}, type=${type}, chars=${text.length}`);
+      }
 
       if (text) {
         setThinkingBlocks((prev) => {
@@ -314,6 +320,8 @@ export function CrawlProgressBox({
     } else if (data.type === 'search_result') {
       const categoryId = data.category as string;
       const resultCount = (data.result_count as number) || 0;
+
+      console.log(`[SEARCH_RESULT] category=${categoryId}, resultCount=${resultCount}, phase=indexing`);
 
       setCategories((prev) =>
         prev.map((cat) => {
