@@ -30,6 +30,9 @@ module SSEMessageSchema
     # Real-time document count updates
     batch_saved: { fields: [:total_saved], required_fields: [:total_saved] },
 
+    # Category completion
+    category_parse_complete: { fields: [:category, :item_count], required_fields: [:category, :item_count] },
+
     # Error handling
     error: { fields: [:message, :code], required_fields: [:message] },
 

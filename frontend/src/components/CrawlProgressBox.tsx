@@ -283,6 +283,27 @@ export function CrawlProgressBox({
           return cat
         }),
       )
+    } else if (data.type === 'category_parse_complete') {
+      const category = data.category as string
+      const itemCount = (data.item_count as number) || 0
+
+      console.log(
+        `%c✨ [PARSE_COMPLETE] ${category} - ${itemCount} items parsed`,
+        'color: #a78bfa; font-weight: bold; font-size: 12px',
+      )
+
+      setCategories((prev) =>
+        prev.map((cat) => {
+          if (cat.name === category) {
+            return {
+              ...cat,
+              legislationsParsed: true,
+              itemsBeingDocumented: itemCount,
+            }
+          }
+          return cat
+        }),
+      )
     } else if (data.type === 'phase') {
       const message = data.message as string
       if (message) {

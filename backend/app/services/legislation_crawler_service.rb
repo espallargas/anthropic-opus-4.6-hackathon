@@ -718,6 +718,10 @@ class LegislationCrawlerService
         # Then emit the search_result to mark category as done
         Rails.logger.info("[SEARCH] Result: #{category_label} - #{count} items")
         emit(:search_result, category: category_label, result_count: count)
+
+        # Immediately emit category_parse_complete since we have parsed all items from the JSON
+        Rails.logger.info("  ✅ Emitting category_parse_complete: #{category_label} (#{count} items)")
+        emit(:category_parse_complete, category: category_label, item_count: count)
       end
     rescue JSON::ParserError => e
       Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
@@ -816,6 +820,10 @@ class LegislationCrawlerService
 
         Rails.logger.info("[POST-STREAM] Emitting search_result: #{category_label} (#{count} items)")
         emit(:search_result, category: category_label, result_count: count)
+
+        # Immediately emit category_parse_complete since we have parsed all items from the JSON
+        Rails.logger.info("[POST-STREAM] Emitting category_parse_complete: #{category_label} (#{count} items)")
+        emit(:category_parse_complete, category: category_label, item_count: count)
       end
     rescue => e
       Rails.logger.warn("[POST-STREAM] Error parsing JSON or emitting results: #{e.message}")
@@ -823,6 +831,7 @@ class LegislationCrawlerService
       Rails.logger.info("[POST-STREAM] FALLBACK: Emitting 0 results for all categories")
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
+        emit(:category_parse_complete, category: category_label, item_count: 0)
       end
     end
   end
