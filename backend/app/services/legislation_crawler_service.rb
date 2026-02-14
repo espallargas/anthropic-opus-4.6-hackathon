@@ -236,6 +236,12 @@ class LegislationCrawlerService
     stream_response.each do |event|
       event_count += 1
 
+      # DEBUG: Log ALL event types to see what's coming
+      if event_count <= 50  # Only log first 50 to avoid spam
+        puts "EVENT ##{event_count}: type=#{event.type.to_s}"
+        $stdout.flush
+      end
+
       # Detect server_tool_use (web_search) blocks and emit search_started immediately
       if event.type.to_s == 'content_block_start'
         block_type = event.content_block.type
