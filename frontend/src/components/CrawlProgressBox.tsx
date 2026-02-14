@@ -186,7 +186,7 @@ export function CrawlProgressBox({
   }, [documentCount, onDocCountUpdate]);
 
   // Count items in real-time as Claude output (JSON) arrives
-  // Mark categories as completed when they disappear from the JSON during indexing
+  // Only update itemsBeingDocumented, don't change phase (use category_parse_complete for that)
   useEffect(() => {
     if (!claudeOutputText) return;
 
@@ -196,20 +196,6 @@ export function CrawlProgressBox({
       prev.map((cat) => {
         const categoryKey = cat.id as keyof typeof categoryCounts;
         const count = categoryCounts[categoryKey] || 0;
-
-        // If category was in indexing phase and now has 0 items
-        // (means it was parsed and moved to next category)
-        if (cat.phase === 'indexing' && count === 0) {
-          // Always mark as completed when count drops to 0 during indexing
-          console.log(`[CATEGORY_COMPLETE] category=${cat.id}, finalCount=${cat.itemsBeingDocumented}`);
-          return {
-            ...cat,
-            phase: 'completed',
-            itemsBeingDocumented: 0,
-            resultCount: cat.itemsBeingDocumented || 0, // Store final count
-            legislationsParsed: true,
-          };
-        }
 
         // Only update count during indexing phase
         if (cat.phase === 'indexing') {
@@ -264,8 +250,35 @@ export function CrawlProgressBox({
     } else if (data.type === 'claude_text') {
       const text = (data.text as string) || '';
       if (text) {
+        // When claude_text starts, thinking is done
+        setThinkingBlocks((prev) =>
+          prev.map((block) => ({
+            ...block,
+            status: 'done',
+          })),
+        );
         setClaudeOutputText((prev) => prev + text);
       }
+    } else if (data.type === 'category_parse_complete') {
+      const categoryId = data.category as string;
+      const itemCount = (data.item_count as number) || 0;
+
+      console.log(`[CATEGORY_PARSE_COMPLETE] category=${categoryId}, itemCount=${itemCount}`);
+
+      setCategories((prev) =>
+        prev.map((cat) => {
+          if (cat.id === categoryId) {
+            return {
+              ...cat,
+              phase: 'completed',
+              itemsBeingDocumented: 0,
+              resultCount: itemCount,
+              legislationsParsed: true,
+            };
+          }
+          return cat;
+        }),
+      );
     } else if (data.type === 'search_started') {
       const categoryId = data.category as string;
       const query = (data.query as string) || '';
