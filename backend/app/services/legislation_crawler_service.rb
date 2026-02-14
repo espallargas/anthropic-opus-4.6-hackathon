@@ -385,6 +385,7 @@ class LegislationCrawlerService
   end
 
   def call_claude_crawler(system_prompt)
+    Rails.logger.info("[CALL_CLAUDE] Starting call_claude_crawler")
     emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
 
     messages = [
@@ -413,6 +414,7 @@ class LegislationCrawlerService
         # Define structured output schema for legislation JSON
         legislation_schema = build_legislation_schema
 
+        Rails.logger.info("[CALL_CLAUDE] About to call build_response_from_stream")
         response = build_response_from_stream(
           current_operation_id,
           model: MODEL,
@@ -432,8 +434,8 @@ class LegislationCrawlerService
             }
           }
         )
-        Rails.logger.info("Claude stream completed!")
-        Rails.logger.info("Response stop_reason: #{response.stop_reason}")
+        Rails.logger.info("[CALL_CLAUDE] build_response_from_stream returned successfully")
+        Rails.logger.info("[CALL_CLAUDE] Response stop_reason: #{response.stop_reason}")
         Rails.logger.info("Response content blocks: #{response.content.length}")
         response.content.each_with_index do |block, idx|
           Rails.logger.info("  Block #{idx}: type=#{block.type}")
