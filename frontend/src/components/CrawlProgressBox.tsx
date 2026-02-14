@@ -260,25 +260,38 @@ export function CrawlProgressBox({
         setClaudeOutputText((prev) => prev + text);
       }
     } else if (data.type === 'category_parse_complete') {
-      const categoryId = data.category as string;
+      const categoryLabel = data.category as string;
       const itemCount = (data.item_count as number) || 0;
 
-      console.log(`[CATEGORY_PARSE_COMPLETE] category=${categoryId}, itemCount=${itemCount}`);
+      // Map from English label (from backend) to category ID
+      const labelToIdMap: Record<string, string> = {
+        'Federal Laws': 'federal_laws',
+        'Regulations': 'regulations',
+        'Consular Rules': 'consular',
+        'Jurisdictional': 'jurisdictional',
+        'Health & Complementary': 'complementary',
+        'Auxiliary': 'auxiliary',
+      };
 
-      setCategories((prev) =>
-        prev.map((cat) => {
-          if (cat.id === categoryId) {
-            return {
-              ...cat,
-              phase: 'completed',
-              itemsBeingDocumented: 0,
-              resultCount: itemCount,
-              legislationsParsed: true,
-            };
-          }
-          return cat;
-        }),
-      );
+      const categoryId = labelToIdMap[categoryLabel];
+      console.log(`[CATEGORY_PARSE_COMPLETE] label=${categoryLabel}, categoryId=${categoryId}, itemCount=${itemCount}`);
+
+      if (categoryId) {
+        setCategories((prev) =>
+          prev.map((cat) => {
+            if (cat.id === categoryId) {
+              return {
+                ...cat,
+                phase: 'completed',
+                itemsBeingDocumented: 0,
+                resultCount: itemCount,
+                legislationsParsed: true,
+              };
+            }
+            return cat;
+          }),
+        );
+      }
     } else if (data.type === 'search_started') {
       const categoryId = data.category as string;
       const query = (data.query as string) || '';
