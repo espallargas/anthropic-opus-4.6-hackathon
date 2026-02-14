@@ -35,7 +35,11 @@ function App() {
   }, [])
 
   if (location.pathname === '/admin') {
-    return <AdminPage />
+    return (
+      <I18nProvider>
+        <AdminPage />
+      </I18nProvider>
+    )
   }
 
   const handleSetup = (vars: SystemVars) => {
