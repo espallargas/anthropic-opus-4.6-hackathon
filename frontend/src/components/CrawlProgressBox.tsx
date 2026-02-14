@@ -422,41 +422,54 @@ export function CrawlProgressBox({
         </button>
       </div>
 
-      {/* Main content - 3 column layout */}
-      <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left: Thinking panel (35%) */}
-        <div className="w-[35%] flex-none overflow-hidden border-r border-white/10">
-          <ThinkingPanel
-            thinkingText={thinkingText}
-            inputTokens={inputTokens}
-            outputTokens={outputTokens}
-          />
-        </div>
+      {/* Main content - 2x2 grid layout */}
+      <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+        {/* Top row: Thinking + Claude Output */}
+        <div className="flex min-h-0 flex-1 gap-0 overflow-hidden border-b border-white/10">
+          {/* Left: Thinking panel (30%) */}
+          <div className="w-[30%] flex-none overflow-hidden border-r border-white/10">
+            <ThinkingPanel
+              thinkingText={thinkingText}
+              inputTokens={inputTokens}
+              outputTokens={outputTokens}
+            />
+          </div>
 
-        {/* Middle: Claude Output (35%) */}
-        <div className="w-[35%] flex-none overflow-hidden border-r border-white/10">
-          <ClaudeOutputPanel outputText={claudeOutputText} />
-        </div>
-
-        {/* Right: Categories + status (30%) */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Right: Claude Output (70%) */}
           <div className="flex-1 overflow-hidden">
+            <ClaudeOutputPanel outputText={claudeOutputText} />
+          </div>
+        </div>
+
+        {/* Bottom row: Categories + Status */}
+        <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
+          {/* Left: Categories (50%) */}
+          <div className="w-1/2 flex-none overflow-hidden border-r border-white/10">
             <CategoriesPanel categories={categories} />
           </div>
 
-          {/* Status messages footer */}
-          {statusMessages.length > 0 && (
-            <div className="max-h-24 flex-none overflow-y-auto border-t border-white/10 bg-white/[0.02] px-3 py-2.5 text-xs">
-              <div className="space-y-1">
-                {statusMessages.slice(-3).map((msg, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-white/60">
-                    <span className="mt-0.5 flex-shrink-0">→</span>
-                    <span className="break-words">{msg}</span>
-                  </div>
-                ))}
+          {/* Right: Status messages (50%) */}
+          <div className="flex-1 overflow-hidden">
+            {statusMessages.length > 0 ? (
+              <div className="flex h-full flex-col bg-black/30">
+                <div className="border-b border-white/10 bg-white/[0.02] px-3 py-2.5">
+                  <p className="text-xs font-semibold text-white">Status</p>
+                </div>
+                <div className="flex-1 space-y-1.5 overflow-y-auto px-2 py-2.5">
+                  {statusMessages.map((msg, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs text-white/70">
+                      <span className="mt-0.5 flex-shrink-0">→</span>
+                      <span className="break-words">{msg}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex h-full items-center justify-center bg-black/30">
+                <p className="text-xs text-white/30">Status messages will appear here</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
