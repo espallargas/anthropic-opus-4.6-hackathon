@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
-import type { Chat, ChatMessage, ToolCall } from '@/lib/chatStore';
+import type { Chat, ChatMessage } from '@/lib/chatStore';
+import { mapSSEEvent, type RawSSEEvent } from '@/lib/sseEventMapper';
+import { chatStreamReducer, createStreamState, type StreamState } from '@/lib/chatReducer';
 
 type ChatStatus = 'idle' | 'streaming' | 'error';
 
@@ -13,6 +15,7 @@ interface SSEEvent {
   tool_input?: Record<string, unknown>;
   result?: Record<string, unknown>;
 }
+type ChatStatus = 'idle' | 'streaming' | 'error';
 
 export function useChat(
   chat: Chat | null,
@@ -25,7 +28,6 @@ export function useChat(
   const abortRef = useRef<AbortController | null>(null);
   const chatIdRef = useRef<string | null>(chat?.id ?? null);
 
-  // Reset messages when active chat changes
   useEffect(() => {
     if (chat?.id !== chatIdRef.current) {
       abortRef.current?.abort();
@@ -36,12 +38,30 @@ export function useChat(
     }
   }, [chat?.id, chat?.messages]);
 
-  // Persist messages to store on change
   useEffect(() => {
     if (chat?.id) {
       onUpdateMessages(chat.id, messages);
     }
   }, [messages, chat?.id, onUpdateMessages]);
+
+  const applyStreamState = useCallback((assistantId: string, stream: StreamState) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === assistantId
+          ? {
+              ...m,
+              content: stream.content,
+              toolCalls: stream.toolCalls.length ? stream.toolCalls : m.toolCalls,
+              agentExecutions: stream.agentExecutions.length
+                ? stream.agentExecutions
+                : m.agentExecutions,
+              usageReport: stream.usageReport ?? m.usageReport,
+              thinking: stream.thinking ?? m.thinking,
+            }
+          : m,
+      ),
+    );
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -90,6 +110,7 @@ export function useChat(
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let stream = createStreamState();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -105,48 +126,20 @@ export function useChat(
             if (!json) continue;
 
             try {
-              const event = JSON.parse(json) as SSEEvent;
+              const raw = JSON.parse(json) as RawSSEEvent;
+              const action = mapSSEEvent(raw);
+              if (!action) continue;
 
-              if (event.type === 'token' && event.token) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: m.content + event.token } : m,
-                  ),
-                );
-              } else if (event.type === 'tool_use_start' && event.tool_call_id) {
-                const toolCall: ToolCall = {
-                  id: event.tool_call_id,
-                  name: event.tool_name ?? 'unknown',
-                  input: event.tool_input ?? {},
-                  status: 'calling',
-                };
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? { ...m, toolCalls: [...(m.toolCalls ?? []), toolCall] }
-                      : m,
-                  ),
-                );
-              } else if (event.type === 'tool_use_result' && event.tool_call_id) {
-                const callId = event.tool_call_id;
-                const result = event.result;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          toolCalls: m.toolCalls?.map((tc) =>
-                            tc.id === callId ? { ...tc, status: 'done' as const, result } : tc,
-                          ),
-                        }
-                      : m,
-                  ),
-                );
-              } else if (event.type === 'error') {
-                setError(event.error ?? 'Unknown error');
+              if (action.type === 'ERROR') {
+                setError(action.error);
                 setStatus('error');
                 return;
               }
+
+              if (action.type === 'MESSAGE_END') break;
+
+              stream = chatStreamReducer(stream, action);
+              applyStreamState(assistantId, stream);
             } catch {
               // skip malformed JSON lines
             }
@@ -179,7 +172,7 @@ export function useChat(
         abortRef.current = null;
       }
     },
-    [messages, chat, t],
+    [messages, chat, t, applyStreamState],
   );
 
   const clearMessages = useCallback(() => {

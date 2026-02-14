@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useChat } from '@/hooks/useChat';
+import { AgentActivityPanel } from '@/components/AgentActivityPanel';
+import { ThinkingCard } from '@/components/ThinkingCard';
+import { ToolCallCard } from '@/components/ToolCallCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ToolCallCard } from '@/components/ToolCallCard';
+import { UsageBadge } from '@/components/UsageBadge';
+import { useChat } from '@/hooks/useChat';
+import type { ChatMessage, Chat as ChatType } from '@/lib/chatStore';
+import { useI18n } from '@/lib/i18n';
 import { ArrowUp, Square } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useI18n } from '@/lib/i18n';
-import type { Chat as ChatType, ChatMessage } from '@/lib/chatStore';
 
 interface ChatProps {
   chat: ChatType;
@@ -70,9 +73,13 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                   className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className="max-w-[80%]">
+                    {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
                     {msg.toolCalls?.map((tc) => (
                       <ToolCallCard key={tc.id} toolCall={tc} />
                     ))}
+                    {msg.agentExecutions && msg.agentExecutions.length > 0 && (
+                      <AgentActivityPanel agents={msg.agentExecutions} />
+                    )}
                     {(msg.content || !msg.toolCalls?.length) && (
                       <div
                         className={`rounded-lg px-4 py-2 text-sm ${
@@ -92,6 +99,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                         )}
                       </div>
                     )}
+                    {msg.usageReport && <UsageBadge report={msg.usageReport} />}
                   </div>
                 </div>
               ))}

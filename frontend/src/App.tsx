@@ -1,15 +1,16 @@
+import { AdminPage } from '@/components/AdminPage';
 import { Chat } from '@/components/Chat';
 import { SetupForm } from '@/components/SetupForm';
-import { Globe } from '@/components/Globe';
 import { Sidebar } from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCable } from './hooks/useCable';
 import { useChatStore } from './hooks/useChatStore';
 import { healthCheck } from './lib/api';
-import { I18nProvider } from './lib/i18n';
 import type { SystemVars } from './lib/chatStore';
-import { AdminPage } from '@/components/AdminPage';
+import { I18nProvider } from './lib/i18n';
+// import { Globe } from '@/components/Globe'
+import { AgentMockControls } from '@/components/AgentMockControls';
 
 function App() {
   const location = useLocation();
@@ -58,8 +59,8 @@ function App() {
 
   const showingSetup = showSetup || !store.activeChat;
 
-  const origin = store.activeChat?.systemVars.origin_country ?? '';
-  const destination = store.activeChat?.systemVars.destination_country ?? '';
+  // const origin = store.activeChat?.systemVars.origin_country ?? ''
+  // const destination = store.activeChat?.systemVars.destination_country ?? ''
 
   return (
     <I18nProvider>
@@ -80,9 +81,9 @@ function App() {
 
         {/* Right panel - globe background + content overlay */}
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="absolute inset-0 z-0 opacity-80">
+          {/* <div className="absolute inset-0 z-0 opacity-80">
             <Globe origin={origin} destination={destination} className="h-full w-full" />
-          </div>
+          </div> */}
 
           <div className="relative z-10 flex min-h-0 flex-1 flex-col">
             {showingSetup ? (
@@ -92,6 +93,8 @@ function App() {
             )}
           </div>
         </div>
+
+        <AgentMockControls />
       </div>
     </I18nProvider>
   );

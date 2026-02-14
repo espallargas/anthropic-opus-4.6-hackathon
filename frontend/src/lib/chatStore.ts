@@ -6,11 +6,50 @@ export interface ToolCall {
   status: 'calling' | 'done' | 'error';
 }
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface AgentToolCall {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  status: 'calling' | 'done' | 'error';
+}
+
+export interface AgentExecution {
+  agentName: string;
+  agentLabel: string;
+  task: string;
+  status: 'running' | 'done' | 'error';
+  toolCalls: AgentToolCall[];
+  tokens?: string;
+  resultSummary?: string;
+  usage?: TokenUsage;
+  durationMs?: number;
+}
+
+export interface UsageReport {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  agentUsage: Record<string, TokenUsage>;
+}
+
+export interface ThinkingBlock {
+  content: string;
+  status: 'thinking' | 'done';
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   toolCalls?: ToolCall[];
+  agentExecutions?: AgentExecution[];
+  usageReport?: UsageReport;
+  thinking?: ThinkingBlock;
 }
 
 export interface SystemVars {
