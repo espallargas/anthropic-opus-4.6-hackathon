@@ -206,11 +206,6 @@ export function CrawlProgressBox({
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
-    // Log all message types to debug
-    if (data.type !== 'claude_text' && data.type !== 'thinking') {
-      console.log(`%c[SSE] ${data.type}`, 'color: #8b5cf6; font-size: 11px', data)
-    }
-
     if (data.type === 'thinking') {
       const text = (data.text as string) || ''
       const type = (data.thinking_type as string) || null
@@ -284,11 +279,6 @@ export function CrawlProgressBox({
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0
 
-      console.log(
-        `%c✅ [SEARCH_DONE] ${category} - ${resultCount} results`,
-        'color: #10b981; font-weight: bold; font-size: 12px',
-      )
-
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
@@ -307,15 +297,11 @@ export function CrawlProgressBox({
       const category = data.category as string
       const itemCount = (data.item_count as number) || 0
 
-      console.log(
-        `%c✨ [PARSE_COMPLETE] ${category} - ${itemCount} items parsed`,
-        'color: #a78bfa; font-weight: bold; font-size: 12px',
-      )
+      console.log(`[PARSE_COMPLETE] ${category} - ${itemCount} items`)
 
-      setCategories((prev) => {
-        const updated = prev.map((cat) => {
+      setCategories((prev) =>
+        prev.map((cat) => {
           if (cat.name === category) {
-            console.log(`%c✅ Updated ${category} -> legislationsParsed: true`, 'color: #10b981')
             return {
               ...cat,
               legislationsParsed: true,
@@ -323,10 +309,8 @@ export function CrawlProgressBox({
             }
           }
           return cat
-        })
-        console.log('Categories after parse_complete:', updated)
-        return updated
-      })
+        }),
+      )
     } else if (data.type === 'phase') {
       const message = data.message as string
       if (message) {

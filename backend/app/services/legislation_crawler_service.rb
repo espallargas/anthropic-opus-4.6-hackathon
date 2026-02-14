@@ -790,8 +790,6 @@ class LegislationCrawlerService
   def emit_search_results_post_stream(response)
     # FALLBACK: Emit search_results after streaming if they weren't emitted during streaming
     # This ensures categories are always marked as 'done' even if streaming logic fails
-    Rails.logger.info("[POST-STREAM] emit_search_results_post_stream called")
-    Rails.logger.info("[POST-STREAM] SSE is nil? #{@sse.nil?}")
 
     category_map = {
       'federal_laws' => 'Federal Laws',
@@ -804,18 +802,14 @@ class LegislationCrawlerService
 
     # Find text blocks
     text_blocks = response.content.select { |block| block.type == :text }
-    Rails.logger.info("[POST-STREAM] Found #{text_blocks.length} text blocks")
-
     return if text_blocks.empty?
 
     # Try to parse JSON from concatenated text
     full_text = text_blocks.map { |block| block.text }.join("\n")
-    Rails.logger.info("[POST-STREAM] Full text length: #{full_text.length} chars")
 
     begin
       # Extract JSON from the text
       json_match = full_text.match(/\{[\s\S]*\}/)
-      Rails.logger.info("[POST-STREAM] JSON match found: #{!json_match.nil?}")
       return unless json_match
 
       json_str = json_match[0]
@@ -823,48 +817,33 @@ class LegislationCrawlerService
 
       return unless data.is_a?(Hash)
 
-      # Emit search_result for each category with actual count from parsed data
-      Rails.logger.info("[POST-STREAM] Emitting search results for all categories")
+      # Emit category_parse_complete for each category with actual count from parsed data
       category_map.each do |category_key, category_label|
         items = data[category_key] || []
         count = items.is_a?(Array) ? items.length : 0
 
-        Rails.logger.info("[POST-STREAM] Emitting search_result: #{category_label} (#{count} items)")
-        begin
-          emit(:search_result, category: category_label, result_count: count)
-          Rails.logger.info("[POST-STREAM] ✓ Sent search_result for #{category_label}")
-        rescue => e
-          Rails.logger.warn("[POST-STREAM] ✗ Failed to emit search_result for #{category_label}: #{e.message}")
-        end
-
-        # Immediately emit category_parse_complete since we have parsed all items from the JSON
         unless @parse_complete_emitted.include?(category_label)
-          Rails.logger.info("[POST-STREAM] Emitting category_parse_complete: #{category_label} (#{count} items)")
           begin
             emit(:category_parse_complete, category: category_label, item_count: count)
-            Rails.logger.info("[POST-STREAM] ✓ Sent category_parse_complete for #{category_label}")
+            Rails.logger.info("[PARSE_COMPLETE] #{category_label}")
             @parse_complete_emitted.add(category_label)
           rescue => emit_error
-            Rails.logger.warn("[POST-STREAM] ✗ Failed to emit category_parse_complete for #{category_label}: #{emit_error.message}")
-            Rails.logger.warn(emit_error.backtrace.first(5).join("\n"))
+            Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
           end
-        else
-          Rails.logger.info("[POST-STREAM] Skipping duplicate category_parse_complete for #{category_label}")
         end
       end
     rescue => e
-      Rails.logger.warn("[POST-STREAM] Error parsing JSON or emitting results: #{e.message}")
+      Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}")
       # Fallback: emit 0 results for all categories
-      Rails.logger.info("[POST-STREAM] FALLBACK: Emitting 0 results for all categories")
       category_map.each do |_category_key, category_label|
-        begin
-          emit(:search_result, category: category_label, result_count: 0)
-          unless @parse_complete_emitted.include?(category_label)
+        unless @parse_complete_emitted.include?(category_label)
+          begin
             emit(:category_parse_complete, category: category_label, item_count: 0)
+            Rails.logger.info("[PARSE_COMPLETE_FALLBACK] #{category_label}")
             @parse_complete_emitted.add(category_label)
+          rescue => emit_error
+            Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
           end
-        rescue => emit_error
-          Rails.logger.warn("[POST-STREAM] Failed to emit results for #{category_label}: #{emit_error.message}")
         end
       end
     end
