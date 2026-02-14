@@ -232,44 +232,39 @@ class LegislationCrawlerService
       'occupation' => 'Auxiliary'
     }
 
-    # Track which web_search_tool_results we've seen to emit search_started
-    web_search_result_indices = Set.new
-    emitted_search_started = {}
+    # Track which web_search server_tool_use blocks we've seen to emit search_started
+    server_tool_use_indices = Set.new
+    category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
 
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
 
-      # Only log content_block_start for web search debugging
+      # Detect server_tool_use (web_search) blocks and emit search_started immediately
       if event.type.to_s == 'content_block_start'
         block_type = event.content_block.type
         puts "⏹️  [CONTENT_BLOCK_START] type=#{block_type} index=#{event.index}"
-        $stdout.flush
 
-        if block_type == 'web_search_tool_result'
-          result_index = event.index
-          puts "🌐🌐🌐 [WEB_SEARCH_RESULT DETECTED] at index #{result_index}!"
+        # Emit search_started when we detect a server_tool_use web_search
+        if block_type == 'server_tool_use'
+          tool_name = event.content_block.name rescue 'N/A'
+          puts "🔧 [SERVER_TOOL_USE] #{tool_name}"
           $stdout.flush
-          Rails.logger.info("       🌐 WEB_SEARCH_RESULT arrived at index #{result_index}!")
 
-          # This is a real web search result arriving!
-          # Emit search_started + search_result for the corresponding category
-          if !web_search_result_indices.include?(result_index)
-            web_search_result_indices.add(result_index)
+          # If this is a web_search tool, emit search_started for the corresponding category
+          if tool_name == 'web_search' && !server_tool_use_indices.include?(event.index)
+            server_tool_use_indices.add(event.index)
 
-            # Determine which category this is (1st, 2nd, 3rd result, etc)
-            category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
-            if result_index < category_list.length
-              category = category_list[result_index]
-              puts "📢 Emitting search_started for #{category}"
+            # Map index to category (0->Federal Laws, 1->Regulations, etc)
+            search_num = server_tool_use_indices.size
+            if search_num <= category_list.length
+              category = category_list[search_num - 1]
+              puts "📢 Emitting search_started for #{category} (search #{search_num}/6)"
               $stdout.flush
-              Rails.logger.info("       📢 Emitting search_started for #{category}")
-              emit(:search_started, category: category, query: "Searching #{category}...", index: result_index + 1, total: 6)
+              Rails.logger.info("       📢 Emitting search_started for #{category} (search #{search_num}/6)")
+              emit(:search_started, category: category, query: "Searching #{category}...", index: search_num, total: 6)
             end
           end
-        elsif block_type == 'server_tool_use'
-          puts "🔧 [SERVER_TOOL_USE] #{event.content_block.name}"
-          $stdout.flush
         end
       end
 
@@ -295,38 +290,6 @@ class LegislationCrawlerService
         end
       end
 
-      # Detect web_search tool use start (if present in events) - OLD METHOD, NOT WORKING
-      # Keeping for reference but not logging
-      if event.type.to_s == 'content_block_start'
-        if event.content_block.type == 'tool_use'
-          if event.content_block.name == 'web_search'
-            search_count += 1
-            current_search_id = event.content_block.id
-          end
-        end
-      end
-
-      # Emit search_started when we detect web_search tool_use start - OLD METHOD
-      if event.type.to_s == 'content_block_delta' && current_search_id
-        if event.delta.respond_to?(:input) && event.delta.input
-          input_text = event.delta.input.to_s
-          if input_text.length > 5 && !search_started_ids.include?(current_search_id)
-            search_started_ids.add(current_search_id)
-
-            # Infer category from input query
-            category = 'Federal Laws'
-            category_map.each do |keyword, cat_name|
-              if input_text.downcase.include?(keyword.downcase)
-                category = cat_name
-                break
-              end
-            end
-
-            emit(:phase, message: "🔍 Searching: #{category}")
-            emit(:search_started, operation_id: operation_id, category: category, query: input_text, index: search_count, total: 6)
-          end
-        end
-      end
 
       # Detect final text block completion - when we have JSON results
       # This is the earliest moment we can emit results while still streaming
@@ -564,7 +527,7 @@ class LegislationCrawlerService
 
       CONSTRAINTS:
       - Use ONLY information from web_search results
-      - Each category: 1-3 entries maximum
+      - Each category: Include all relevant entries (no limit)
       - Use exact official law names, not generic descriptions
       - Return ONLY valid JSON (no markdown, no text before/after)
     PROMPT
