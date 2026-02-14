@@ -451,10 +451,13 @@ export function CrawlProgressBox({
 
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left panel: Thinking (40%) + Categories (60%) */}
+        {/* Left panel: Thinking (compact) + Categories (large) */}
         <div className="flex min-h-0 w-[40%] flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
-          {/* Thinking panel */}
-          <div className="min-h-0 flex-1 overflow-hidden border-b border-white/10">
+          {/* Thinking panel - compact */}
+          <div
+            className="min-h-0 flex-none overflow-hidden border-b border-white/10"
+            style={{ height: '80px' }}
+          >
             <ThinkingPanel
               thinkingText={thinkingText}
               inputTokens={inputTokens}
@@ -462,7 +465,7 @@ export function CrawlProgressBox({
             />
           </div>
 
-          {/* Categories Panel */}
+          {/* Categories Panel - takes remaining space */}
           <div className="min-h-0 flex-1 overflow-hidden">
             <CategoriesPanel categories={categories} />
           </div>
