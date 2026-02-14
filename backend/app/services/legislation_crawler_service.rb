@@ -218,6 +218,10 @@ class LegislationCrawlerService
       'occupation' => 'Auxiliary'
     }
 
+    # Track which web_search_tool_results we've seen to emit search_started
+    web_search_result_indices = Set.new
+    emitted_search_started = {}
+
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
@@ -225,6 +229,31 @@ class LegislationCrawlerService
       # VERBOSE LOGGING - Every single event
       Rails.logger.info("🔵 [RAW EVENT ##{event_count}] Type: #{event.type.inspect}")
       log_event_details(event, event_count)
+
+      # Detect web_search_tool_result arriving - this means a search just completed!
+      if event.type.to_s == 'content_block_start'
+        block_type = event.content_block.type
+        Rails.logger.info("   >>> CONTENT_BLOCK_START: type=#{block_type}")
+
+        if block_type == 'web_search_tool_result'
+          result_index = event.index
+          Rails.logger.info("       🌐 WEB_SEARCH_RESULT arrived at index #{result_index}!")
+
+          # This is a real web search result arriving!
+          # Emit search_started + search_result for the corresponding category
+          if !web_search_result_indices.include?(result_index)
+            web_search_result_indices.add(result_index)
+
+            # Determine which category this is (1st, 2nd, 3rd result, etc)
+            category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
+            if result_index < category_list.length
+              category = category_list[result_index]
+              Rails.logger.info("       📢 Emitting search_started for #{category}")
+              emit(:search_started, category: category, query: "Searching #{category}...", index: result_index + 1, total: 6)
+            end
+          end
+        end
+      end
 
       # Emit thinking blocks in real-time (every chunk)
       if event.type.to_s == 'content_block_delta'

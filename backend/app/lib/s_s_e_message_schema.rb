@@ -10,6 +10,7 @@ module SSEMessageSchema
     # Web search execution
     search_started: { fields: [:operation_id, :category, :query, :index, :total], required_fields: [:category, :query] },
     search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:category, :result_count] },
+    web_search_result: { fields: [:category, :title, :url, :snippet, :index, :total], required_fields: [:title, :url] },
     search: { fields: [:count, :total, :category, :query], required_fields: [:count, :total, :query] },
 
     # Claude thinking (structured for UI rendering, linked via operation_id)
