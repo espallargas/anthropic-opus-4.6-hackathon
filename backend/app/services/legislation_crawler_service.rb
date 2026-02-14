@@ -233,22 +233,40 @@ class LegislationCrawlerService
       event_type = event.type.to_s
       if event_type == 'content_block_start'
         block_type = event.content_block.type.to_s
-        puts "[BLOCK_START] type=#{block_type.inspect}, index=#{event.index}"
-        $stdout.flush
 
         # Detect web_search_tool_result which indicates a search happened
         if block_type == 'web_search_tool_result' && !server_tool_use_indices.include?(event.index)
           server_tool_use_indices.add(event.index)
           search_num = server_tool_use_indices.size
+
+          # Try to count results from the content
+          result_count = 0
+          if event.content_block.respond_to?(:content) && event.content_block.content
+            content = event.content_block.content
+            # Count result objects in the content
+            if content.is_a?(Array)
+              result_count = content.length
+            elsif content.is_a?(String) && content.include?('[')
+              # Try to parse as JSON array to count
+              begin
+                parsed = JSON.parse(content)
+                result_count = parsed.is_a?(Array) ? parsed.length : 0
+              rescue
+                # Fallback: count by occurrences of "title" field
+                result_count = content.scan(/"title"/).length
+              end
+            end
+          end
+
           if search_num <= category_list.length
             category = category_list[search_num - 1]
-            puts "[SEARCH_DETECTED] #{category} (#{search_num}/6)"
+            puts "[SEARCH_DONE] #{category} (#{search_num}/6) - #{result_count} results"
             $stdout.flush
-            Rails.logger.info("[SEARCH_STARTED] #{category} (#{search_num}/6)")
+            Rails.logger.info("[SEARCH_DONE] #{category} (#{search_num}/6) - #{result_count} results")
 
-            emit(:search_started,
+            emit(:search_result,
               category: category,
-              query: "Searching #{category}...",
+              result_count: result_count,
               index: search_num,
               total: 6
             )
