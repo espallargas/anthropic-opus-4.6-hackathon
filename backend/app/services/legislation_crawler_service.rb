@@ -247,10 +247,14 @@ class LegislationCrawlerService
       # Detect web_search_tool_result arriving - this means a search just completed!
       if event.type.to_s == 'content_block_start'
         block_type = event.content_block.type
+        puts "🔵 [CONTENT_BLOCK_START] type=#{block_type} index=#{event.index}"
+        $stdout.flush
         Rails.logger.info("   >>> CONTENT_BLOCK_START: type=#{block_type}")
 
         if block_type == 'web_search_tool_result'
           result_index = event.index
+          puts "🌐🌐🌐 [WEB_SEARCH_RESULT DETECTED] at index #{result_index}!"
+          $stdout.flush
           Rails.logger.info("       🌐 WEB_SEARCH_RESULT arrived at index #{result_index}!")
 
           # This is a real web search result arriving!
@@ -262,10 +266,15 @@ class LegislationCrawlerService
             category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
             if result_index < category_list.length
               category = category_list[result_index]
+              puts "📢 Emitting search_started for #{category}"
+              $stdout.flush
               Rails.logger.info("       📢 Emitting search_started for #{category}")
               emit(:search_started, category: category, query: "Searching #{category}...", index: result_index + 1, total: 6)
             end
           end
+        elsif block_type == 'server_tool_use'
+          puts "🔧 [SERVER_TOOL_USE] #{event.content_block.name}"
+          $stdout.flush
         end
       end
 
