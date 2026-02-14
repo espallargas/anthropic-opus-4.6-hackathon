@@ -18,21 +18,27 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
     }
   }, [outputText])
 
-  const isJSON = outputText.trim().startsWith('{') || outputText.trim().startsWith('[')
+  // Remove markdown code block markers if present (```json ... ```)
+  const cleanText = outputText
+    .replace(/^```(?:json)?\n?/, '')
+    .replace(/\n?```$/, '')
+    .trim()
+
+  const isJSON = cleanText.startsWith('{') || cleanText.startsWith('[')
 
   // Format JSON for display with proper indentation
   const formattedText = isJSON
     ? (() => {
         try {
           // Parse and re-stringify to ensure proper formatting
-          const parsed = JSON.parse(outputText)
+          const parsed = JSON.parse(cleanText)
           return JSON.stringify(parsed, null, 2)
         } catch {
           // If parsing fails, return as-is
-          return outputText
+          return cleanText
         }
       })()
-    : outputText
+    : cleanText
 
   return (
     <div className="flex h-full flex-col border-r border-white/10 bg-green-500/5">
