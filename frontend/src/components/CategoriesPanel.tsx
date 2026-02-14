@@ -95,6 +95,18 @@ function getParsingColors(
 }
 
 export function CategoriesPanel({ categories }: CategoriesPanelProps) {
+  // Debug: log all categories state
+  console.log(
+    '%c[CATEGORIES_STATE]',
+    'color: #f59e0b; font-weight: bold',
+    categories.map((c) => ({
+      name: c.name,
+      itemsBeingDocumented: c.itemsBeingDocumented,
+      legislationsParsed: c.legislationsParsed,
+      webResultsCrawled: c.webResultsCrawled,
+    })),
+  )
+
   return (
     <div className="flex h-full flex-col bg-black/30">
       {/* Header */}
