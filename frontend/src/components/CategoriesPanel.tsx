@@ -44,6 +44,56 @@ const STATUS_ICONS = {
   error: <AlertCircle className="h-3 w-3" />,
 }
 
+// Get color based on parsing state
+function getParsingColors(
+  itemsBeingDocumented?: number,
+  legislationsParsed?: boolean,
+  webResultsCrawled?: boolean,
+): { icon: string; text: string; spinner: string } {
+  // Parsing complete → green
+  if (legislationsParsed) {
+    return {
+      icon: 'text-emerald-400',
+      text: 'text-emerald-300',
+      spinner: 'text-emerald-400',
+    }
+  }
+
+  // Parsing in progress → yellow to amber gradient
+  if (itemsBeingDocumented && itemsBeingDocumented > 0) {
+    // If more items found, use more amber (further along)
+    if (itemsBeingDocumented > 10) {
+      return {
+        icon: 'text-amber-500',
+        text: 'text-amber-300',
+        spinner: 'text-amber-500',
+      }
+    }
+    // Early in parsing, bright yellow
+    return {
+      icon: 'text-yellow-400',
+      text: 'text-yellow-300',
+      spinner: 'text-yellow-400',
+    }
+  }
+
+  // Web crawled but not parsing yet → purple
+  if (webResultsCrawled) {
+    return {
+      icon: 'text-violet-400',
+      text: 'text-violet-300',
+      spinner: 'text-violet-400',
+    }
+  }
+
+  // Default (pending/searching)
+  return {
+    icon: 'text-white/50',
+    text: 'text-white/50',
+    spinner: 'text-blue-400',
+  }
+}
+
 export function CategoriesPanel({ categories }: CategoriesPanelProps) {
   return (
     <div className="flex h-full flex-col bg-black/30">
@@ -62,20 +112,26 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
             <div className="flex items-start gap-2.5">
               {/* Status icon - color changes based on what's been completed */}
               <div className="mt-0.5 flex-shrink-0 text-current">
-                {category.itemsBeingDocumented &&
-                category.itemsBeingDocumented > 0 &&
-                !category.legislationsParsed ? (
-                  // Loading while parsing
-                  <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
-                ) : category.legislationsParsed ? (
-                  // Green checkmark when legislations parsed
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                ) : category.webResultsCrawled ? (
-                  // Purple checkmark when web results crawled
-                  <CheckCircle2 className="h-3 w-3 text-violet-400" />
-                ) : (
-                  STATUS_ICONS[category.status]
-                )}
+                {(() => {
+                  const colors = getParsingColors(
+                    category.itemsBeingDocumented,
+                    category.legislationsParsed,
+                    category.webResultsCrawled,
+                  )
+
+                  if (category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && !category.legislationsParsed) {
+                    // Loading while parsing - gradient yellow/amber
+                    return <Loader2 className={`h-3 w-3 animate-spin ${colors.spinner}`} />
+                  } else if (category.legislationsParsed) {
+                    // Green checkmark when legislations parsed
+                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />
+                  } else if (category.webResultsCrawled) {
+                    // Purple checkmark when web results crawled
+                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />
+                  } else {
+                    return STATUS_ICONS[category.status]
+                  }
+                })()}
               </div>
 
               {/* Category info */}
@@ -83,13 +139,14 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 <div className="flex items-center gap-2">
                   <p
                     className={`truncate text-xs font-medium ${
-                      category.itemsBeingDocumented && category.itemsBeingDocumented > 0
-                        ? 'text-emerald-300'
-                        : category.legislationsParsed
-                          ? 'text-emerald-300'
-                          : category.webResultsCrawled
-                            ? 'text-violet-300'
-                            : 'text-current'
+                      (() => {
+                        const colors = getParsingColors(
+                          category.itemsBeingDocumented,
+                          category.legislationsParsed,
+                          category.webResultsCrawled,
+                        )
+                        return colors.text
+                      })()
                     }`}
                   >
                     {category.name}
@@ -149,8 +206,21 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
                 {/* Show legislations being parsed - hide web results when parsing starts */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span className="text-xs font-medium text-emerald-300">
-                    {category.itemsBeingDocumented} legislations parsed
+                  <span
+                    className={`text-xs font-medium ${
+                      (() => {
+                        const colors = getParsingColors(
+                          category.itemsBeingDocumented,
+                          category.legislationsParsed,
+                          category.webResultsCrawled,
+                        )
+                        return colors.text
+                      })()
+                    }`}
+                  >
+                    {category.legislationsParsed
+                      ? `${category.itemsBeingDocumented} legislations`
+                      : `${category.itemsBeingDocumented} legislations being parsed`}
                   </span>
                 )}
               </div>
