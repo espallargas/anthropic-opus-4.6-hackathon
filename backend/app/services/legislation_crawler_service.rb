@@ -237,14 +237,21 @@ class LegislationCrawlerService
       event_count += 1
 
       # DEBUG: Log ALL event types
-      puts "EVENT ##{event_count}: type=#{event.type.to_s}"
+      event_type_str = event.type.to_s
+      puts "EVENT ##{event_count}: type=#{event_type_str}"
       $stdout.flush
 
       # Check for server_tool_use BEFORE it's added to collector
       # This happens during content_block_start
-      if event.type.to_s == 'content_block_start'
+      if event_type_str == 'content_block_start'
+        puts "  → Entered content_block_start branch"
+        $stdout.flush
+
         begin
           block_type = event.content_block.type
+          puts "  → block_type = #{block_type}"
+          $stdout.flush
+
           if block_type == 'server_tool_use'
             tool_name = event.content_block.name rescue 'N/A'
             puts "\n" + ("*" * 80)
@@ -256,7 +263,7 @@ class LegislationCrawlerService
             $stdout.flush
           end
         rescue => e
-          puts "Error checking content_block: #{e.message}"
+          puts "Error checking content_block: #{e.class} - #{e.message}"
           $stdout.flush
         end
       end
