@@ -102,9 +102,7 @@ export function CrawlProgressBox({
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
 
   // Helper function to count items in partial JSON by category
-  const parsePartialJSONByCategory = (
-    jsonText: string,
-  ): Record<string, number> => {
+  const parsePartialJSONByCategory = (jsonText: string): Record<string, number> => {
     const categoryMap: Record<string, number> = {
       federal_laws: 0,
       regulations: 0,
@@ -135,8 +133,7 @@ export function CrawlProgressBox({
 
             const arrayContent = jsonText.substring(startIdx, endIdx)
             // Count objects with "title" field
-            const itemCount = (arrayContent.match(/\{[^}]*"title"/g) || [])
-              .length
+            const itemCount = (arrayContent.match(/\{[^}]*"title"/g) || []).length
             categoryMap[key] = itemCount
           }
         }
@@ -171,7 +168,6 @@ export function CrawlProgressBox({
     if (claudeOutputText) {
       const itemCount = countItemsInPartialJSON(claudeOutputText)
       if (itemCount > itemsFoundCount) {
-        console.log('[ITEMS_COUNTER] Found', itemCount, 'items so far')
         setItemsFoundCount(itemCount)
       }
 
@@ -195,18 +191,14 @@ export function CrawlProgressBox({
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
-    console.log(`[SSE] Message type: ${data.type}`, data)
-
     if (data.type === 'thinking') {
       const text = (data.text as string) || ''
       if (text) {
-        console.log('[THINKING] Updating with:', text.slice(0, 50))
         setThinkingText((prev) => prev + text)
       }
     } else if (data.type === 'claude_text') {
       const text = (data.text as string) || ''
       if (text) {
-        console.log('[CLAUDE_OUTPUT] Updating with:', text.slice(0, 50))
         setClaudeOutputText((prev) => prev + text)
       }
     } else if (data.type === 'search_started') {
@@ -214,19 +206,15 @@ export function CrawlProgressBox({
       const query = (data.query as string) || ''
       const searchIndex = (data.index as number) || 0
       const searchTotal = (data.total as number) || 6
-      const message = (data.message as string) || ''
 
-      console.log('%c🔴 [SEARCH_STARTED]', 'color: red; font-weight: bold; font-size: 14px')
-      console.log('Category:', category)
-      console.log('Index:', searchIndex, 'of', searchTotal)
-      console.log('Query:', query)
-      console.log('Message:', message)
-      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: red')
+      console.log(
+        `%c🔍 [SEARCH_STARTED] ${category} (${searchIndex}/${searchTotal})`,
+        'color: #3b82f6; font-weight: bold; font-size: 12px',
+      )
 
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log(`%c✅ Marked ${category} as searching`, 'color: green; font-weight: bold')
             return {
               ...cat,
               status: 'searching' as CategoryStatus,
@@ -246,9 +234,7 @@ export function CrawlProgressBox({
       const snippet = (data.snippet as string) || ''
       const index = (data.index as number) || 0
       const total = (data.total as number) || 0
-      console.log('[WEB_SEARCH_RESULT]', category, '-', index, 'of', total, ':', title)
 
-      // Store web search result in the specific category
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
@@ -271,7 +257,6 @@ export function CrawlProgressBox({
         }),
       )
 
-      // Also show in status messages
       setStatusMessages((prev) => [
         ...prev,
         `🌐 ${category}: ${index}/${total} - ${title.substring(0, 40)}...`,
@@ -280,20 +265,19 @@ export function CrawlProgressBox({
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0
 
-      console.log('%c🟢 [SEARCH_RESULT]', 'color: green; font-weight: bold; font-size: 14px')
-      console.log('Category:', category)
-      console.log('Result Count:', resultCount)
-      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: green')
+      console.log(
+        `%c✅ [SEARCH_DONE] ${category} - ${resultCount} results`,
+        'color: #10b981; font-weight: bold; font-size: 12px',
+      )
 
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log(`%c✅ Marked ${category} as DONE with ${resultCount} results`, 'color: lime; font-weight: bold')
             return {
               ...cat,
               status: 'done' as CategoryStatus,
               resultCount,
-              searchQuery: undefined, // Clear query on completion
+              searchQuery: undefined,
             }
           }
           return cat
@@ -302,28 +286,23 @@ export function CrawlProgressBox({
     } else if (data.type === 'phase') {
       const message = data.message as string
       if (message) {
-        console.log('[PHASE]', message)
         setStatusMessages((prev) => [...prev, message])
       }
     } else if (data.type === 'tokens') {
       const inputTokens = (data.input_tokens as number) || 0
       const outputTokens = (data.output_tokens as number) || 0
-      console.log('[TOKENS] Input:', inputTokens, 'Output:', outputTokens)
       setInputTokens(inputTokens)
       setOutputTokens(outputTokens)
     } else if (data.type === 'complete') {
       const count = (data.document_count as number) || 0
-      console.log('[COMPLETE] Documents:', count)
       setDocumentCount(count)
       setIsComplete(true)
       setTimeout(() => onCompleteRef.current(), 1200)
     } else if (data.type === 'batch_saved') {
       const count = (data.total_saved as number) || 0
-      console.log('[BATCH_SAVED] Total:', count)
       setDocumentCount(count)
     } else if (data.type === 'error') {
       const msg = data.message as string
-      console.log('[ERROR]', msg)
       setStatusMessages((prev) => [...prev, `Error: ${msg}`])
       setCategories((prev) =>
         prev.map((cat) =>
@@ -332,8 +311,6 @@ export function CrawlProgressBox({
       )
       setIsComplete(true)
       setTimeout(() => onCompleteRef.current(), 1500)
-    } else {
-      console.log('[SSE] Unhandled message type:', data.type)
     }
   }, [])
 
@@ -344,14 +321,12 @@ export function CrawlProgressBox({
 
   useEffect(() => {
     if (crawlStartedRef.current) {
-      console.warn(`[CrawlProgressBox] ⚠️ DUPLICATE: Crawl already started for ${countryCode}`)
       return
     }
     crawlStartedRef.current = true
 
     const startCrawl = async () => {
       try {
-        console.log(`[CrawlProgressBox] ✅ Starting crawl for ${countryCode}`)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 300000)
 
@@ -385,7 +360,6 @@ export function CrawlProgressBox({
         while (true) {
           const { done, value } = await reader.read()
           if (done) {
-            console.log(`[SSE] ✓ Stream ended. Total messages received: ${messageCount}`)
             break
           }
 
@@ -399,20 +373,13 @@ export function CrawlProgressBox({
               try {
                 messageCount++
                 const jsonStr = line.slice(6)
-                console.log(`[SSE] Raw message #${messageCount}: ${jsonStr.slice(0, 100)}`)
                 const data = JSON.parse(jsonStr) as SSEMessage
-                console.log(`[SSE] ✓ Parsed #${messageCount}: type=${data.type}`)
                 if (processMessageRef.current) {
-                  console.log(`[SSE] Calling processMessage for ${data.type}`)
                   processMessageRef.current(data)
-                } else {
-                  console.error(`[SSE] ✗ processMessageRef.current is null!`)
                 }
               } catch (e) {
-                console.error('[SSE] ✗ Parse error:', e, 'line:', line.slice(0, 100))
+                console.error('[SSE] Parse error:', (e as Error).message)
               }
-            } else if (line.length > 0) {
-              console.log(`[SSE] Skipping non-data line: ${line.slice(0, 50)}`)
             }
           }
         }

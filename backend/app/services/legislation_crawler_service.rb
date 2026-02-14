@@ -22,6 +22,7 @@ class LegislationCrawlerService
       message = ::SSEMessageSchema.format(type, data)
       if @sse
         @sse.write(message)
+        Rails.logger.info("[EMIT] #{type}") if type == 'search_started'
       else
         Rails.logger.warn("[✗ SSE_NIL] Cannot send #{type} - SSE is nil")
       end
@@ -221,31 +222,20 @@ class LegislationCrawlerService
     stream_response.each do |event|
       event_count += 1
 
-      # Log only content_block_start for debugging
+      # Detect server_tool_use web_search blocks during streaming
       event_type = event.type.to_s
       if event_type == 'content_block_start'
         block_type = event.content_block.type.to_s
-        puts "[EVENT] content_block_start index=#{event.index} block_type=#{block_type}"
-        $stdout.flush
 
-        # Emit search_started when we detect a server_tool_use web_search
         if block_type == 'server_tool_use'
           tool_name = event.content_block.name rescue 'N/A'
-          puts "[SERVER_TOOL_USE] DETECTED! name=#{tool_name}, index=#{event.index}"
-          $stdout.flush
-          Rails.logger.info("[SERVER_TOOL_USE] DETECTED! name=#{tool_name}, index=#{event.index}")
 
-          # If this is a web_search tool, emit search_started for the corresponding category
           if tool_name == 'web_search' && !server_tool_use_indices.include?(event.index)
             server_tool_use_indices.add(event.index)
-
-            # Map index to category (0->Federal Laws, 1->Regulations, etc)
             search_num = server_tool_use_indices.size
             if search_num <= category_list.length
               category = category_list[search_num - 1]
-
-              puts "[REAL_TIME] Emitting search_started NOW for #{category} (#{search_num}/6)"
-              $stdout.flush
+              Rails.logger.info("[SEARCH_STARTED] #{category} (#{search_num}/6)")
 
               emit(:search_started,
                 category: category,
@@ -289,16 +279,8 @@ class LegislationCrawlerService
         emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
       end
 
-      # Message stop
-      if event.type.to_s == 'message_stop'
-        Rails.logger.info("  📨 MESSAGE_STOP detected")
-      end
-
       collector.add_event(event)
     end
-
-    puts "✅ Stream loop completed - #{event_count} events processed"
-    $stdout.flush
 
     collector
   end
