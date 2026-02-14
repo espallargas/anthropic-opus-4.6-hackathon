@@ -270,6 +270,38 @@ export function getCountryNameLocalized(
   return countryCentroids[code]?.name ?? code.toUpperCase();
 }
 
+// Portuguese prepositions for country names: "na" (feminine), "no" (masculine),
+// "nos" (masc. plural), "nas" (fem. plural), "em" (no article)
+const PT_PREPOSITION: Record<string, string> = Object.fromEntries(
+  [
+    // "em" — countries without article
+    ...['PT', 'SG', 'HK', 'IL', 'CU', 'MZ', 'TW', 'TT', 'BB', 'BZ', 'SV', 'HN', 'FJ', 'MT'].map(
+      (c) => [c, 'em'],
+    ),
+    // "nos" — masculine plural
+    ...['US', 'AE'].map((c) => [c, 'nos']),
+    // "nas" — feminine plural
+    ...['PH'].map((c) => [c, 'nas']),
+    // "na" — feminine singular
+    ...[
+      'DE', 'FR', 'AU', 'CN', 'IN', 'ES', 'IT', 'NL', 'SE', 'CH', 'AT', 'BE', 'GR', 'NZ',
+      'KR', 'TH', 'MY', 'ID', 'AR', 'CO', 'ZA', 'NG', 'SA', 'TR', 'RU', 'UA', 'PL', 'CZ',
+      'HU', 'RO', 'BG', 'HR', 'IE', 'DK', 'FI', 'NO', 'NF', 'IS', 'LV', 'LT', 'EE', 'SK',
+      'SI', 'GE', 'AM', 'TZ', 'CI', 'TN', 'DZ', 'JO', 'SY', 'VE', 'BO', 'CR', 'DO', 'JM',
+      'GY', 'GT', 'NI',
+    ].map((c) => [c, 'na']),
+    // Everything else defaults to "no" (masculine singular)
+  ],
+);
+
+export function getCountryPreposition(
+  code: string,
+  locale: string,
+): string {
+  if (locale === 'en') return 'in';
+  return PT_PREPOSITION[code.toUpperCase()] ?? 'no';
+}
+
 export function countryCodeToFlag(code: string): string {
   return code
     .toUpperCase()

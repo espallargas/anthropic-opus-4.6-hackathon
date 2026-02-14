@@ -1,14 +1,7 @@
 import { useState } from 'react';
-import {
-  Activity,
-  Wifi,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plus,
-  Trash2,
-  MessageSquare,
-} from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Plus, Trash2, MessageSquare } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { getCountryNameLocalized, getCountryPreposition } from '@/lib/countries';
 import type { Chat } from '@/lib/chatStore';
 
 interface SidebarProps {
@@ -17,25 +10,18 @@ interface SidebarProps {
   onSelectChat: (id: string) => void;
   onNewChat: () => void;
   onDeleteChat: (id: string) => void;
-  status: {
-    health: string | null;
-    healthRtt: number | null;
-    wsStatus: string;
-    wsRoundTripMs: number | null;
-  };
 }
 
-function statusDot(state: 'ok' | 'connected' | 'error' | 'disconnected' | string | null) {
-  if (state === 'ok' || state === 'connected') return 'bg-green-400';
-  if (state === 'error' || state === 'disconnected') return 'bg-red-400';
-  return 'animate-pulse bg-yellow-400';
-}
-
-function chatLabel(chat: Chat): string {
+function chatLabel(chat: Chat, t: (key: string) => string, locale: string): string {
   const dest = chat.systemVars.destination_country;
   const obj = chat.systemVars.objective;
-  if (dest && obj) return `${dest} - ${obj}`;
-  return dest || obj || chat.id.slice(0, 8);
+  if (dest && obj) {
+    const name = getCountryNameLocalized(dest, t);
+    const prep = getCountryPreposition(dest, locale);
+    return `${obj} ${prep} ${name}`;
+  }
+  if (dest) return getCountryNameLocalized(dest, t);
+  return obj || chat.id.slice(0, 8);
 }
 
 export function Sidebar({
@@ -44,36 +30,25 @@ export function Sidebar({
   onSelectChat,
   onNewChat,
   onDeleteChat,
-  status,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { t } = useI18n();
-
-  const apiLabel =
-    status.health && status.healthRtt !== null
-      ? `${status.health} (${status.healthRtt}ms)`
-      : (status.health ?? 'connecting...');
-
-  const wsLabel =
-    status.wsStatus === 'connected' && status.wsRoundTripMs !== null
-      ? `connected (${status.wsRoundTripMs}ms)`
-      : status.wsStatus;
+  const { t, locale } = useI18n();
 
   return (
     <aside
       className={`${collapsed ? 'w-16' : 'w-64'} hidden flex-col border-r border-white/10 bg-black transition-[width] duration-300 ease-in-out md:flex`}
     >
       {/* Collapse toggle */}
-      <div className="flex items-center justify-center border-b border-white/10 p-2">
+      <div className="flex items-center justify-end border-b border-white/10 p-2">
         <button
           onClick={() => setCollapsed((prev) => !prev)}
-          className="flex w-full items-center justify-center rounded-md px-3 py-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
+          className="rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
           title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         >
           {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
+            <ChevronsRight className="h-4 w-4" />
           ) : (
-            <PanelLeftClose className="h-4 w-4" />
+            <ChevronsLeft className="h-4 w-4" />
           )}
         </button>
       </div>
@@ -101,12 +76,12 @@ export function Sidebar({
                 : 'text-white/50 hover:bg-white/5 hover:text-white/80'
             }`}
             onClick={() => onSelectChat(chat.id)}
-            title={collapsed ? chatLabel(chat) : undefined}
+            title={collapsed ? chatLabel(chat, t, locale) : undefined}
           >
             <MessageSquare className="h-4 w-4 shrink-0" />
             {!collapsed && (
               <>
-                <span className="flex-1 truncate">{chatLabel(chat)}</span>
+                <span className="flex-1 truncate">{chatLabel(chat, t, locale)}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -122,54 +97,6 @@ export function Sidebar({
           </div>
         ))}
       </nav>
-
-      {/* Status section */}
-      <div className="border-t border-white/10 p-2">
-        <SidebarItem
-          icon={<Activity className="h-4 w-4" />}
-          collapsed={collapsed}
-          label={`API: ${apiLabel}`}
-          badge={
-            <span className={`inline-block h-2 w-2 rounded-full ${statusDot(status.health)}`} />
-          }
-        />
-        <SidebarItem
-          icon={<Wifi className="h-4 w-4" />}
-          collapsed={collapsed}
-          label={`WS: ${wsLabel}`}
-          badge={
-            <span className={`inline-block h-2 w-2 rounded-full ${statusDot(status.wsStatus)}`} />
-          }
-        />
-      </div>
     </aside>
-  );
-}
-
-function SidebarItem({
-  icon,
-  label,
-  collapsed,
-  badge,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  collapsed: boolean;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="relative flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/70"
-      title={collapsed ? label : undefined}
-    >
-      <span className="shrink-0">{icon}</span>
-      {!collapsed && (
-        <>
-          <span className="truncate">{label}</span>
-          {badge}
-        </>
-      )}
-      {collapsed && badge && <span className="absolute top-1 right-1">{badge}</span>}
-    </div>
   );
 }

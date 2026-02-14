@@ -6,9 +6,10 @@ interface CountryPickerProps {
   value: string | string[];
   onChange: (value: string | string[]) => void;
   multiple?: boolean;
+  exclude?: string[];
 }
 
-export function CountryPicker({ value, onChange, multiple = false }: CountryPickerProps) {
+export function CountryPicker({ value, onChange, multiple = false, exclude = [] }: CountryPickerProps) {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -29,10 +30,15 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
   }, [t]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return countries;
+    let list = countries;
+    if (exclude.length > 0) {
+      const excluded = new Set(exclude);
+      list = list.filter((c) => !excluded.has(c.code));
+    }
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return countries.filter((c) => c.name.toLowerCase().includes(q));
-  }, [search, countries]);
+    return list.filter((c) => c.name.toLowerCase().includes(q));
+  }, [search, countries, exclude]);
 
   // Reset highlight when filtered list changes
   useEffect(() => {
@@ -104,7 +110,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Selected tags for multi-select */}
       {multiple && selectedCodes.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -135,7 +141,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
         placeholder={t('setup.search.placeholder')}
         className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 transition-colors outline-none focus:border-white/25"
       />
-      <div ref={listRef} className="grid max-h-[280px] grid-cols-3 gap-1.5 overflow-y-auto pr-1">
+      <div ref={listRef} className="grid min-h-0 flex-1 content-start grid-cols-3 gap-1.5 overflow-y-auto p-1">
         {filtered.map((country, i) => {
           const isSelected = selectedCodes.includes(country.code);
           const isHighlighted = i === highlightIndex;
