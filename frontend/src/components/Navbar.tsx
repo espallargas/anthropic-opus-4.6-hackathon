@@ -12,7 +12,7 @@ export function Navbar() {
   return (
     <nav className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-black px-4">
       <div className="flex items-center gap-3">
-        <img src="/logo.png" alt="FreePath Logo" className="h-8 w-auto" />
+        <img src="/logo.png" alt="FreePath Logo" className="h-16 w-auto" />
       </div>
 
       <div className="flex items-center gap-3">
