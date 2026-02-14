@@ -3,7 +3,7 @@ import { Chat } from '@/components/Chat';
 import { Navbar } from '@/components/Navbar';
 import { SetupForm } from '@/components/SetupForm';
 import { Sidebar } from '@/components/Sidebar';
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useChatStore } from './hooks/useChatStore';
 import type { SystemVars } from './lib/chatStore';
@@ -13,6 +13,9 @@ import { AgentMockControls } from '@/components/AgentMockControls';
 function App() {
   const location = useLocation();
   const [showSetup, setShowSetup] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(280); // pixels
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const store = useChatStore();
   const isAdmin = location.pathname === '/admin';
 
@@ -30,23 +33,66 @@ function App() {
     setShowSetup(false);
   };
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const newWidth = e.clientX - rect.left;
+
+      // Constrain between 200px and 500px
+      if (newWidth >= 200 && newWidth <= 500) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
   const showingSetup = showSetup || !store.activeChat;
 
   return (
     <I18nProvider>
       <div className="flex h-screen w-full flex-col bg-black text-white">
         <Navbar />
-        <div className="flex min-h-0 flex-1">
+        <div ref={containerRef} className="flex min-h-0 flex-1">
           {isAdmin ? (
             <AdminPage />
           ) : (
             <>
-              <Sidebar
-                chats={store.chats}
-                activeChatId={store.activeChatId}
-                onSelectChat={handleSelectChat}
-                onNewChat={handleNewChat}
-                onDeleteChat={store.deleteChat}
+              <div style={{ width: `${sidebarWidth}px`, flexShrink: 0 }}>
+                <Sidebar
+                  chats={store.chats}
+                  activeChatId={store.activeChatId}
+                  onSelectChat={handleSelectChat}
+                  onNewChat={handleNewChat}
+                  onDeleteChat={store.deleteChat}
+                />
+              </div>
+
+              {/* Resize handle */}
+              <div
+                className={`w-1 flex-none cursor-col-resize select-none transition-colors ${isResizing ? 'bg-red-500' : 'bg-white/40 hover:bg-red-500'}`}
+                onMouseDown={handleMouseDown}
+                style={{ userSelect: 'none' }}
+                title="Arraste para redimensionar"
               />
 
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -56,8 +56,6 @@ export function CrawlProgressBox({
   const localizedCountryName = getCountryNameLocalized(countryCode, t);
   const [thinkingBlocks, setThinkingBlocks] = useState<ThinkingBlock[]>([]);
   const [claudeOutputText, setClaudeOutputText] = useState('');
-  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
-  const [isResizing, setIsResizing] = useState(false);
   const [categories, setCategories] = useState<CategoryState[]>([
     {
       id: 'federal_laws',
@@ -119,7 +117,6 @@ export function CrawlProgressBox({
   const onCompleteRef = useRef(onComplete);
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Helper function to count items in partial JSON by category
   const parsePartialJSONByCategory = useCallback((jsonText: string): Record<string, number> => {
@@ -511,44 +508,10 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    console.log('[RESIZE] Mouse down on resize handle');
-    setIsResizing(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseUp = () => {
-      console.log('[RESIZE] Mouse up');
-      setIsResizing(false);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
-
-      // Constrain between 25% and 75%
-      if (newWidth >= 25 && newWidth <= 75) {
-        setLeftPanelWidth(newWidth);
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
 
 
   return (
-    <div ref={containerRef} className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border-2 border-white/60 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border-2 border-white/60 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b-2 border-white/60 bg-white/[0.02] px-4 py-3">
         <div>
@@ -590,23 +553,15 @@ export function CrawlProgressBox({
 
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left panel: Categories */}
-        <div className="flex min-h-0 flex-none flex-col gap-0 overflow-hidden border-r-2 border-white/60 bg-black/30" style={{ width: `${leftPanelWidth}%` }}>
+        {/* Left panel: Categories (50%) */}
+        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r-2 border-white/60 bg-black/30">
           <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>
         </div>
 
-        {/* Resize handle */}
-        <div
-          className={`w-1 flex-none cursor-col-resize select-none transition-colors ${isResizing ? 'bg-white/80' : 'bg-white/40 hover:bg-white/70'}`}
-          onMouseDown={handleMouseDown}
-          style={{ userSelect: 'none' }}
-          title="Arraste para redimensionar"
-        />
-
-        {/* Right panel: Claude Output + Thinking integrated */}
-        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden" style={{ width: `${100 - leftPanelWidth}%` }}>
+        {/* Right panel: Claude Output + Thinking integrated (50%) */}
+        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
           <ClaudeOutputPanel outputText={claudeOutputText} thinkingBlocks={thinkingBlocks} />
         </div>
       </div>
