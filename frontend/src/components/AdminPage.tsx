@@ -5,7 +5,7 @@ import { CountrySection } from './CountrySection';
 import { CrawlProgressBox } from './CrawlProgressBox';
 
 export function AdminPage() {
-  const { active, pending, loading, error, refetch } = useAdminCountries();
+  const { active, pending, loading, error, refetch, markCrawled } = useAdminCountries();
   const { t } = useI18n();
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
@@ -22,14 +22,19 @@ export function AdminPage() {
     setLiveDocCount((prev) => ({ ...prev, [code]: count }));
   }, []);
 
-  const handleCrawlComplete = useCallback(() => {
-    setCrawlInProgress(false);
-    // Delay refetch to ensure all DB writes are flushed
-    // Backend has 500ms sleep, plus some processing, so 3-4s is safe
-    setTimeout(() => {
-      refetch();
-    }, 3500);
-  }, [refetch]);
+  const handleCrawlComplete = useCallback(
+    (documentCount: number) => {
+      setCrawlInProgress(false);
+      if (selectedCountryCode && documentCount > 0) {
+        markCrawled(selectedCountryCode, documentCount);
+      }
+      // Background refetch to sync with server (no loading flash)
+      setTimeout(() => {
+        refetch();
+      }, 3500);
+    },
+    [selectedCountryCode, markCrawled, refetch],
+  );
 
   if (loading) {
     return (

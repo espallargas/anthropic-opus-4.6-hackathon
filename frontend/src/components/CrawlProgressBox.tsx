@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Pause } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -12,7 +11,7 @@ import '../styles/crawler.css';
 interface CrawlProgressBoxProps {
   countryCode: string;
   countryName: string;
-  onComplete: () => void;
+  onComplete: (documentCount: number) => void;
   onDocCountUpdate?: (count: number) => void;
 }
 
@@ -115,6 +114,7 @@ export function CrawlProgressBox({
 
   const crawlStartedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
+  const documentCountRef = useRef(0);
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -180,6 +180,7 @@ export function CrawlProgressBox({
 
   // Track doc count changes
   useEffect(() => {
+    documentCountRef.current = documentCount;
     if (documentCount > 0 && onDocCountUpdate) {
       onDocCountUpdate(documentCount);
     }
@@ -396,7 +397,7 @@ export function CrawlProgressBox({
           legislationsParsed: true,
         })),
       );
-      setTimeout(() => onCompleteRef.current(), 1200);
+      setTimeout(() => onCompleteRef.current(documentCountRef.current), 1200);
     } else if (data.type === 'batch_saved') {
       const count = (data.total_saved as number) || 0;
       setDocumentCount(count);
@@ -409,7 +410,7 @@ export function CrawlProgressBox({
         ),
       );
       setIsComplete(true);
-      setTimeout(() => onCompleteRef.current(), 1500);
+      setTimeout(() => onCompleteRef.current(documentCountRef.current), 1500);
     }
   }, []);
 
@@ -441,7 +442,7 @@ export function CrawlProgressBox({
         if (!response.ok) {
           setCurrentPhase(`Error: ${response.statusText}`);
           setIsComplete(true);
-          setTimeout(() => onCompleteRef.current(), 1200);
+          setTimeout(() => onCompleteRef.current(documentCountRef.current), 1200);
           return;
         }
 
@@ -449,7 +450,7 @@ export function CrawlProgressBox({
         if (!reader) {
           setCurrentPhase('Error: No response stream');
           setIsComplete(true);
-          setTimeout(() => onCompleteRef.current(), 1200);
+          setTimeout(() => onCompleteRef.current(documentCountRef.current), 1200);
           return;
         }
 
@@ -484,7 +485,7 @@ export function CrawlProgressBox({
       } catch {
         setCurrentPhase('Connection error');
         setIsComplete(true);
-        setTimeout(() => onCompleteRef.current(), 1500);
+        setTimeout(() => onCompleteRef.current(documentCountRef.current), 1500);
       }
     };
 
@@ -501,7 +502,7 @@ export function CrawlProgressBox({
     }
     setShowPauseConfirm(false);
     setIsComplete(true);
-    setTimeout(() => onCompleteRef.current(), 800);
+    setTimeout(() => onCompleteRef.current(documentCountRef.current), 800);
   };
 
   const handleCancelPause = () => {
@@ -511,9 +512,9 @@ export function CrawlProgressBox({
 
 
   return (
-    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border-2 border-white/60 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b-2 border-white/60 bg-white/[0.02] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">
             {localizedCountryName}
@@ -526,7 +527,7 @@ export function CrawlProgressBox({
             )}
             {(inputTokens > 0 || outputTokens > 0) && (
               <p className="text-xs font-medium text-blue-400/80">
-                🔤 {inputTokens + outputTokens} {t('admin.crawl.tokens') || 'tokens'}
+                🔤 {inputTokens + outputTokens} {t('admin.crawl.tokens')}
               </p>
             )}
           </div>
@@ -554,7 +555,7 @@ export function CrawlProgressBox({
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Left panel: Categories (50%) */}
-        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r-2 border-white/60 bg-black/30">
+        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r border-white/10 bg-black/30">
           <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>
@@ -567,7 +568,7 @@ export function CrawlProgressBox({
       </div>
 
       {/* Status Bar */}
-      <div className="flex flex-none items-center justify-between border-t-2 border-white/60 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5">
         <div className="text-xs text-white/70">
           {currentPhase ? (
             <span>{currentPhase}</span>
