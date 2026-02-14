@@ -77,7 +77,7 @@ function App() {
             <AdminPage />
           ) : (
             <>
-              <div style={{ width: `${sidebarWidth}px`, flexShrink: 0 }}>
+              <div style={{ width: `${sidebarWidth}px`, flexShrink: 0, position: 'relative' }}>
                 <Sidebar
                   chats={store.chats}
                   activeChatId={store.activeChatId}
@@ -85,15 +85,14 @@ function App() {
                   onNewChat={handleNewChat}
                   onDeleteChat={store.deleteChat}
                 />
+                {/* Resize handle integrated into sidebar border */}
+                <div
+                  className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none transition-colors ${isResizing ? 'bg-white/80' : 'bg-white/10 hover:bg-white/40'}`}
+                  onMouseDown={handleMouseDown}
+                  style={{ userSelect: 'none' }}
+                  title="Arraste para redimensionar"
+                />
               </div>
-
-              {/* Resize handle */}
-              <div
-                className={`w-1 flex-none cursor-col-resize select-none transition-colors ${isResizing ? 'bg-red-500' : 'bg-white/40 hover:bg-red-500'}`}
-                onMouseDown={handleMouseDown}
-                style={{ userSelect: 'none' }}
-                title="Arraste para redimensionar"
-              />
 
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col">
