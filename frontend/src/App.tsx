@@ -3,11 +3,13 @@ import { SetupForm } from '@/components/SetupForm'
 import { Globe } from '@/components/Globe'
 import { Sidebar } from '@/components/Sidebar'
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useCable } from './hooks/useCable'
 import { useChatStore } from './hooks/useChatStore'
 import { healthCheck } from './lib/api'
 import { I18nProvider } from './lib/i18n'
 import type { SystemVars } from './lib/chatStore'
+import { AdminPage } from '@/components/AdminPage'
 
 function App() {
   const location = useLocation()
