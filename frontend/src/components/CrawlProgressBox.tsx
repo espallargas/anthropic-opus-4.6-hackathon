@@ -3,9 +3,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Pause } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { getCountryNameLocalized } from '@/lib/countries';
-import { ThinkingPanel } from './ThinkingPanel';
-import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel';
+import { ThinkingCard } from './ThinkingCard';
+import { CrawlAgentPanel } from './CrawlAgentPanel';
 import { ClaudeOutputPanel } from './ClaudeOutputPanel';
+import type { ThinkingBlock } from '@/lib/chatStore';
+import type { CategoryStatus } from './CategoriesPanel';
 import '../styles/crawler.css';
 
 interface CrawlProgressBoxProps {
@@ -451,6 +453,12 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
+  // Construct ThinkingBlock for ThinkingCard
+  const thinking: ThinkingBlock = {
+    content: thinkingText,
+    status: thinkingType === 'done' || isComplete ? 'done' : 'thinking',
+  };
+
   return (
     <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
@@ -463,6 +471,11 @@ export function CrawlProgressBox({
             {documentCount > 0 && (
               <p className="text-xs font-medium text-emerald-400/80">
                 📊 {documentCount} {t('admin.crawl.documents_saved')}
+              </p>
+            )}
+            {(inputTokens > 0 || outputTokens > 0) && (
+              <p className="text-xs font-medium text-blue-400/80">
+                🔤 {inputTokens + outputTokens} {t('admin.crawl.tokens') || 'tokens'}
               </p>
             )}
           </div>
@@ -489,24 +502,16 @@ export function CrawlProgressBox({
 
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left panel: Thinking (compact) + Categories (large) */}
+        {/* Left panel: Thinking + Categories */}
         <div className="flex min-h-0 w-[40%] flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
-          {/* Thinking panel - compact */}
-          <div
-            className="min-h-0 flex-none overflow-hidden border-b border-white/10"
-            style={{ height: '120px' }}
-          >
-            <ThinkingPanel
-              thinkingText={thinkingText}
-              thinkingType={thinkingType}
-              inputTokens={inputTokens}
-              outputTokens={outputTokens}
-            />
+          {/* Thinking card - adaptive height */}
+          <div className="min-h-0 flex-none overflow-hidden border-b border-white/10">
+            <ThinkingCard thinking={thinking} />
           </div>
 
           {/* Categories Panel - takes remaining space */}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <CategoriesPanel categories={categories} />
+          <div className="min-h-0 flex-1 overflow-hidden bg-black/30">
+            <CrawlAgentPanel categories={categories} />
           </div>
         </div>
 

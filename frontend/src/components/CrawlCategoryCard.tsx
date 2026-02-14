@@ -1,0 +1,123 @@
+import { useState } from 'react';
+import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from 'lucide-react';
+import type { CategoryStatus } from './CategoriesPanel';
+
+interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  index: number;
+  total: number;
+}
+
+interface CategoryState {
+  id: string;
+  name: string;
+  description: string;
+  status: CategoryStatus;
+  resultCount: number;
+  searchQuery?: string;
+  searchIndex?: number;
+  searchTotal?: number;
+  webSearchResults?: WebSearchResult[];
+  itemsBeingDocumented?: number;
+  webResultsCrawled?: boolean;
+  legislationsParsed?: boolean;
+}
+
+interface CrawlCategoryCardProps {
+  category: CategoryState;
+}
+
+export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
+  const isSearching = category.status === 'searching';
+  const isDone = category.status === 'done';
+  const isError = category.status === 'error';
+  const [expanded, setExpanded] = useState(true);
+
+  const borderClass = isSearching
+    ? 'animate-agent-active border-blue-400/30'
+    : isDone
+      ? 'animate-agent-complete border-green-400/15'
+      : isError
+        ? 'border-red-400/40'
+        : 'border-white/10';
+
+  const StatusIcon = isSearching
+    ? Loader2
+    : isDone
+      ? CheckCircle2
+      : isError
+        ? XCircle
+        : CheckCircle2;
+
+  const statusIconClass = isSearching
+    ? 'h-4 w-4 animate-spin text-blue-400'
+    : isDone
+      ? 'h-4 w-4 text-green-400'
+      : isError
+        ? 'h-4 w-4 text-red-400'
+        : 'h-4 w-4 text-white/30';
+
+  return (
+    <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
+      >
+        <StatusIcon className={statusIconClass} />
+        <span className="flex-1 truncate font-medium text-white/80">{category.name}</span>
+        {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
+          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/40">
+            {category.itemsBeingDocumented} parsed
+          </span>
+        )}
+        {isDone && category.resultCount > 0 && (
+          <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70">
+            {category.resultCount} found
+          </span>
+        )}
+        {expanded ? (
+          <ChevronDown className="h-3 w-3 text-white/30" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-white/30" />
+        )}
+      </button>
+
+      {expanded && (
+        <div className="space-y-1 border-t border-white/5 px-3 py-2">
+          {category.searchQuery && (
+            <p className="line-clamp-2 text-xs text-white/70">
+              🔍 <span className="italic">{category.searchQuery}</span>
+            </p>
+          )}
+          {category.webSearchResults && category.webSearchResults.length > 0 && (
+            <div className="space-y-1">
+              {category.webSearchResults.slice(0, 3).map((result, idx) => (
+                <a
+                  key={idx}
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block truncate text-[10px] text-blue-300/80 hover:text-blue-300 hover:underline"
+                  title={result.title}
+                >
+                  {result.title}
+                </a>
+              ))}
+              {category.webSearchResults.length > 3 && (
+                <p className="text-[10px] text-white/30">
+                  +{category.webSearchResults.length - 3} more
+                </p>
+              )}
+            </div>
+          )}
+          {!category.searchQuery && category.description && (
+            <p className="text-[10px] text-white/50">{category.description}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

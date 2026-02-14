@@ -31,11 +31,29 @@ export function ThinkingPanel({
   const maxTokens = 128000;
 
   // Map thinking effort levels to colors
-  const thinkingTypeColors: Record<string, { bg: string; text: string; border: string; effort: number }> = {
+  const thinkingTypeColors: Record<
+    string,
+    { bg: string; text: string; border: string; effort: number }
+  > = {
     low: { bg: 'bg-blue-500/10', text: 'text-blue-300', border: 'border-blue-400/30', effort: 25 },
-    medium: { bg: 'bg-cyan-500/10', text: 'text-cyan-300', border: 'border-cyan-400/30', effort: 50 },
-    high: { bg: 'bg-violet-500/10', text: 'text-violet-300', border: 'border-violet-400/30', effort: 75 },
-    max: { bg: 'bg-purple-500/10', text: 'text-purple-300', border: 'border-purple-400/30', effort: 100 },
+    medium: {
+      bg: 'bg-cyan-500/10',
+      text: 'text-cyan-300',
+      border: 'border-cyan-400/30',
+      effort: 50,
+    },
+    high: {
+      bg: 'bg-violet-500/10',
+      text: 'text-violet-300',
+      border: 'border-violet-400/30',
+      effort: 75,
+    },
+    max: {
+      bg: 'bg-purple-500/10',
+      text: 'text-purple-300',
+      border: 'border-purple-400/30',
+      effort: 100,
+    },
   };
 
   const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null;
@@ -53,7 +71,7 @@ export function ThinkingPanel({
           {thinkingType && thinkingTypeColor && (
             <div className="flex items-center gap-1.5">
               <span
-                className={`rounded px-2 py-0.5 text-xs font-medium border ${thinkingTypeColor.bg} ${thinkingTypeColor.text} ${thinkingTypeColor.border}`}
+                className={`rounded border px-2 py-0.5 text-xs font-medium ${thinkingTypeColor.bg} ${thinkingTypeColor.text} ${thinkingTypeColor.border}`}
               >
                 {thinkingType}
               </span>
@@ -66,7 +84,8 @@ export function ThinkingPanel({
                       thinkingTypeColor.effort >= level ? thinkingTypeColor.text : 'bg-white/10'
                     }`}
                     style={{
-                      backgroundColor: thinkingTypeColor.effort >= level ? 'currentColor' : undefined,
+                      backgroundColor:
+                        thinkingTypeColor.effort >= level ? 'currentColor' : undefined,
                     }}
                   />
                 ))}

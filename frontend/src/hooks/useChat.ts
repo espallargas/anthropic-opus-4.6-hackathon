@@ -6,17 +6,6 @@ import { chatStreamReducer, createStreamState, type StreamState } from '@/lib/ch
 
 type ChatStatus = 'idle' | 'streaming' | 'error';
 
-interface SSEEvent {
-  type: string;
-  token?: string;
-  error?: string;
-  tool_call_id?: string;
-  tool_name?: string;
-  tool_input?: Record<string, unknown>;
-  result?: Record<string, unknown>;
-}
-type ChatStatus = 'idle' | 'streaming' | 'error';
-
 export function useChat(
   chat: Chat | null,
   onUpdateMessages: (id: string, msgs: ChatMessage[]) => void,
