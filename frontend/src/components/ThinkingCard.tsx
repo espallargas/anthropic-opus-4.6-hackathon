@@ -37,15 +37,10 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         <Brain
           className={`h-4 w-4 text-purple-400 ${isThinking ? 'animate-pulse' : 'opacity-50'}`}
         />
-        <div className="flex-1 flex items-center gap-2">
+        <div className="flex-1">
           <span className="font-medium text-white/60">
             {isThinking ? t('thinking.active') : t('thinking.done')}
           </span>
-          {thinking.operationId && (
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] text-white/40">
-              {thinking.operationId}
-            </span>
-          )}
         </div>
         {thinking.type && (
           <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300/80">

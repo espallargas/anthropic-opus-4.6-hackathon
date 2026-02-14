@@ -13,7 +13,7 @@ const STORAGE_KEY = 'app_locale';
 
 const dictionaries: Record<Locale, Record<string, string>> = {
   'pt-BR': {
-    'app.title': 'Assistente de Imigração',
+    'app.title': 'FreePath',
     'sidebar.reconfigure': 'Reconfigurar',
     'sidebar.reconfigure.tooltip': 'Reconfigurar dados',
     'sidebar.expand': 'Expandir',
@@ -250,7 +250,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.fj': 'Fiji',
   },
   en: {
-    'app.title': 'Immigration Assistant',
+    'app.title': 'FreePath',
     'sidebar.reconfigure': 'Reconfigure',
     'sidebar.reconfigure.tooltip': 'Reconfigure data',
     'sidebar.expand': 'Expand',

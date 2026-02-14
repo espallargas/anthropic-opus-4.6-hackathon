@@ -274,12 +274,13 @@ export function CrawlProgressBox({
       };
 
       const categoryId = labelToIdMap[categoryLabel];
-      console.log(`[CATEGORY_PARSE_COMPLETE] label=${categoryLabel}, categoryId=${categoryId}, itemCount=${itemCount}`);
+      console.log(`[CATEGORY_PARSE_COMPLETE] label="${categoryLabel}", categoryId="${categoryId}", itemCount=${itemCount}`);
 
       if (categoryId) {
         setCategories((prev) =>
           prev.map((cat) => {
             if (cat.id === categoryId) {
+              console.log(`[CATEGORY_PARSE_COMPLETE] Updating category "${categoryId}" to completed with ${itemCount} items`);
               return {
                 ...cat,
                 phase: 'completed',
@@ -291,6 +292,8 @@ export function CrawlProgressBox({
             return cat;
           }),
         );
+      } else {
+        console.log(`[CATEGORY_PARSE_COMPLETE] WARNING: No mapping found for label="${categoryLabel}"`);
       }
     } else if (data.type === 'search_started') {
       const categoryId = data.category as string;
