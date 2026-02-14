@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import ReactGlobe from 'react-globe.gl'
 import { useGlobe } from '@/hooks/useGlobe'
 
@@ -8,33 +8,35 @@ interface GlobeProps {
   className?: string
 }
 
+interface GlobeInstance {
+  pointOfView(pov: { lat: number; lng: number; altitude: number }, duration?: number): void
+  _pov?: { lat: number; lng: number; altitude: number }
+}
+
 export function Globe({ origin, destination, className = '' }: GlobeProps) {
-  const globeRef = useRef<any>(null)
+  const globeRef = useRef<GlobeInstance | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 400, height: 500 })
 
   const { loading, polygonsData, arcsData, pointOfView, style } = useGlobe(origin, destination)
 
-  // Measure container size responsively
-  const updateSize = useCallback(() => {
-    if (!containerRef.current) return
-    setSize({
-      width: containerRef.current.clientWidth || 400,
-      height: containerRef.current.clientHeight || 500,
-    })
-  }, [])
-
   useEffect(() => {
-    if (loading) return
+    if (loading || !containerRef.current) return
 
-    // Measure on first render after loading
-    updateSize()
+    // Update size and attach resize listener
     const handleResize = () => {
-      updateSize()
+      if (!containerRef.current) return
+      setSize({
+        width: containerRef.current.clientWidth || 400,
+        height: containerRef.current.clientHeight || 500,
+      })
     }
+
+    // Measure on mount after loading
+    handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [loading, updateSize])
+  }, [loading])
 
   // Smooth rotation to POV on origin change
   useEffect(() => {

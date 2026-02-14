@@ -35,10 +35,6 @@ function App() {
   const [config, setConfig] = useState<SystemVars | null>(loadConfig)
   const { status, roundTripMs } = useCable()
 
-  if (location.pathname === '/admin') {
-    return <AdminPage />
-  }
-
   useEffect(() => {
     const startMs = Date.now()
     healthCheck()
@@ -53,6 +49,10 @@ function App() {
         setHealthRtt(rtt)
       })
   }, [])
+
+  if (location.pathname === '/admin') {
+    return <AdminPage />
+  }
 
   const handleSetup = (vars: SystemVars) => {
     saveConfig(vars)

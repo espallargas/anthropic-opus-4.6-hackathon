@@ -102,9 +102,10 @@ export function CrawlProgressBox({
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
+  const previousItemCountRef = useRef(0)
 
   // Helper function to count items in partial JSON by category
-  const parsePartialJSONByCategory = (jsonText: string): Record<string, number> => {
+  const parsePartialJSONByCategory = useCallback((jsonText: string): Record<string, number> => {
     const categoryMap: Record<string, number> = {
       federal_laws: 0,
       regulations: 0,
@@ -145,13 +146,16 @@ export function CrawlProgressBox({
     }
 
     return categoryMap
-  }
+  }, [])
 
   // Helper to count total items
-  const countItemsInPartialJSON = (jsonText: string): number => {
-    const counts = parsePartialJSONByCategory(jsonText)
-    return Object.values(counts).reduce((a, b) => a + b, 0)
-  }
+  const countItemsInPartialJSON = useCallback(
+    (jsonText: string): number => {
+      const counts = parsePartialJSONByCategory(jsonText)
+      return Object.values(counts).reduce((a, b) => a + b, 0)
+    },
+    [parsePartialJSONByCategory],
+  )
 
   // Update refs whenever dependencies change
   useEffect(() => {
@@ -167,29 +171,27 @@ export function CrawlProgressBox({
 
   // Count items in real-time as Claude output (JSON) arrives
   useEffect(() => {
-    if (claudeOutputText) {
-      const itemCount = countItemsInPartialJSON(claudeOutputText)
-      if (itemCount > itemsFoundCount) {
-        setItemsFoundCount(itemCount)
-      }
+    if (!claudeOutputText) return
 
-      // Also update individual category counts
-      const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
-      setCategories((prev) =>
-        prev.map((cat) => {
-          const categoryKey = cat.id as keyof typeof categoryCounts
-          const count = categoryCounts[categoryKey] || 0
-          if (count > 0 && cat.itemsBeingDocumented !== count) {
-            return {
-              ...cat,
-              itemsBeingDocumented: count,
-            }
+    const itemCount = countItemsInPartialJSON(claudeOutputText)
+    const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
+
+    previousItemCountRef.current = itemCount
+    setItemsFoundCount(itemCount)
+    setCategories((prev) =>
+      prev.map((cat) => {
+        const categoryKey = cat.id as keyof typeof categoryCounts
+        const count = categoryCounts[categoryKey] || 0
+        if (count > 0 && cat.itemsBeingDocumented !== count) {
+          return {
+            ...cat,
+            itemsBeingDocumented: count,
           }
-          return cat
-        }),
-      )
-    }
-  }, [claudeOutputText])
+        }
+        return cat
+      }),
+    )
+  }, [claudeOutputText, countItemsInPartialJSON, parsePartialJSONByCategory])
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
