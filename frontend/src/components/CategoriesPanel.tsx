@@ -91,6 +91,8 @@ function getParsingColors(
 }
 
 export function CategoriesPanel({ categories }: CategoriesPanelProps) {
+  console.log('[CATEGORIES_DEBUG]', categories.map(c => ({ name: c.name, legislationsParsed: c.legislationsParsed, itemsBeingDocumented: c.itemsBeingDocumented })))
+
   return (
     <div className="flex h-full flex-col bg-black/30">
       {/* Header */}
