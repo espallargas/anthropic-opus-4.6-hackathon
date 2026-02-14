@@ -1,13 +1,13 @@
 import { CheckCircle2, Loader2 } from 'lucide-react'
-import type { ToolCall } from '@/hooks/useChat'
-
-const TOOL_LABELS: Record<string, string> = {
-  search_visa_requirements: 'Buscando requisitos de visto',
-  check_processing_times: 'Consultando prazos de processamento',
-}
+import { useI18n } from '@/lib/i18n'
+import type { ToolCall } from '@/lib/chatStore'
 
 export function ToolCallCard({ toolCall }: { toolCall: ToolCall }) {
-  const label = TOOL_LABELS[toolCall.name] ?? toolCall.name
+  const { t } = useI18n()
+  const label =
+    t(`tool.${toolCall.name}`) !== `tool.${toolCall.name}`
+      ? t(`tool.${toolCall.name}`)
+      : toolCall.name
   const isCalling = toolCall.status === 'calling'
 
   return (

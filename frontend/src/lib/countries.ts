@@ -254,3 +254,11 @@ export function getCountryName(code: string | undefined): string {
   if (!code) return ''
   return countryCentroids[code]?.name ?? code
 }
+
+export function countryCodeToFlag(code: string): string {
+  return code
+    .toUpperCase()
+    .split('')
+    .map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397))
+    .join('')
+}

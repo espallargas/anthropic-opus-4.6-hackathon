@@ -1,152 +1,157 @@
-import { useState, type FormEvent } from 'react'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useCountries } from '@/hooks/useCountries'
-import type { SystemVars } from '@/hooks/useChat'
+import { useState } from 'react'
+import { useI18n } from '@/lib/i18n'
+import { CountryPicker } from '@/components/CountryPicker'
+import { ObjectivePicker } from '@/components/ObjectivePicker'
+import type { SystemVars } from '@/lib/chatStore'
 
 interface SetupFormProps {
   onSubmit: (vars: SystemVars) => void
   defaultValues?: SystemVars
 }
 
+const TOTAL_STEPS = 4
+
 export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
-  const [originCountry, setOriginCountry] = useState(defaultValues?.origin_country ?? '')
-  const [nationality, setNationality] = useState(defaultValues?.nationality ?? '')
-  const [destinationCountry, setDestinationCountry] = useState(
-    defaultValues?.destination_country ?? '',
-  )
+  const { t } = useI18n()
+  const [step, setStep] = useState(0)
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+
+  const [origin, setOrigin] = useState(defaultValues?.origin_country ?? '')
+  const [nationalities, setNationalities] = useState<string[]>(() => {
+    const val = defaultValues?.nationality ?? ''
+    return val ? val.split(', ').filter(Boolean) : []
+  })
+  const [destination, setDestination] = useState(defaultValues?.destination_country ?? '')
   const [objective, setObjective] = useState(defaultValues?.objective ?? '')
-  const [additionalInfo, setAdditionalInfo] = useState(defaultValues?.additional_info ?? '')
 
-  const { countries, loading } = useCountries()
+  const steps = [
+    {
+      title: t('setup.step.origin'),
+      description: t('setup.step.origin.description'),
+    },
+    {
+      title: t('setup.step.nationalities'),
+      description: t('setup.step.nationalities.description'),
+    },
+    {
+      title: t('setup.step.destination'),
+      description: undefined,
+    },
+    {
+      title: t('setup.step.objective'),
+      description: t('setup.step.objective.description'),
+    },
+  ]
 
-  const canSubmit =
-    originCountry.trim() && nationality.trim() && destinationCountry.trim() && objective.trim()
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!canSubmit) return
-    onSubmit({
-      origin_country: originCountry.trim(),
-      nationality: nationality.trim(),
-      destination_country: destinationCountry.trim(),
-      objective: objective.trim(),
-      additional_info: additionalInfo.trim(),
-    })
+  const isStepValid = () => {
+    switch (step) {
+      case 0:
+        return origin !== ''
+      case 1:
+        return nationalities.length > 0
+      case 2:
+        return destination !== ''
+      case 3: {
+        const otherLabel = t('setup.objective.other')
+        if (objective === otherLabel || objective === '') return false
+        return true
+      }
+      default:
+        return false
+    }
   }
 
-  // Sort countries by name
-  const sortedCountries = [...countries].sort((a, b) => a.name.localeCompare(b.name))
+  const goNext = () => {
+    if (!isStepValid()) return
+    if (step === TOTAL_STEPS - 1) {
+      onSubmit({
+        origin_country: origin,
+        nationality: nationalities.join(', '),
+        destination_country: destination,
+        objective,
+        additional_info: '',
+      })
+      return
+    }
+    setDirection('forward')
+    setStep((s) => s + 1)
+  }
+
+  const goBack = () => {
+    if (step === 0) return
+    setDirection('backward')
+    setStep((s) => s - 1)
+  }
+
+  const currentStep = steps[step]
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl">Assistente de Imigração</CardTitle>
-          <CardDescription>
-            Preencha seus dados para receber orientações personalizadas sobre seu processo de
-            imigração.
-          </CardDescription>
-        </CardHeader>
+    <div className="flex min-h-screen items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="flex w-full max-w-lg flex-col gap-6 rounded-xl border border-white/10 bg-black/80 p-6 text-white backdrop-blur-md">
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                i === step ? 'bg-white scale-125' : i < step ? 'bg-white/50' : 'bg-white/20'
+              }`}
+            />
+          ))}
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="origin_country">País de origem</Label>
-              <Select value={originCountry} onValueChange={setOriginCountry} disabled={loading}>
-                <SelectTrigger id="origin_country">
-                  <SelectValue
-                    placeholder={loading ? 'Carregando...' : 'Selecione seu país de origem'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortedCountries.map((country) => (
-                    <SelectItem key={country.code} value={country.code}>
-                      {country.flag_emoji} {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Step content */}
+        <div
+          key={step}
+          className={`flex flex-col gap-4 ${direction === 'forward' ? 'animate-step-forward' : 'animate-step-backward'}`}
+        >
+          <div className="flex flex-col gap-1">
+            <h2 className="text-2xl font-bold">{currentStep.title}</h2>
+            {currentStep.description && (
+              <p className="text-sm text-white/50">{currentStep.description}</p>
+            )}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="nationality">Nacionalidade</Label>
-              <Input
-                id="nationality"
-                value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-                placeholder="Ex: Brasileira"
-              />
-            </div>
+          {/* Input area */}
+          {step === 0 && (
+            <CountryPicker value={origin} onChange={(v) => setOrigin(v as string)} />
+          )}
+          {step === 1 && (
+            <CountryPicker
+              value={nationalities}
+              onChange={(v) => setNationalities(v as string[])}
+              multiple
+            />
+          )}
+          {step === 2 && (
+            <CountryPicker value={destination} onChange={(v) => setDestination(v as string)} />
+          )}
+          {step === 3 && <ObjectivePicker value={objective} onChange={setObjective} />}
+        </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="destination_country">País de destino</Label>
-              <Select
-                value={destinationCountry}
-                onValueChange={setDestinationCountry}
-                disabled={loading}
-              >
-                <SelectTrigger id="destination_country">
-                  <SelectValue
-                    placeholder={loading ? 'Carregando...' : 'Selecione seu país de destino'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortedCountries.map((country) => (
-                    <SelectItem key={country.code} value={country.code}>
-                      {country.flag_emoji} {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="objective">Tipo de visto / objetivo</Label>
-              <Input
-                id="objective"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                placeholder="Ex: Trabalho, estudo, residência permanente"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="additional_info">Informações adicionais (opcional)</Label>
-              <Textarea
-                id="additional_info"
-                value={additionalInfo}
-                onChange={(e) => setAdditionalInfo(e.target.value)}
-                placeholder="Contexto adicional que possa ajudar nas respostas..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={!canSubmit}>
-              Iniciar chat
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+        {/* Navigation */}
+        <div className="flex items-center justify-between">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+            >
+              {t('setup.back')}
+            </button>
+          ) : (
+            <div />
+          )}
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!isStepValid()}
+            className="cursor-pointer rounded-lg bg-white px-6 py-2 text-sm font-medium text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            {step === TOTAL_STEPS - 1 ? t('setup.start') : t('setup.next')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
