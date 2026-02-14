@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { countryCentroids, countryCodeToFlag } from '@/lib/countries'
+import { countryCentroids, countryCodeToFlag, getCountryNameLocalized } from '@/lib/countries'
 import { useI18n } from '@/lib/i18n'
 
 interface CountryPickerProps {
@@ -7,10 +7,6 @@ interface CountryPickerProps {
   onChange: (value: string | string[]) => void
   multiple?: boolean
 }
-
-const countries = Object.entries(countryCentroids)
-  .map(([code, data]) => ({ code, name: data.name }))
-  .sort((a, b) => a.name.localeCompare(b.name))
 
 export function CountryPicker({ value, onChange, multiple = false }: CountryPickerProps) {
   const { t } = useI18n()
@@ -21,11 +17,20 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
     inputRef.current?.focus()
   }, [])
 
+  const countries = useMemo(() => {
+    return Object.entries(countryCentroids)
+      .map(([code]) => ({
+        code,
+        name: getCountryNameLocalized(code, t),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [t])
+
   const filtered = useMemo(() => {
     if (!search.trim()) return countries
     const q = search.toLowerCase()
     return countries.filter((c) => c.name.toLowerCase().includes(q))
-  }, [search])
+  }, [search, countries])
 
   const selectedCodes = multiple ? (value as string[]) : value ? [value as string] : []
 
@@ -57,7 +62,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
               key={code}
               className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs text-white"
             >
-              {countryCodeToFlag(code)} {countryCentroids[code]?.name}
+              {countryCodeToFlag(code)} {getCountryNameLocalized(code, t)}
               <button
                 type="button"
                 onClick={() => removeTag(code)}
@@ -76,7 +81,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder={t('setup.search.placeholder')}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 outline-none transition-colors focus:border-white/25"
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 transition-colors outline-none focus:border-white/25"
       />
       <div className="scroll-fade grid max-h-[280px] grid-cols-3 gap-1.5 overflow-y-auto pr-1">
         {filtered.map((country) => {
@@ -88,7 +93,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
               onClick={() => handleSelect(country.code)}
               className={`relative flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-left text-sm transition-all ${
                 isSelected
-                  ? 'bg-white/15 ring-1 ring-white/30 scale-[1.02]'
+                  ? 'scale-[1.02] bg-white/15 ring-1 ring-white/30'
                   : 'bg-white/5 hover:bg-white/10'
               }`}
             >

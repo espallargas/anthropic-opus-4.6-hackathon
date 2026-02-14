@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { RefreshCw, ChevronDown } from 'lucide-react'
 import type { Country } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { getCountryNameLocalized } from '@/lib/countries'
 import { LegislationPanel } from './LegislationPanel'
 import { timeAgo } from '@/lib/time'
 
@@ -24,10 +25,11 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         : 'bg-red-500'
 
   const currentDocCount = docCount ?? country.legislation_count
+  const localizedName = getCountryNameLocalized(country.code, t)
 
   const handleRefresh = () => {
     setIsLoading(true)
-    onCrawlStart(country.code, country.name)
+    onCrawlStart(country.code, localizedName)
   }
 
   return (
@@ -41,7 +43,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
 
         {/* Country name + metadata */}
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{country.name}</div>
+          <div className="truncate text-sm font-medium">{localizedName}</div>
           {country.last_crawled_at && (
             <div className="text-xs text-white/40">
               {t('admin.country_item.updated')} {timeAgo(country.last_crawled_at)}
@@ -53,7 +55,9 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         {currentDocCount > 0 && (
           <div className="flex-shrink-0 text-xs text-white/60">
             {currentDocCount}
-            <span className="ml-1 text-white/40">{currentDocCount === 1 ? t('admin.units.doc') : t('admin.units.docs')}</span>
+            <span className="ml-1 text-white/40">
+              {currentDocCount === 1 ? t('admin.units.doc') : t('admin.units.docs')}
+            </span>
           </div>
         )}
 

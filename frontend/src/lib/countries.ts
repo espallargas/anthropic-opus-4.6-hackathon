@@ -255,6 +255,21 @@ export function getCountryName(code: string | undefined): string {
   return countryCentroids[code]?.name ?? code
 }
 
+export function getCountryNameLocalized(
+  code: string | undefined,
+  t: (key: string) => string,
+): string {
+  if (!code) return ''
+  const key = `countries.${code.toLowerCase()}`
+  const translated = t(key)
+  // If translation not found, t() returns the key itself, so check if it's different
+  if (translated !== key) {
+    return translated
+  }
+  // Fallback to English name from centroids
+  return countryCentroids[code]?.name ?? code.toUpperCase()
+}
+
 export function countryCodeToFlag(code: string): string {
   return code
     .toUpperCase()
