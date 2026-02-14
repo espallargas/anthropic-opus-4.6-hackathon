@@ -301,44 +301,28 @@ class LegislationCrawlerService
         end
       end
 
-      # Detect and emit web_search results
-      if event.type.to_s == 'content_block_start'
-        if event.content_block.type == 'web_search_tool_result'
-          Rails.logger.info("  🌐 WEB_SEARCH_RESULT block detected (index: #{event.index})")
-          # Store reference to parse after completion
-          @current_search_result_index = event.index
+      # Detect final text block completion - when we have JSON results
+      # This is the earliest moment we can emit results while still streaming
+      if event.type.to_s == 'content_block_stop' && !text_block_completed
+        # Check if this might be a text block with JSON
+        if collector.content.length > 0
+          last_block = collector.content.last
+          # If we have a text block, check if it contains JSON
+          if last_block && last_block.type == :text && last_block.respond_to?(:text)
+            if last_block.text && last_block.text.include?('"federal_laws"')
+              Rails.logger.info("  ✓ TEXT BLOCK contains JSON results!")
+              text_block_completed = true
+              emit_search_results_for_stream(collector)
+            end
+          end
         end
       end
 
-      # Emit web search results when result block completes
-      if event.type.to_s == 'content_block_stop' && @current_search_result_index
-        Rails.logger.info("  🌐 WEB_SEARCH_RESULT complete - processing results")
-        # Find the web_search_tool_result block in collector
-        result_block = collector.content.find { |block| block.respond_to?(:type) && block.type.to_s == 'web_search_tool_result' }
-        if result_block
-          emit_web_search_results(result_block)
-        end
-        @current_search_result_index = nil
-      end
-
-      # Handle web_search block completion
-      if event.type.to_s == 'content_block_stop' && current_search_id
-        Rails.logger.info("  ← WEB_SEARCH COMPLETE (index: #{event.index})")
-        current_search_id = nil
-      end
-
-      # Emit search_result when message is about to stop
-      # This ensures we get the final text block with JSON results
-      if event.type.to_s == 'message_stop'
-        Rails.logger.info("  📨 MESSAGE_STOP detected!")
-        Rails.logger.info("     text_block_completed=#{text_block_completed}")
-        Rails.logger.info("     collector.content.length=#{collector.content.length}")
-        if !text_block_completed
-          Rails.logger.info("  📨 EMITTING search_results from final content")
-          text_block_completed = true
-          # Emit search_results now while still in stream loop (before response closes)
-          emit_search_results_for_stream(collector)
-        end
+      # Also trigger on message_stop as fallback
+      if event.type.to_s == 'message_stop' && !text_block_completed
+        Rails.logger.info("  📨 MESSAGE_STOP - fallback emission")
+        text_block_completed = true
+        emit_search_results_for_stream(collector)
       end
 
       # Emit token tracking
