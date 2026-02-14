@@ -62,6 +62,8 @@ class LegislationCrawlerService
     # Get actual count from database (more accurate than results count)
     total_docs = @country.legislations.count
     emit(:complete, message: "Crawl complete", document_count: total_docs)
+
+    Rails.logger.info("[CRAWL_COMPLETE] #{@country.name} - #{total_docs} total legislations")
   end
 
   private
@@ -813,7 +815,7 @@ class LegislationCrawlerService
         unless @parse_complete_emitted.include?(category_label)
           begin
             emit(:category_parse_complete, category: category_label, item_count: count)
-            Rails.logger.info("[PARSE_COMPLETE] #{category_label}")
+            Rails.logger.info("[PARSE_COMPLETE] #{category_label} (#{count} items)")
             @parse_complete_emitted.add(category_label)
           rescue => emit_error
             Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
@@ -827,7 +829,7 @@ class LegislationCrawlerService
         unless @parse_complete_emitted.include?(category_label)
           begin
             emit(:category_parse_complete, category: category_label, item_count: 0)
-            Rails.logger.info("[PARSE_COMPLETE_FALLBACK] #{category_label}")
+            Rails.logger.info("[PARSE_COMPLETE_FALLBACK] #{category_label} (0 items)")
             @parse_complete_emitted.add(category_label)
           rescue => emit_error
             Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
