@@ -281,20 +281,13 @@ class LegislationCrawlerService
         current_search_id = nil
       end
 
-      # Emit search_result when the text block completes
-      # We detect this by checking if current_block in collector is a text block finishing
-      if event.type.to_s == 'content_block_stop' && !text_block_completed
-        # Check if this is a text block (not web_search, not thinking)
-        # We know it's text if current_search_id is nil (no web_search) and we have content
-        if collector.content.length > 0
-          last_block = collector.content.last
-          if last_block && last_block.type == :text && !text_block_completed
-            Rails.logger.info("  ← TEXT BLOCK COMPLETE (index: #{event.index}), emitting search_results")
-            text_block_completed = true
-            # Emit search_results now while still in stream loop
-            emit_search_results_for_stream(collector)
-          end
-        end
+      # Emit search_result when message is about to stop
+      # This ensures we get the final text block with JSON results
+      if event.type.to_s == 'message_stop' && !text_block_completed
+        Rails.logger.info("  📨 MESSAGE_STOP detected - emitting search_results from final content")
+        text_block_completed = true
+        # Emit search_results now while still in stream loop (before response closes)
+        emit_search_results_for_stream(collector)
       end
 
       # Emit token tracking
