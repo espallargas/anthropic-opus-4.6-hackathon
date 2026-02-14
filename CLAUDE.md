@@ -43,6 +43,18 @@ cd frontend && yarn format && yarn lint
 - Single Responsibility — one method = one job
 - No debug logs in production code
 
+## i18n
+
+All user-facing text in the frontend **must** go through the `t()` function from `useI18n()` (`src/lib/i18n.tsx`). Never hardcode visible strings directly in JSX.
+
+- Translations live in `src/lib/i18n.tsx` inside the `dictionaries` object (pt-BR and en)
+- When adding or changing any visible text, **always** add the key to **both** dictionaries
+- Both dictionaries must have the exact same set of keys — no key in one without the other
+- pt-BR values must be in Portuguese; en values must be in English
+- Pattern: `const { t } = useI18n();` then `t('section.key')` in JSX
+- Country codes follow ISO 3166-1 alpha-2 (e.g. `countries.br`, `countries.us`)
+- Language names in the locale picker are the only exception — they stay in their native language
+
 ## Rules
 
 - User speaks Portuguese, code and commits in English

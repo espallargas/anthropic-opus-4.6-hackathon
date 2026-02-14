@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useChatStore } from './hooks/useChatStore';
 import type { SystemVars } from './lib/chatStore';
-import { I18nProvider } from './lib/i18n';
+import { useI18n } from './lib/i18n';
 import { AgentMockControls } from '@/components/AgentMockControls';
 
 function App() {
@@ -16,6 +16,7 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(280); // pixels
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
   const store = useChatStore();
   const isAdmin = location.pathname === '/admin';
 
@@ -69,7 +70,6 @@ function App() {
   const showingSetup = showSetup || !store.activeChat;
 
   return (
-    <I18nProvider>
       <div className="flex h-screen w-full flex-col bg-black text-white">
         <Navbar />
         <div ref={containerRef} className="flex min-h-0 flex-1">
@@ -95,7 +95,7 @@ function App() {
                     marginRight: '-2px',
                     background: 'transparent'
                   }}
-                  title="Arraste para redimensionar"
+                  title={t('resize.tooltip')}
                 >
                   {/* Visual line - thin and minimal */}
                   <div
@@ -127,7 +127,6 @@ function App() {
           )}
         </div>
       </div>
-    </I18nProvider>
   );
 }
 

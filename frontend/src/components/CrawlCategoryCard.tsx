@@ -101,11 +101,6 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
 
       {expanded && (
         <div className="space-y-1 border-t border-white/5 px-3 py-2">
-          {category.searchQuery && (
-            <p className="line-clamp-2 text-xs text-white/70">
-              🔍 <span className="italic">{category.searchQuery}</span>
-            </p>
-          )}
           {category.webSearchResults && category.webSearchResults.length > 0 && (
             <div className="space-y-1">
               {category.webSearchResults.slice(0, 3).map((result, idx) => (
@@ -122,7 +117,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
               ))}
               {category.webSearchResults.length > 3 && (
                 <p className="text-[10px] text-white/30">
-                  +{category.webSearchResults.length - 3} more
+                  +{category.webSearchResults.length - 3} {t('admin.crawl.more')}
                 </p>
               )}
             </div>

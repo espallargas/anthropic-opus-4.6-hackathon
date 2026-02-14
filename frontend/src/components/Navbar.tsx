@@ -4,7 +4,7 @@ import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
 
 export function Navbar() {
-  const { locale, setLocale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const isAdmin = location.pathname === '/admin';
@@ -12,7 +12,7 @@ export function Navbar() {
   return (
     <nav className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-black px-4">
       <div className="flex items-center gap-3">
-        <img src="/logo.png" alt="FreePath Logo" className="h-16 w-auto" />
+        <img src="/logo.png" alt={t('nav.logo.alt')} className="h-16 w-auto" />
       </div>
 
       <div className="flex items-center gap-3">
@@ -23,12 +23,12 @@ export function Navbar() {
           {isAdmin ? (
             <>
               <MessageSquare className="h-3.5 w-3.5" />
-              <span>Chat</span>
+              <span>{t('nav.chat')}</span>
             </>
           ) : (
             <>
               <Settings className="h-3.5 w-3.5" />
-              <span>Admin</span>
+              <span>{t('nav.admin')}</span>
             </>
           )}
         </button>

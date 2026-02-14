@@ -41,7 +41,7 @@ export function AgentCard({ agent }: AgentCardProps) {
         : null;
 
   const tokenBadge =
-    isDone && agent.usage ? `${agent.usage.input_tokens + agent.usage.output_tokens} tok` : null;
+    isDone && agent.usage ? `${agent.usage.input_tokens + agent.usage.output_tokens} ${t('usage.tokens_short')}` : null;
 
   return (
     <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>

@@ -89,12 +89,12 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
                             rel="noopener noreferrer"
                             className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
                           >
-                            source
+                            {t('legislation.source')}
                           </a>
                         )}
                       </div>
                       {law.is_deprecated && (
-                        <span className="flex-shrink-0 text-xs text-red-400">deprecated</span>
+                        <span className="flex-shrink-0 text-xs text-red-400">{t('legislation.deprecated')}</span>
                       )}
                     </div>
                   </div>
