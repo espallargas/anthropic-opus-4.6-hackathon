@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, AlertCircle, Globe } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error'
 
@@ -102,30 +102,23 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 )}
               </div>
 
-              {/* Web search badge and status indicator */}
-              <div className="flex flex-shrink-0 flex-col items-end gap-1">
+              {/* Status indicators - side by side, minimal */}
+              <div className="flex flex-shrink-0 items-center gap-3">
                 {category.status === 'searching' && (
-                  <div className="flex items-center gap-1 rounded-full bg-blue-500/30 px-2 py-0.5">
-                    <Globe className="h-2.5 w-2.5 text-blue-300" />
-                    <span className="text-xs font-medium text-blue-200">Searching</span>
-                  </div>
+                  <span className="text-xs font-medium text-blue-300">Searching...</span>
                 )}
 
                 {/* Show items being documented while parsing JSON */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <div className="rounded bg-purple-500/30 px-2 py-0.5">
-                    <p className="text-xs font-medium text-purple-200">
-                      ⚙️ Indexing {category.itemsBeingDocumented}
-                    </p>
-                  </div>
+                  <span className="text-xs font-medium text-purple-300">
+                    {category.itemsBeingDocumented} parsing
+                  </span>
                 )}
 
                 {category.status === 'done' && category.resultCount > 0 && (
-                  <div className="flex-shrink-0 rounded bg-current/20 px-2 py-0.5">
-                    <p className="text-xs font-medium text-current">
-                      ✓ {category.resultCount} results
-                    </p>
-                  </div>
+                  <span className="text-xs font-medium text-emerald-300">
+                    {category.resultCount} saved
+                  </span>
                 )}
               </div>
             </div>
