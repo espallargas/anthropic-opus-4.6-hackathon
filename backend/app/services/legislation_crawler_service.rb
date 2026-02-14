@@ -412,6 +412,9 @@ class LegislationCrawlerService
           name: "web_search"
         }
 
+        # Define structured output schema for legislation JSON
+        legislation_schema = build_legislation_schema
+
         response = build_response_from_stream(
           current_operation_id,
           model: MODEL,
@@ -422,7 +425,13 @@ class LegislationCrawlerService
           tools: [web_search_tool],
           tool_choice: { type: "auto" },
           system_: system_prompt,
-          messages: messages
+          messages: messages,
+          output_config: {
+            format: {
+              type: "json_schema",
+              schema: legislation_schema
+            }
+          }
         )
         Rails.logger.info("Claude stream completed!")
         Rails.logger.info("Response stop_reason: #{response.stop_reason}")
@@ -475,6 +484,93 @@ class LegislationCrawlerService
   end
 
 
+  def build_legislation_schema
+    {
+      type: "object",
+      properties: {
+        federal_laws: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Official law name" },
+              summary: { type: "string", description: "Brief 1-2 sentence description" },
+              source_url: { type: "string", description: "URL source" },
+              date_effective: { type: "string", description: "YYYY-MM-DD format" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        },
+        regulations: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Official regulation name" },
+              summary: { type: "string", description: "Brief 1-2 sentence description" },
+              source_url: { type: "string", description: "URL source" },
+              date_effective: { type: "string", description: "YYYY-MM-DD format" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        },
+        consular: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              source_url: { type: "string" },
+              date_effective: { type: "string" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        },
+        jurisdictional: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              source_url: { type: "string" },
+              date_effective: { type: "string" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        },
+        complementary: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              source_url: { type: "string" },
+              date_effective: { type: "string" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        },
+        auxiliary: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              source_url: { type: "string" },
+              date_effective: { type: "string" }
+            },
+            required: ["title", "summary", "source_url"]
+          }
+        }
+      },
+      required: ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"]
+    }
+  end
+
   def build_user_prompt
     <<~PROMPT
       TASK: Use the web_search tool to research immigration laws for #{@country.name}.
@@ -492,22 +588,19 @@ class LegislationCrawlerService
 
       Do NOT skip any searches. Execute all 6 web_search calls.
 
-      STEP 2: After completing all 6 web_searches, compile results into JSON:
+      STEP 2: After completing all 6 web_searches, return the results in the specified JSON format:
 
-      {
-        "federal_laws": [{"title": "Official Law Name (Year)", "summary": "Brief 1-2 sentence description", "source_url": "https://example.com", "date_effective": "YYYY-MM-DD"}],
-        "regulations": [...same format...],
-        "consular": [...same format...],
-        "jurisdictional": [...same format...],
-        "complementary": [...same format...],
-        "auxiliary": [...same format...]
-      }
+      Each category must have objects with:
+      - title: Official law/regulation name
+      - summary: 1-2 sentence description
+      - source_url: URL where information was found
+      - date_effective: Date in YYYY-MM-DD format (or null if unknown)
 
       CONSTRAINTS:
       - Use ONLY information from web_search results
-      - Each category: Include all relevant entries (no limit)
+      - Each category: Include all relevant entries found
       - Use exact official law names, not generic descriptions
-      - Return ONLY valid JSON (no markdown, no text before/after)
+      - Return ONLY valid JSON matching the required schema
     PROMPT
   end
 
