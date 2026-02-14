@@ -267,21 +267,25 @@ export function CrawlProgressBox({
       // Map from English label (from backend) to category ID
       const labelToIdMap: Record<string, string> = {
         'Federal Laws': 'federal_laws',
-        'Regulations': 'regulations',
+        Regulations: 'regulations',
         'Consular Rules': 'consular',
-        'Jurisdictional': 'jurisdictional',
+        Jurisdictional: 'jurisdictional',
         'Health & Complementary': 'complementary',
-        'Auxiliary': 'auxiliary',
+        Auxiliary: 'auxiliary',
       };
 
       const categoryId = labelToIdMap[categoryLabel];
-      console.log(`[CATEGORY_PARSE_COMPLETE] label="${categoryLabel}", categoryId="${categoryId}", itemCount=${itemCount}`);
+      console.log(
+        `[CATEGORY_PARSE_COMPLETE] label="${categoryLabel}", categoryId="${categoryId}", itemCount=${itemCount}`,
+      );
 
       if (categoryId) {
         setCategories((prev) =>
           prev.map((cat) => {
             if (cat.id === categoryId) {
-              console.log(`[CATEGORY_PARSE_COMPLETE] Updating category "${categoryId}" to completed with ${itemCount} items`);
+              console.log(
+                `[CATEGORY_PARSE_COMPLETE] Updating category "${categoryId}" to completed with ${itemCount} items`,
+              );
               return {
                 ...cat,
                 phase: 'completed',
@@ -294,7 +298,9 @@ export function CrawlProgressBox({
           }),
         );
       } else {
-        console.log(`[CATEGORY_PARSE_COMPLETE] WARNING: No mapping found for label="${categoryLabel}"`);
+        console.log(
+          `[CATEGORY_PARSE_COMPLETE] WARNING: No mapping found for label="${categoryLabel}"`,
+        );
       }
     } else if (data.type === 'search_started') {
       const categoryId = data.category as string;
@@ -351,7 +357,9 @@ export function CrawlProgressBox({
       const categoryId = data.category as string;
       const resultCount = (data.result_count as number) || 0;
 
-      console.log(`[SEARCH_RESULT] category=${categoryId}, resultCount=${resultCount}, phase=indexing`);
+      console.log(
+        `[SEARCH_RESULT] category=${categoryId}, resultCount=${resultCount}, phase=indexing`,
+      );
 
       setCategories((prev) =>
         prev.map((cat) => {
@@ -508,8 +516,6 @@ export function CrawlProgressBox({
   const handleCancelPause = () => {
     setShowPauseConfirm(false);
   };
-
-
 
   return (
     <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">

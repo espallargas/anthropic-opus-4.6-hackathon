@@ -46,11 +46,7 @@ export function Sidebar({
           className="rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
           title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         >
-          {collapsed ? (
-            <ChevronsRight className="h-4 w-4" />
-          ) : (
-            <ChevronsLeft className="h-4 w-4" />
-          )}
+          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
         </button>
       </div>
 

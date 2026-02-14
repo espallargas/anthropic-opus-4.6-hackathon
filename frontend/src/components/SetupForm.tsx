@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { CountryPicker } from '@/components/CountryPicker';
 import { ObjectivePicker } from '@/components/ObjectivePicker';
@@ -7,15 +7,25 @@ import type { SystemVars } from '@/lib/chatStore';
 
 interface SetupFormProps {
   onSubmit: (vars: SystemVars) => void;
+  onCancel?: () => void;
   defaultValues?: SystemVars;
 }
 
 const TOTAL_STEPS = 4;
 
-export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
+export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps) {
   const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+
+  useEffect(() => {
+    if (!onCancel) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   const [origin, setOrigin] = useState(defaultValues?.origin_country ?? '');
   const [nationalities, setNationalities] = useState<string[]>(() => {
@@ -144,6 +154,14 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
               className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
             >
               {t('setup.back')}
+            </button>
+          ) : onCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+            >
+              {t('setup.cancel')}
             </button>
           ) : (
             <div />

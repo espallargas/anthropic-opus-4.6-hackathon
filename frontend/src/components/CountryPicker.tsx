@@ -9,7 +9,12 @@ interface CountryPickerProps {
   exclude?: string[];
 }
 
-export function CountryPicker({ value, onChange, multiple = false, exclude = [] }: CountryPickerProps) {
+export function CountryPicker({
+  value,
+  onChange,
+  multiple = false,
+  exclude = [],
+}: CountryPickerProps) {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -68,14 +73,11 @@ export function CountryPicker({ value, onChange, multiple = false, exclude = [] 
     onChange((value as string[]).filter((c) => c !== code));
   };
 
-  const scrollHighlightedIntoView = useCallback(
-    (index: number) => {
-      if (!listRef.current || index < 0) return;
-      const items = listRef.current.querySelectorAll('[data-country-item]');
-      items[index]?.scrollIntoView({ block: 'nearest' });
-    },
-    [],
-  );
+  const scrollHighlightedIntoView = useCallback((index: number) => {
+    if (!listRef.current || index < 0) return;
+    const items = listRef.current.querySelectorAll('[data-country-item]');
+    items[index]?.scrollIntoView({ block: 'nearest' });
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -141,7 +143,10 @@ export function CountryPicker({ value, onChange, multiple = false, exclude = [] 
         placeholder={t('setup.search.placeholder')}
         className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 transition-colors outline-none focus:border-white/25"
       />
-      <div ref={listRef} className="grid min-h-0 flex-1 content-start grid-cols-3 gap-1.5 overflow-y-auto p-1">
+      <div
+        ref={listRef}
+        className="grid min-h-0 flex-1 grid-cols-3 content-start gap-1.5 overflow-y-auto p-1"
+      >
         {filtered.map((country, i) => {
           const isSelected = selectedCodes.includes(country.code);
           const isHighlighted = i === highlightIndex;

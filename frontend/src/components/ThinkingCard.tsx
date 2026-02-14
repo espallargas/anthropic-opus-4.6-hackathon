@@ -44,7 +44,9 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         </div>
         {thinking.type && (
           <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300/80">
-            {thinking.type === 'high' ? t('admin.thinking.high_effort') : t('admin.thinking.adaptive')}
+            {thinking.type === 'high'
+              ? t('admin.thinking.high_effort')
+              : t('admin.thinking.adaptive')}
           </span>
         )}
         {expanded ? (

@@ -193,14 +193,20 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
   return result;
 }
 
-export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpanded = true }: ClaudeOutputPanelProps) {
+export function ClaudeOutputPanel({
+  outputText,
+  thinkingBlocks,
+  thinking,
+  isExpanded = true,
+}: ClaudeOutputPanelProps) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(!isExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
 
   // Use thinkingBlocks if provided, otherwise fall back to single thinking for backward compatibility
-  const blocksToRender = thinkingBlocks && thinkingBlocks.length > 0 ? thinkingBlocks : (thinking ? [thinking] : []);
+  const blocksToRender =
+    thinkingBlocks && thinkingBlocks.length > 0 ? thinkingBlocks : thinking ? [thinking] : [];
 
   // Remove markdown code block markers if present (```json ... ```)
   const cleanText = outputText
@@ -256,16 +262,21 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
 
       {/* Content */}
       {!collapsed && (
-        <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4" onScroll={handleScroll}>
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-auto bg-black/20 p-4"
+          onScroll={handleScroll}
+        >
           <div className="space-y-3">
             {/* Render all thinking blocks */}
-            {blocksToRender.map((block) => (
-              block.content && (
-                <div key={block.id || block.operationId} className="flex-none">
-                  <ThinkingCard thinking={block} />
-                </div>
-              )
-            ))}
+            {blocksToRender.map(
+              (block) =>
+                block.content && (
+                  <div key={block.id || block.operationId} className="flex-none">
+                    <ThinkingCard thinking={block} />
+                  </div>
+                ),
+            )}
             {outputText ? (
               <div className="rounded-lg border border-white/10 bg-black/40 p-4">
                 <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">

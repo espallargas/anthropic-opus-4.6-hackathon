@@ -36,35 +36,38 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
   const isError = category.status === 'error';
   const [expanded, setExpanded] = useState(true);
 
-  const borderClass = category.phase === 'searching'
-    ? 'animate-agent-active border-blue-400/30'
-    : category.phase === 'indexing'
-      ? 'animate-agent-indexing border-purple-400/30'
-      : category.phase === 'completed'
-        ? 'animate-agent-complete border-green-400/15'
-        : isError
-          ? 'border-red-400/40'
-          : 'border-white/10';
+  const borderClass =
+    category.phase === 'searching'
+      ? 'animate-agent-active border-blue-400/30'
+      : category.phase === 'indexing'
+        ? 'animate-agent-indexing border-purple-400/30'
+        : category.phase === 'completed'
+          ? 'animate-agent-complete border-green-400/15'
+          : isError
+            ? 'border-red-400/40'
+            : 'border-white/10';
 
-  const StatusIcon = category.phase === 'searching'
-    ? Loader2
-    : category.phase === 'indexing'
+  const StatusIcon =
+    category.phase === 'searching'
       ? Loader2
-      : category.phase === 'completed'
-        ? CheckCircle2
-        : isError
-          ? XCircle
-          : null;
+      : category.phase === 'indexing'
+        ? Loader2
+        : category.phase === 'completed'
+          ? CheckCircle2
+          : isError
+            ? XCircle
+            : null;
 
-  const statusIconClass = category.phase === 'searching'
-    ? 'h-4 w-4 animate-spin text-blue-400'
-    : category.phase === 'indexing'
-      ? 'h-4 w-4 animate-spin text-purple-400'
-      : category.phase === 'completed'
-        ? 'h-4 w-4 text-green-400'
-        : isError
-          ? 'h-4 w-4 text-red-400'
-          : '';
+  const statusIconClass =
+    category.phase === 'searching'
+      ? 'h-4 w-4 animate-spin text-blue-400'
+      : category.phase === 'indexing'
+        ? 'h-4 w-4 animate-spin text-purple-400'
+        : category.phase === 'completed'
+          ? 'h-4 w-4 text-green-400'
+          : isError
+            ? 'h-4 w-4 text-red-400'
+            : '';
 
   return (
     <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>
@@ -78,17 +81,17 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
           <span className="truncate font-medium text-white/80">{category.name}</span>
         </div>
         {category.phase === 'searching' && (
-          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-400/70 whitespace-nowrap">
+          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-blue-400/70">
             {t('admin.crawl.searching')} {category.name}
           </span>
         )}
         {category.phase === 'indexing' && (category.itemsBeingDocumented ?? 0) > 0 && (
-          <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400/70 whitespace-nowrap">
+          <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-purple-400/70">
             {category.itemsBeingDocumented} {t('admin.crawl.documents_indexed')}
           </span>
         )}
         {category.phase === 'completed' && (
-          <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70 whitespace-nowrap">
+          <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-green-400/70">
             {category.resultCount} {t('admin.crawl.documents_indexed')}
           </span>
         )}

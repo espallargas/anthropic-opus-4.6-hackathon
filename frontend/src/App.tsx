@@ -70,63 +70,68 @@ function App() {
   const showingSetup = showSetup || !store.activeChat;
 
   return (
-      <div className="flex h-screen w-full flex-col bg-black text-white">
-        <Navbar />
-        <div ref={containerRef} className="flex min-h-0 flex-1">
-          {isAdmin ? (
-            <AdminPage />
-          ) : (
-            <>
-              <div style={{ width: `${sidebarWidth}px`, flexShrink: 0, position: 'relative' }}>
-                <Sidebar
-                  chats={store.chats}
-                  activeChatId={store.activeChatId}
-                  onSelectChat={handleSelectChat}
-                  onNewChat={handleNewChat}
-                  onDeleteChat={store.deleteChat}
-                />
-                {/* Resize handle - invisible hit area with visual line */}
+    <div className="flex h-screen w-full flex-col bg-black text-white">
+      <Navbar />
+      <div ref={containerRef} className="flex min-h-0 flex-1">
+        {isAdmin ? (
+          <AdminPage />
+        ) : (
+          <>
+            <div style={{ width: `${sidebarWidth}px`, flexShrink: 0, position: 'relative' }}>
+              <Sidebar
+                chats={store.chats}
+                activeChatId={store.activeChatId}
+                onSelectChat={handleSelectChat}
+                onNewChat={handleNewChat}
+                onDeleteChat={store.deleteChat}
+              />
+              {/* Resize handle - invisible hit area with visual line */}
+              <div
+                className="absolute top-0 right-0 h-full cursor-col-resize transition-all select-none"
+                onMouseDown={handleMouseDown}
+                style={{
+                  userSelect: 'none',
+                  width: '4px',
+                  marginRight: '-2px',
+                  background: 'transparent',
+                }}
+                title={t('resize.tooltip')}
+              >
+                {/* Visual line - thin and minimal */}
                 <div
-                  className="absolute right-0 top-0 h-full cursor-col-resize select-none transition-all"
-                  onMouseDown={handleMouseDown}
                   style={{
-                    userSelect: 'none',
-                    width: '4px',
-                    marginRight: '-2px',
-                    background: 'transparent'
+                    position: 'absolute',
+                    right: '1.5px',
+                    top: 0,
+                    height: '100%',
+                    width: isResizing ? '1px' : '0.5px',
+                    background: isResizing
+                      ? 'rgba(255, 255, 255, 0.5)'
+                      : 'rgba(255, 255, 255, 0.15)',
+                    transition: 'all 200ms',
                   }}
-                  title={t('resize.tooltip')}
-                >
-                  {/* Visual line - thin and minimal */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: '1.5px',
-                      top: 0,
-                      height: '100%',
-                      width: isResizing ? '1px' : '0.5px',
-                      background: isResizing ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)',
-                      transition: 'all 200ms'
-                    }}
+                />
+              </div>
+            </div>
+
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                {showingSetup ? (
+                  <SetupForm
+                    onSubmit={handleSetup}
+                    onCancel={store.activeChat ? () => setShowSetup(false) : undefined}
                   />
-                </div>
+                ) : (
+                  <Chat chat={store.activeChat!} onUpdateMessages={store.updateMessages} />
+                )}
               </div>
+            </div>
 
-              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                  {showingSetup ? (
-                    <SetupForm onSubmit={handleSetup} />
-                  ) : (
-                    <Chat chat={store.activeChat!} onUpdateMessages={store.updateMessages} />
-                  )}
-                </div>
-              </div>
-
-              <AgentMockControls />
-            </>
-          )}
-        </div>
+            <AgentMockControls />
+          </>
+        )}
       </div>
+    </div>
   );
 }
 

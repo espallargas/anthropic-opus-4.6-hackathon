@@ -94,7 +94,9 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
                         )}
                       </div>
                       {law.is_deprecated && (
-                        <span className="flex-shrink-0 text-xs text-red-400">{t('legislation.deprecated')}</span>
+                        <span className="flex-shrink-0 text-xs text-red-400">
+                          {t('legislation.deprecated')}
+                        </span>
                       )}
                     </div>
                   </div>
