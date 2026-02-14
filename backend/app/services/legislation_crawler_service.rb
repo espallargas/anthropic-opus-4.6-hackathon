@@ -173,7 +173,6 @@ class LegislationCrawlerService
     search_count = 0
     current_search_id = nil
     search_started_ids = Set.new
-    initial_search_events_emitted = false
     text_block_completed = false
     current_block_type = nil
     category_map = {
@@ -196,15 +195,6 @@ class LegislationCrawlerService
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
       event_count += 1
-
-      # On first event, emit search_started for all 6 categories to indicate searches are happening
-      if event_count == 1 && !initial_search_events_emitted
-        initial_search_events_emitted = true
-        category_names = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
-        category_names.each_with_index do |category, idx|
-          emit(:search_started, category: category, query: "Searching #{category}...", index: idx + 1, total: 6)
-        end
-      end
 
       # VERBOSE LOGGING - Every single event
       Rails.logger.info("🔵 [RAW EVENT ##{event_count}] Type: #{event.type.inspect}")
@@ -672,22 +662,28 @@ class LegislationCrawlerService
       return unless data.is_a?(Hash)
 
       # Emit search_result for each category with actual count from parsed data
+      # IMPORTANT: Emit for ALL categories (even if 0 results) so frontend can mark them as done
       category_map.each do |category_key, category_label|
         items = data[category_key] || []
         count = items.is_a?(Array) ? items.length : 0
 
-        # Only emit if we have results
-        if count > 0
-          Rails.logger.info("  📊 Emitting search_result (stream): #{category_label} (#{count} items)")
-          emit(:search_result, category: category_label, result_count: count)
-        else
-          Rails.logger.info("  ○ No results for #{category_label}, skipping emit")
-        end
+        Rails.logger.info("  📊 Emitting search_result (stream): #{category_label} (#{count} items)")
+        emit(:search_result, category: category_label, result_count: count)
       end
     rescue JSON::ParserError => e
       Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
+      # Fallback: emit search_result for all categories with 0 results to mark as done
+      Rails.logger.info("  ⚠️ FALLBACK: Emitting 0 results for all categories (JSON parse failed)")
+      category_map.each do |_category_key, category_label|
+        emit(:search_result, category: category_label, result_count: 0)
+      end
     rescue => e
       Rails.logger.warn("Error emitting search_results: #{e.message}")
+      # Fallback: emit search_result for all categories with 0 results to mark as done
+      Rails.logger.info("  ⚠️ FALLBACK: Emitting 0 results for all categories (error: #{e.class})")
+      category_map.each do |_category_key, category_label|
+        emit(:search_result, category: category_label, result_count: 0)
+      end
     end
   end
 
