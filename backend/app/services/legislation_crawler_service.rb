@@ -712,13 +712,46 @@ class LegislationCrawlerService
 
       return unless data.is_a?(Hash)
 
+      # Fallback: Emit search_started for all categories if not already emitted
+      # This ensures categories show their progress even if we missed the real events
+      search_index = 0
+      category_map.each do |_category_key, category_label|
+        search_index += 1
+        Rails.logger.info("  🔍 Fallback: Emitting search_started for #{category_label}")
+        emit(:search_started, category: category_label, query: "Searching #{category_label}...", index: search_index, total: 6)
+      end
+
       # Emit search_result for each category with actual count from parsed data
       # IMPORTANT: Emit for ALL categories (even if 0 results) so frontend can mark them as done
+      search_index = 0
       category_map.each do |category_key, category_label|
+        search_index += 1
         items = data[category_key] || []
         count = items.is_a?(Array) ? items.length : 0
 
         Rails.logger.info("  📊 Emitting search_result (stream): #{category_label} (#{count} items)")
+
+        # First emit all the web search results (fake events from final JSON)
+        if items.is_a?(Array) && items.length > 0
+          items.each_with_index do |item, idx|
+            title = item['title'] || 'Unknown'
+            url = item['source_url'] || ''
+            snippet = item['summary'] || ''
+
+            Rails.logger.info("    🌐 Emitting web_search_result for #{category_label}: #{title[0..40]}")
+            emit(
+              :web_search_result,
+              category: category_label,
+              title: title,
+              url: url,
+              snippet: snippet,
+              index: idx + 1,
+              total: count
+            )
+          end
+        end
+
+        # Then emit the search_result to mark category as done
         emit(:search_result, category: category_label, result_count: count)
       end
     rescue JSON::ParserError => e
