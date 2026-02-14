@@ -206,6 +206,11 @@ export function CrawlProgressBox({
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
+    // Log all message types to debug
+    if (data.type !== 'claude_text' && data.type !== 'thinking') {
+      console.log(`%c[SSE] ${data.type}`, 'color: #8b5cf6; font-size: 11px', data)
+    }
+
     if (data.type === 'thinking') {
       const text = (data.text as string) || ''
       const type = (data.thinking_type as string) || null

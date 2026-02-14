@@ -314,12 +314,6 @@ class LegislationCrawlerService
         emit(:tokens, input_tokens: input_tokens, output_tokens: output_tokens, total_budget: 128000)
       end
 
-      # When stream ends, emit the parsed search results
-      if event.type.to_s == 'message_stop'
-        Rails.logger.info("[STREAM_END] message_stop received, emitting search results...")
-        emit_search_results_for_stream(collector)
-      end
-
       collector.add_event(event)
     end
 
