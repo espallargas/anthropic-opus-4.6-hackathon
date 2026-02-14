@@ -1,7 +1,5 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/atom-one-dark.css'
 
 interface ClaudeOutputPanelProps {
   outputText: string
@@ -84,10 +82,115 @@ function prettyPrintJSON(text: string): string {
   return result.trim()
 }
 
+function syntaxHighlightJSON(text: string): JSX.Element[] {
+  const lines = text.split('\n')
+  const result: JSX.Element[] = []
+
+  lines.forEach((line, lineIdx) => {
+    const elements: JSX.Element[] = []
+    let i = 0
+
+    while (i < line.length) {
+      // Handle whitespace
+      if (line[i] === ' ') {
+        elements.push(<span key={`${lineIdx}-ws-${i}`}> </span>)
+        i++
+      }
+      // Handle string (quoted text)
+      else if (line[i] === '"') {
+        let str = '"'
+        i++
+        while (i < line.length && !(line[i] === '"' && line[i - 1] !== '\\')) {
+          str += line[i]
+          i++
+        }
+        if (i < line.length) str += '"'
+        i++
+
+        // Check if it's a key or value
+        const afterStr = line.slice(i).trimStart()
+        if (afterStr.startsWith(':')) {
+          // It's a key
+          elements.push(
+            <span key={`${lineIdx}-key-${i}`} className="text-red-300">
+              {str}
+            </span>,
+          )
+        } else {
+          // It's a string value
+          elements.push(
+            <span key={`${lineIdx}-str-${i}`} className="text-green-300">
+              {str}
+            </span>,
+          )
+        }
+      }
+      // Handle numbers
+      else if (/\d/.test(line[i]) || (line[i] === '-' && /\d/.test(line[i + 1]))) {
+        let num = ''
+        while (i < line.length && /[\d.]/.test(line[i])) {
+          num += line[i]
+          i++
+        }
+        elements.push(
+          <span key={`${lineIdx}-num-${i}`} className="text-orange-300">
+            {num}
+          </span>,
+        )
+      }
+      // Handle booleans and null
+      else if (line.slice(i, i + 4) === 'true') {
+        elements.push(
+          <span key={`${lineIdx}-bool-${i}`} className="text-blue-300">
+            true
+          </span>,
+        )
+        i += 4
+      } else if (line.slice(i, i + 5) === 'false') {
+        elements.push(
+          <span key={`${lineIdx}-bool-${i}`} className="text-blue-300">
+            false
+          </span>,
+        )
+        i += 5
+      } else if (line.slice(i, i + 4) === 'null') {
+        elements.push(
+          <span key={`${lineIdx}-null-${i}`} className="text-gray-400">
+            null
+          </span>,
+        )
+        i += 4
+      }
+      // Handle punctuation
+      else if (/[{}[\]:,]/.test(line[i])) {
+        elements.push(
+          <span key={`${lineIdx}-punct-${i}`} className="text-white">
+            {line[i]}
+          </span>,
+        )
+        i++
+      }
+      // Handle other characters
+      else {
+        elements.push(<span key={`${lineIdx}-other-${i}`}>{line[i]}</span>)
+        i++
+      }
+    }
+
+    result.push(
+      <div key={`line-${lineIdx}`}>
+        {elements}
+        {lineIdx < lines.length - 1 && '\n'}
+      </div>,
+    )
+  })
+
+  return result
+}
+
 export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutputPanelProps) {
   const [collapsed, setCollapsed] = useState(!isExpanded)
   const contentRef = useRef<HTMLDivElement>(null)
-  const highlightRef = useRef<HTMLPreElement>(null)
 
   // Remove markdown code block markers if present (```json ... ```)
   const cleanText = outputText
@@ -105,14 +208,6 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
       contentRef.current.scrollTop = contentRef.current.scrollHeight
     }
   }, [outputText])
-
-  // Highlight when content updates
-  useEffect(() => {
-    if (highlightRef.current) {
-      highlightRef.current.textContent = formattedText
-      hljs.highlightElement(highlightRef.current)
-    }
-  }, [formattedText])
 
   return (
     <div className="flex h-full flex-col border border-white/5 bg-black/20">
@@ -136,11 +231,8 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
         <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
           {outputText ? (
             <div className="rounded-lg border border-white/10 bg-black/40 p-4">
-              <pre
-                ref={highlightRef}
-                className="language-json font-mono text-xs break-words whitespace-pre-wrap"
-              >
-                {formattedText}
+              <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
+                {isJSON ? syntaxHighlightJSON(formattedText) : formattedText}
               </pre>
             </div>
           ) : (
