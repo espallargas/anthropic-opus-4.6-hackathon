@@ -244,6 +244,15 @@ class LegislationCrawlerService
         if block_type == 'server_tool_use'
           tool_name = event.content_block.name rescue 'N/A'
 
+          # DEBUG: Show what we're seeing
+          puts "\n🔍 [SERVER_TOOL_USE_DEBUG] Index: #{event.index}, Name: #{tool_name}, Class: #{event.content_block.class}"
+          puts "   respond_to?(:name) = #{event.content_block.respond_to?(:name)}"
+          puts "   respond_to?(:input) = #{event.content_block.respond_to?(:input)}"
+          if event.content_block.respond_to?(:input)
+            puts "   input preview: #{event.content_block.input.to_s[0..50]}"
+          end
+          $stdout.flush
+
           # If this is a web_search tool, emit search_started for the corresponding category
           if tool_name == 'web_search' && !server_tool_use_indices.include?(event.index)
             server_tool_use_indices.add(event.index)
