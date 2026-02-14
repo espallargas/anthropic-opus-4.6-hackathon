@@ -449,15 +449,12 @@ export function CrawlProgressBox({
         </div>
       </div>
 
-      {/* Main content - Vertical sections */}
-      <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-        {/* Thinking + Claude Output (40% height) */}
-        <div
-          className="flex min-h-0 flex-none gap-0 overflow-hidden border-b border-white/10"
-          style={{ height: '280px' }}
-        >
-          {/* Left: Thinking panel (30% width) */}
-          <div className="w-[30%] flex-none overflow-hidden border-r border-white/10">
+      {/* Main content - Left/Right sections */}
+      <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
+        {/* Left panel: Thinking (40%) + Categories (60%) */}
+        <div className="flex min-h-0 w-[40%] flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
+          {/* Thinking panel */}
+          <div className="min-h-0 flex-1 overflow-hidden border-b border-white/10">
             <ThinkingPanel
               thinkingText={thinkingText}
               inputTokens={inputTokens}
@@ -465,31 +462,28 @@ export function CrawlProgressBox({
             />
           </div>
 
-          {/* Right: Claude Output (70% width) */}
-          <div className="flex-1 overflow-hidden">
-            <ClaudeOutputPanel outputText={claudeOutputText} />
+          {/* Categories Panel */}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <CategoriesPanel categories={categories} />
           </div>
         </div>
 
-        {/* Categories Panel (43% height) */}
-        <div className="min-h-0 flex-1 overflow-hidden border-b border-white/10">
-          <CategoriesPanel categories={categories} />
+        {/* Right panel: Claude Output (60%) */}
+        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-b border-white/10">
+          <ClaudeOutputPanel outputText={claudeOutputText} />
         </div>
+      </div>
 
-        {/* Status Bar (5% height, ~40px) */}
-        <div
-          className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5"
-          style={{ height: '40px' }}
-        >
-          <div className="text-xs text-white/70">
-            {currentPhase ? (
-              <span>{currentPhase}</span>
-            ) : isComplete ? (
-              <span className="text-emerald-400/80">✓ Crawl complete</span>
-            ) : (
-              <span>Starting crawl...</span>
-            )}
-          </div>
+      {/* Status Bar */}
+      <div className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5">
+        <div className="text-xs text-white/70">
+          {currentPhase ? (
+            <span>{currentPhase}</span>
+          ) : isComplete ? (
+            <span className="text-emerald-400/80">✓ Crawl complete</span>
+          ) : (
+            <span>Starting crawl...</span>
+          )}
         </div>
       </div>
 
