@@ -35,65 +35,53 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
           return JSON.stringify(parsed, null, 2)
         } catch {
           // If parsing fails, apply manual formatting with indentation
-          const formatted = cleanText
           let indent = 0
           let result = ''
           let inString = false
-          let escapeNext = false
+          let previousChar = ''
 
-          for (let i = 0; i < formatted.length; i++) {
-            const char = formatted[i]
-            const nextChar = formatted[i + 1]
+          for (let i = 0; i < cleanText.length; i++) {
+            const char = cleanText[i]
 
-            if (escapeNext) {
-              result += char
-              escapeNext = false
-              continue
-            }
-
-            if (char === '\\' && inString) {
-              escapeNext = true
-              result += char
-              continue
-            }
-
-            if (char === '"' && !escapeNext) {
+            // Handle string detection
+            if (char === '"' && previousChar !== '\\') {
               inString = !inString
               result += char
-              continue
-            }
-
-            if (inString) {
-              result += char
-              continue
-            }
-
-            // Handle formatting for non-string content
-            if (char === '{' || char === '[') {
-              result += char
-              indent++
-              if (nextChar && nextChar !== '}' && nextChar !== ']') {
-                result += '\n' + '  '.repeat(indent)
-              }
-            } else if (char === '}' || char === ']') {
-              indent = Math.max(0, indent - 1)
-              if (result.trimEnd().endsWith('\n' + '  '.repeat(indent + 1))) {
-                // Already indented, just close
+            } else if (!inString) {
+              // Format only outside of strings
+              if (char === '{' || char === '[') {
                 result += char
-              } else if (!result.trimEnd().endsWith('{') && !result.trimEnd().endsWith('[')) {
-                result += '\n' + '  '.repeat(indent) + char
+                const nextChar = cleanText[i + 1]
+                if (nextChar && nextChar !== '}' && nextChar !== ']') {
+                  indent++
+                  result += '\n' + '  '.repeat(indent)
+                }
+              } else if (char === '}' || char === ']') {
+                if (!result.endsWith('\n')) {
+                  indent = Math.max(0, indent - 1)
+                  result += '\n' + '  '.repeat(indent)
+                } else {
+                  indent = Math.max(0, indent - 1)
+                }
+                result += char
+              } else if (char === ',') {
+                result += char + '\n' + '  '.repeat(indent)
+              } else if (char === ':') {
+                result += char + ' '
+              } else if (char === ' ' || char === '\n' || char === '\t') {
+                // Skip whitespace unless we just added a newline
+                if (!result.endsWith('\n')) {
+                  result += ' '
+                }
               } else {
                 result += char
               }
-            } else if (char === ',' && !inString) {
-              result += char + '\n' + '  '.repeat(indent)
-            } else if (char === ':' && !inString) {
-              result += char + ' '
-            } else if (char !== ' ' && char !== '\n' && char !== '\t') {
-              result += char
-            } else if (char === ' ' && result[result.length - 1] !== '\n') {
+            } else {
+              // Inside string, preserve everything
               result += char
             }
+
+            previousChar = char
           }
 
           return result.trim()
