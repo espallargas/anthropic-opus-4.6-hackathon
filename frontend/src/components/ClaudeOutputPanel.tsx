@@ -63,14 +63,13 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
     : cleanText
 
   return (
-    <div className="flex h-full flex-col border-r border-white/10 bg-green-500/5">
+    <div className="flex h-full flex-col border border-white/5 bg-black/20">
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-green-300">[↻]</span>
           <span className="text-xs font-semibold text-white">Claude Output</span>
         </div>
         {collapsed ? (

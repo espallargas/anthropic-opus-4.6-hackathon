@@ -102,8 +102,8 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 )}
               </div>
 
-              {/* Status indicators - side by side, minimal */}
-              <div className="flex flex-shrink-0 items-center gap-3">
+              {/* Status indicators - stacked right column */}
+              <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 {category.status === 'searching' && (
                   <span className="text-xs font-medium text-blue-300">Searching...</span>
                 )}
@@ -111,13 +111,13 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 {/* Show items being documented while parsing JSON */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
                   <span className="text-xs font-medium text-purple-300">
-                    {category.itemsBeingDocumented} parsing
+                    {category.itemsBeingDocumented} web results found
                   </span>
                 )}
 
                 {category.status === 'done' && category.resultCount > 0 && (
                   <span className="text-xs font-medium text-emerald-300">
-                    {category.resultCount} saved
+                    {category.resultCount} Results Parted
                   </span>
                 )}
               </div>
