@@ -1,5 +1,6 @@
 import { AdminPage } from '@/components/AdminPage';
 import { Chat } from '@/components/Chat';
+import { Navbar } from '@/components/Navbar';
 import { SetupForm } from '@/components/SetupForm';
 import { Sidebar } from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
@@ -9,7 +10,6 @@ import { useChatStore } from './hooks/useChatStore';
 import { healthCheck } from './lib/api';
 import type { SystemVars } from './lib/chatStore';
 import { I18nProvider } from './lib/i18n';
-// import { Globe } from '@/components/Globe'
 import { AgentMockControls } from '@/components/AgentMockControls';
 
 function App() {
@@ -19,6 +19,7 @@ function App() {
   const [showSetup, setShowSetup] = useState(false);
   const { status, roundTripMs } = useCable();
   const store = useChatStore();
+  const isAdmin = location.pathname === '/admin';
 
   useEffect(() => {
     const startMs = Date.now();
@@ -34,14 +35,6 @@ function App() {
         setHealthRtt(rtt);
       });
   }, []);
-
-  if (location.pathname === '/admin') {
-    return (
-      <I18nProvider>
-        <AdminPage />
-      </I18nProvider>
-    );
-  }
 
   const handleSetup = (vars: SystemVars) => {
     store.createChat(vars);
@@ -59,42 +52,43 @@ function App() {
 
   const showingSetup = showSetup || !store.activeChat;
 
-  // const origin = store.activeChat?.systemVars.origin_country ?? ''
-  // const destination = store.activeChat?.systemVars.destination_country ?? ''
-
   return (
     <I18nProvider>
-      <div className="flex h-screen w-full bg-black text-white">
-        <Sidebar
-          chats={store.chats}
-          activeChatId={store.activeChatId}
-          onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat}
-          onDeleteChat={store.deleteChat}
-          status={{
-            health,
-            healthRtt,
-            wsStatus: status,
-            wsRoundTripMs: roundTripMs,
-          }}
-        />
+      <div className="flex h-screen w-full flex-col bg-black text-white">
+        <Navbar />
+        <div className="flex min-h-0 flex-1">
+          {isAdmin ? (
+            <AdminPage />
+          ) : (
+            <>
+              <Sidebar
+                chats={store.chats}
+                activeChatId={store.activeChatId}
+                onSelectChat={handleSelectChat}
+                onNewChat={handleNewChat}
+                onDeleteChat={store.deleteChat}
+                status={{
+                  health,
+                  healthRtt,
+                  wsStatus: status,
+                  wsRoundTripMs: roundTripMs,
+                }}
+              />
 
-        {/* Right panel - globe background + content overlay */}
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          {/* <div className="absolute inset-0 z-0 opacity-80">
-            <Globe origin={origin} destination={destination} className="h-full w-full" />
-          </div> */}
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                  {showingSetup ? (
+                    <SetupForm onSubmit={handleSetup} />
+                  ) : (
+                    <Chat chat={store.activeChat!} onUpdateMessages={store.updateMessages} />
+                  )}
+                </div>
+              </div>
 
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-            {showingSetup ? (
-              <SetupForm onSubmit={handleSetup} />
-            ) : (
-              <Chat chat={store.activeChat!} onUpdateMessages={store.updateMessages} />
-            )}
-          </div>
+              <AgentMockControls />
+            </>
+          )}
         </div>
-
-        <AgentMockControls />
       </div>
     </I18nProvider>
   );

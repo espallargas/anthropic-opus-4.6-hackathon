@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import {
-  Globe,
   Activity,
   Wifi,
   PanelLeftClose,
   PanelLeftOpen,
-  Languages,
   Plus,
   Trash2,
   MessageSquare,
 } from 'lucide-react';
-import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
 import type { Chat } from '@/lib/chatStore';
 
@@ -50,7 +47,7 @@ export function Sidebar({
   status,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { locale, setLocale, t } = useI18n();
+  const { t } = useI18n();
 
   const apiLabel =
     status.health && status.healthRtt !== null
@@ -66,13 +63,11 @@ export function Sidebar({
     <aside
       className={`${collapsed ? 'w-16' : 'w-64'} hidden flex-col border-r border-white/10 bg-black transition-[width] duration-300 ease-in-out md:flex`}
     >
-      {/* Header with collapse toggle */}
-      <div className="flex items-center gap-3 border-b border-white/10 p-4">
-        <Globe className="h-5 w-5 shrink-0 text-white/70" />
-        {!collapsed && <h1 className="flex-1 truncate text-sm font-semibold">{t('app.title')}</h1>}
+      {/* Collapse toggle */}
+      <div className="flex items-center justify-center border-b border-white/10 p-2">
         <button
           onClick={() => setCollapsed((prev) => !prev)}
-          className="shrink-0 text-white/40 transition-colors hover:text-white/80"
+          className="flex w-full items-center justify-center rounded-md px-3 py-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
           title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         >
           {collapsed ? (
@@ -146,35 +141,6 @@ export function Sidebar({
             <span className={`inline-block h-2 w-2 rounded-full ${statusDot(status.wsStatus)}`} />
           }
         />
-      </div>
-
-      {/* Language select at bottom */}
-      <div className="border-t border-white/10 p-2">
-        {collapsed ? (
-          <button
-            onClick={() => setLocale(locale === 'pt-BR' ? 'en' : 'pt-BR')}
-            className="flex w-full items-center justify-center rounded-md px-3 py-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
-            title={`${t('sidebar.language')}: ${locale === 'pt-BR' ? 'PT-BR' : 'EN'}`}
-          >
-            <Languages className="h-4 w-4" />
-          </button>
-        ) : (
-          <div className="flex items-center gap-3 px-3 py-2">
-            <Languages className="h-4 w-4 shrink-0 text-white/50" />
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as Locale)}
-              className="flex-1 cursor-pointer rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 transition-colors outline-none hover:border-white/20 hover:text-white/90"
-            >
-              <option value="pt-BR" className="bg-black">
-                Portugues (BR)
-              </option>
-              <option value="en" className="bg-black">
-                English
-              </option>
-            </select>
-          </div>
-        )}
       </div>
     </aside>
   );
