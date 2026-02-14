@@ -207,11 +207,13 @@ export function CrawlProgressBox({
         const categoryKey = cat.id as keyof typeof categoryCounts;
         const count = categoryCounts[categoryKey] || 0;
 
-        // If this category just completed
+        // If this category just completed (had items, now gone from JSON)
         if (justCompletedCategories.has(cat.id)) {
           return {
             ...cat,
+            itemsBeingDocumented: 0,
             legislationsParsed: true,
+            status: 'done' as CategoryStatus,
           };
         }
 
@@ -222,6 +224,7 @@ export function CrawlProgressBox({
               ...cat,
               itemsBeingDocumented: count,
               legislationsParsed: false, // Back to parsing if count changed
+              status: 'searching' as CategoryStatus,
             };
           }
         }
@@ -248,14 +251,14 @@ export function CrawlProgressBox({
         setClaudeOutputText((prev) => prev + text);
       }
     } else if (data.type === 'search_started') {
-      const category = data.category as string;
+      const categoryId = data.category as string;
       const query = (data.query as string) || '';
       const searchIndex = (data.index as number) || 0;
       const searchTotal = (data.total as number) || 6;
 
       setCategories((prev) =>
         prev.map((cat) => {
-          if (cat.name === category) {
+          if (cat.id === categoryId) {
             return {
               ...cat,
               status: 'searching' as CategoryStatus,
@@ -298,12 +301,12 @@ export function CrawlProgressBox({
         }),
       );
     } else if (data.type === 'search_result') {
-      const category = data.category as string;
+      const categoryId = data.category as string;
       const resultCount = (data.result_count as number) || 0;
 
       setCategories((prev) =>
         prev.map((cat) => {
-          if (cat.name === category) {
+          if (cat.id === categoryId) {
             return {
               ...cat,
               status: 'done' as CategoryStatus,

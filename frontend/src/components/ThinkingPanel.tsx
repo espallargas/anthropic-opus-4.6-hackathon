@@ -31,11 +31,11 @@ export function ThinkingPanel({
   const maxTokens = 128000;
 
   // Map thinking effort levels to colors
-  const thinkingTypeColors: Record<string, { bg: string; text: string }> = {
-    low: { bg: 'bg-blue-500/10', text: 'text-blue-300' },
-    medium: { bg: 'bg-cyan-500/10', text: 'text-cyan-300' },
-    high: { bg: 'bg-violet-500/10', text: 'text-violet-300' },
-    max: { bg: 'bg-purple-500/10', text: 'text-purple-300' },
+  const thinkingTypeColors: Record<string, { bg: string; text: string; border: string; effort: number }> = {
+    low: { bg: 'bg-blue-500/10', text: 'text-blue-300', border: 'border-blue-400/30', effort: 25 },
+    medium: { bg: 'bg-cyan-500/10', text: 'text-cyan-300', border: 'border-cyan-400/30', effort: 50 },
+    high: { bg: 'bg-violet-500/10', text: 'text-violet-300', border: 'border-violet-400/30', effort: 75 },
+    max: { bg: 'bg-purple-500/10', text: 'text-purple-300', border: 'border-purple-400/30', effort: 100 },
   };
 
   const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null;
@@ -51,11 +51,27 @@ export function ThinkingPanel({
           <span className="text-xs font-semibold text-blue-300">[≡]</span>
           <span className="text-xs font-semibold text-white">{t('admin.thinking.title')}</span>
           {thinkingType && thinkingTypeColor && (
-            <span
-              className={`rounded px-2 py-0.5 text-xs font-medium ${thinkingTypeColor.bg} ${thinkingTypeColor.text}`}
-            >
-              {thinkingType}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`rounded px-2 py-0.5 text-xs font-medium border ${thinkingTypeColor.bg} ${thinkingTypeColor.text} ${thinkingTypeColor.border}`}
+              >
+                {thinkingType}
+              </span>
+              {/* Adaptive Thinking effort bar */}
+              <div className="flex gap-0.5">
+                {[25, 50, 75, 100].map((level) => (
+                  <div
+                    key={level}
+                    className={`h-1.5 w-1 rounded-full transition-colors ${
+                      thinkingTypeColor.effort >= level ? thinkingTypeColor.text : 'bg-white/10'
+                    }`}
+                    style={{
+                      backgroundColor: thinkingTypeColor.effort >= level ? 'currentColor' : undefined,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
         {collapsed ? (

@@ -147,11 +147,6 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   >
                     {category.name}
                   </p>
-                  {category.searchIndex !== undefined && (
-                    <span className="flex-shrink-0 rounded bg-current/30 px-1.5 py-0.5 text-xs font-medium text-current">
-                      [{category.searchIndex}/{category.searchTotal || 6}]
-                    </span>
-                  )}
                 </div>
                 {category.searchQuery && category.status === 'searching' ? (
                   <div className="mt-0.5 space-y-1">

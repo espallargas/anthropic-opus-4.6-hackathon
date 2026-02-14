@@ -15,6 +15,8 @@ class LegislationCrawlerService
   CATEGORY_LIST = ["Federal Laws", "Regulations", "Consular Rules", "Jurisdictional", "Health & Complementary",
                    "Auxiliary"].freeze
 
+  CATEGORY_IDS = ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"].freeze
+
   attr_reader :country, :sse, :client, :thinking_effort
   attr_accessor :operation_id_counter, :current_operation_id, :thinking_type_emitted, :parse_complete_emitted
 
@@ -31,7 +33,7 @@ class LegislationCrawlerService
 
   # Generate a unique operation ID for grouping related messages
   def next_operation_id
-    operation_id_counter += 1
+    self.operation_id_counter = (operation_id_counter || 0) + 1
     "op_#{operation_id_counter}"
   end
 
@@ -211,6 +213,7 @@ class LegislationCrawlerService
     Set.new
 
     server_tool_use_indices = Set.new
+    search_started_indices = Set.new
 
     stream_response = client.messages.stream(**)
     stream_response.each do |event|
@@ -220,6 +223,18 @@ class LegislationCrawlerService
       event_type = event.type.to_s
       if event_type == "content_block_start"
         block_type = event.content_block.type.to_s
+
+        # Detect server_tool_use (web_search) start
+        if block_type == "server_tool_use" && search_started_indices.exclude?(event.index)
+          search_started_indices.add(event.index)
+          search_num = search_started_indices.size
+
+          if search_num <= CATEGORY_IDS.length
+            category_id = CATEGORY_IDS[search_num - 1]
+            category_label = CATEGORY_LIST[search_num - 1]
+            emit(:search_started, category: category_id, query: "Searching #{category_label.downcase}")
+          end
+        end
 
         # Detect web_search_tool_result which indicates a search happened
         if block_type == "web_search_tool_result" && server_tool_use_indices.exclude?(event.index)
@@ -245,14 +260,12 @@ class LegislationCrawlerService
             end
           end
 
-          if search_num <= CATEGORY_LIST.length
-            category = CATEGORY_LIST[search_num - 1]
+          if search_num <= CATEGORY_IDS.length
+            category_id = CATEGORY_IDS[search_num - 1]
 
             emit(:search_result,
-                 category: category,
-                 result_count: result_count,
-                 index: search_num,
-                 total: 6)
+                 category: category_id,
+                 result_count: result_count)
           end
         end
       end
@@ -383,6 +396,7 @@ class LegislationCrawlerService
     current_operation_id = next_operation_id
 
     response = nil
+    response = nil
     begin
       Timeout.timeout(TIMEOUT_SECONDS) do
         # Define web_search tool - Opus 4.6 supports native web_search
@@ -426,9 +440,9 @@ class LegislationCrawlerService
     end
 
     emit(:phase, message: "Extracting legislation results")
-    legislation_results = extract_legislation_from_response(response)
+    legislation_results = response ? extract_legislation_from_response(response) : {}
 
-    doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
+    doc_count = legislation_results&.values&.sum { |v| v.is_a?(Array) ? v.count : 0 } || 0
     emit(:phase, message: "Preparing database save (#{doc_count} documents)")
 
     legislation_results
@@ -505,10 +519,12 @@ class LegislationCrawlerService
       auxiliary: []
     }
 
+    return results if response.blank? || response.content.blank?
+
     # Find text block with JSON
     json_text = nil
     response.content.each do |block|
-      next unless block.type == :text
+      next unless block.respond_to?(:type) && block.type == :text
 
       json_text = block.text
       break if json_text&.include?('"federal_laws"')

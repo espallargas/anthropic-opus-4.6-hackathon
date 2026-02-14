@@ -5,21 +5,12 @@ module Api
         include ActionController::Live
 
         def index
-          # Use subquery to count legislations efficiently
-          legislation_count = Legislation
-                              .select("country_id, COUNT(*) as count")
-                              .group(:country_id)
-
           active = Country
                    .where.not(last_crawled_at: nil)
-                   .left_joins("LEFT JOIN (#{legislation_count.to_sql}) as leg_count ON countries.id = leg_count.country_id")
-                   .select("countries.*, COALESCE(leg_count.count, 0) as legislation_count")
                    .order(:name)
 
           pending = Country
                     .where(last_crawled_at: nil)
-                    .left_joins("LEFT JOIN (#{legislation_count.to_sql}) as leg_count ON countries.id = leg_count.country_id")
-                    .select("countries.*, COALESCE(leg_count.count, 0) as legislation_count")
                     .order(:name)
 
           render json: {
@@ -90,7 +81,7 @@ module Api
               flag_emoji: country.flag_emoji,
               status: status,
               last_crawled_at: country.last_crawled_at,
-              legislation_count: country.legislation_count.to_i
+              legislation_count: country.legislations.count
             }
           end
         end
