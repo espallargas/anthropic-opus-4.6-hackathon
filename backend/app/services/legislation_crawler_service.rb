@@ -372,7 +372,7 @@ class LegislationCrawlerService
 
       {
         "federal_laws": [
-          {"title": "Law Name/Ref", "content": "Full description - comprehensive details about the law, its purpose, applicability, and key provisions. Should be detailed (5-10 sentences)", "summary": "2-3 sentence brief overview", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
+          {"title": "Law Name/Ref", "summary": "2-3 sentences", "source_url": "https://...", "date_effective": "YYYY-MM-DD"}
         ],
         "regulations": [...],
         "consular": [...],
@@ -385,8 +385,7 @@ class LegislationCrawlerService
 
       - source_url MUST be a real URL from web_search results
       - title MUST match the official law name exactly
-      - content MUST be comprehensive (5-10 sentences describing what the law does, who it affects, key provisions)
-      - summary MUST be 2-3 sentence brief overview
+      - summary MUST be 2-3 sentences based on search results
       - date_effective MUST be YYYY-MM-DD format
       - If date unknown, use "2024-01-01" as placeholder
     PROMPT
@@ -588,13 +587,10 @@ class LegislationCrawlerService
           next unless item.is_a?(Hash)
           next if item['title'].blank?
 
-          # Use full content if available, fallback to summary
-          full_content = (item['content'] || item['summary'] || '').to_s
-
           results[category_sym] << {
             title: item['title'].to_s.strip,
-            content: full_content,
-            summary: (item['summary'] || '').to_s,
+            content: item['summary'].to_s,
+            summary: item['summary'].to_s,
             source_url: item['source_url'].to_s,
             date_effective: parse_date(item['date_effective']),
             is_deprecated: false,
