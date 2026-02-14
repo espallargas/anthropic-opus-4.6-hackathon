@@ -52,11 +52,16 @@ function getParsingColors(
 ): { icon: string; text: string; spinner: string } {
   // Parsing complete → vibrant green
   if (legislationsParsed) {
+    console.log(`[COLOR] legislationsParsed=true → GREEN`)
     return {
       icon: 'text-green-500',
       text: 'text-green-400',
       spinner: 'text-green-500',
     }
+  }
+
+  if (itemsBeingDocumented || itemsBeingDocumented === 0) {
+    console.log(`[COLOR] itemsBeingDocumented=${itemsBeingDocumented}, legislationsParsed=${legislationsParsed}`)
   }
 
   // Parsing in progress → cyan

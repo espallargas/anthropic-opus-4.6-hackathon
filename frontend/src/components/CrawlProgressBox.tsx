@@ -200,6 +200,7 @@ export function CrawlProgressBox({
         // If this category had items before but doesn't anymore (moved to next category)
         // AND it's not already marked as parsed, mark it as complete
         if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && !cat.legislationsParsed) {
+          console.log(`[JSON_MONITOR] ${cat.name}: moved to next category, marking as complete!`)
           return {
             ...cat,
             legislationsParsed: true, // Done parsing this category!
