@@ -119,6 +119,7 @@ export function CrawlProgressBox({
   const onCompleteRef = useRef(onComplete);
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Helper function to count items in partial JSON by category
   const parsePartialJSONByCategory = useCallback((jsonText: string): Record<string, number> => {
@@ -520,13 +521,9 @@ export function CrawlProgressBox({
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (!isResizing || !containerRef.current) return;
 
-      // Get the container element
-      const container = document.querySelector('[data-crawl-container]') as HTMLElement;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
+      const rect = containerRef.current.getBoundingClientRect();
       const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
 
       // Constrain between 25% and 75%
@@ -547,9 +544,9 @@ export function CrawlProgressBox({
 
 
   return (
-    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl" data-crawl-container>
+    <div ref={containerRef} className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border-2 border-white/60 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/20 bg-white/[0.02] px-4 py-3">
+      <div className="flex items-center justify-between border-b-2 border-white/60 bg-white/[0.02] px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">
             {localizedCountryName}
@@ -590,7 +587,7 @@ export function CrawlProgressBox({
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Left panel: Categories */}
-        <div className="flex min-h-0 flex-none flex-col gap-0 overflow-hidden border-r border-white/20 bg-black/30" style={{ width: `${leftPanelWidth}%` }}>
+        <div className="flex min-h-0 flex-none flex-col gap-0 overflow-hidden border-r-2 border-white/60 bg-black/30" style={{ width: `${leftPanelWidth}%` }}>
           <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>
@@ -598,8 +595,9 @@ export function CrawlProgressBox({
 
         {/* Resize handle */}
         <div
-          className={`w-0.5 flex-none bg-white/10 transition-colors ${isResizing ? 'bg-white/50' : 'hover:bg-white/30 cursor-col-resize'}`}
+          className={`w-1 flex-none cursor-col-resize transition-colors ${isResizing ? 'bg-white/80' : 'bg-white/40 hover:bg-white/70'}`}
           onMouseDown={handleMouseDown}
+          title="Arraste para redimensionar"
         />
 
         {/* Right panel: Claude Output + Thinking integrated */}
@@ -609,7 +607,7 @@ export function CrawlProgressBox({
       </div>
 
       {/* Status Bar */}
-      <div className="flex flex-none items-center justify-between border-t border-white/20 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex flex-none items-center justify-between border-t-2 border-white/60 bg-white/[0.02] px-3 py-2.5">
         <div className="text-xs text-white/70">
           {currentPhase ? (
             <span>{currentPhase}</span>
