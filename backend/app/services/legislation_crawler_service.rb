@@ -236,13 +236,32 @@ class LegislationCrawlerService
     stream_response.each do |event|
       event_count += 1
 
-      # DEBUG: Log ALL event types to see what's coming
-      if event_count <= 50  # Only log first 50 to avoid spam
-        puts "EVENT ##{event_count}: type=#{event.type.to_s}"
-        $stdout.flush
+      # DEBUG: Log ALL event types
+      puts "EVENT ##{event_count}: type=#{event.type.to_s}"
+      $stdout.flush
+
+      # Check for server_tool_use BEFORE it's added to collector
+      # This happens during content_block_start
+      if event.type.to_s == 'content_block_start'
+        begin
+          block_type = event.content_block.type
+          if block_type == 'server_tool_use'
+            tool_name = event.content_block.name rescue 'N/A'
+            puts "\n" + ("*" * 80)
+            puts "🔍 [SERVER_TOOL_USE] tool_name = '#{tool_name}'"
+            puts "*" * 80
+            puts "   Index: #{event.index}"
+            puts "   Class: #{event.content_block.class}"
+            puts ("*" * 80) + "\n"
+            $stdout.flush
+          end
+        rescue => e
+          puts "Error checking content_block: #{e.message}"
+          $stdout.flush
+        end
       end
 
-      # Detect server_tool_use (web_search) blocks and emit search_started immediately
+      # Emit search_started when we detect a server_tool_use web_search
       if event.type.to_s == 'content_block_start'
         block_type = event.content_block.type
 
