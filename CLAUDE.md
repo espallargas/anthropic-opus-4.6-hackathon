@@ -3,8 +3,10 @@
 ## What
 
 Monorepo hackathon: Rails 8 API backend + React 19 / Vite 7 frontend.
-Stack: Ruby 3.4.7, Rails 8.1 (API-only), PostgreSQL 14, Redis, React 19, TypeScript, Tailwind CSS 4.
 
+**Stack**: Ruby 3.4.7 + Rails 8.1 (API-only), PostgreSQL 14, Redis | React 19, TypeScript, Tailwind CSS 4, Vite 7
+
+**Structure**:
 ```
 backend/   — Rails API-only (port 3000)
 frontend/  — React + Vite (port 5173, proxies /api and /cable to backend)
@@ -13,52 +15,58 @@ bin/dev    — Starts both servers via foreman
 
 ## Why
 
-Rapid prototyping for hackathon. Validate fast, iterate, ship. Working code > perfect architecture.
-When stuck: simplify scope, don't add complexity. Ask before creating abstractions or adding dependencies.
+Validate fast, iterate, ship. Working code > perfect architecture. When stuck: simplify scope, ask before creating abstractions.
 
 ## How
 
+**Development**:
 ```bash
-bin/dev                                  # Start both servers
-cd backend && bin/rails db:migrate       # Run migrations
-cd frontend && yarn build                # Production build
-cd frontend && yarn format               # Format before committing
-cd frontend && yarn lint                 # Lint check
+bin/dev                        # Start both servers
+cd backend && bin/rails db:migrate
+cd frontend && yarn format && yarn lint
 ```
 
-API routes under `/api/v1/`. Controllers in `backend/app/controllers/api/v1/`.
-Vite proxies `/api` and `/cable` to Rails automatically.
+**Configuration**:
+- API routes under `/api/v1/`, controllers in `backend/app/controllers/api/v1/`
+- Vite proxies `/api` and `/cable` to Rails automatically
+- Environment variables via `direnv` (`.envrc`), secrets in `.env.local` (git-ignored)
 
-`direnv` manages env vars via `.envrc`. Credentials in `.env.local` (git-ignored).
+## Code Quality
+
+**Backend**: Rubocop + rubocop-rails enabled. See `.rubocop.yml` for pragmatic service exemptions.
+**Frontend**: ESLint + Prettier (Airbnb-based, semicolons enforced). Run `yarn lint` and `yarn format` before commits.
+
+**Principles**:
+- DRY — eliminate duplication, extract constants
+- Clean Code — small functions with clear names (Uncle Bob style)
+- Early Returns — no nested conditionals, guard clauses
+- Single Responsibility — one method = one job
+- No debug logs in production code
 
 ## Rules
 
 - User speaks Portuguese, code and commits in English
-- Follow existing codebase patterns
-- Don't polish what doesn't work yet
-- Don't add explanatory comments on obvious code
-- Run `yarn format` before committing frontend changes — let the linter handle style
+- Follow existing patterns; don't over-engineer
+- Commits: `type(scope): description` (feat, fix, refactor, test, docs, chore)
+- One commit = one logical change; use descriptive messages
+- Format before committing — let tools handle style
 
-## Commits
+## Related Docs
 
-`type(scope): description` — feat, fix, refactor, test, docs, chore.
-English. One commit = one logical change. NEVER Co-Authored-By. NEVER emoji.
+- `.claude/docs/git-conventions.md` — Detailed commit/branch rules
+- `.claude/docs/clean-code.md` — Naming, TypeScript, comment conventions
 
-## Docs
+## Key Files
 
-Task-specific instructions live in `.claude/docs/`. Read the relevant ones before starting work.
+**Backend**:
+- `app/services/legislation_crawler_service.rb` — Main crawler (streaming, tool use, extraction)
+- `app/models/` — Country, Legislation with versioning support
+- `app/lib/s_s_e_message_schema.rb` — SSE message validation
+- `config/routes.rb`, `config/cable.yml` — Routing, WebSocket
 
-- `.claude/docs/git-conventions.md` — Commit format, branch naming, atomicity rules
-- `.claude/docs/clean-code.md` — Naming, functions, TypeScript, and comment conventions
-
-## Key files
-
-- `backend/config/routes.rb` — API routes
-- `backend/config/initializers/cors.rb` — CORS (allows localhost:5173)
-- `backend/config/cable.yml` — Action Cable with Redis
-- `backend/app/channels/ping_channel.rb` — WebSocket ping/pong channel
-- `frontend/vite.config.ts` — Vite proxy + Tailwind plugin
-- `frontend/src/lib/api.ts` — Typed fetch wrapper
-- `frontend/src/lib/cable.ts` — Action Cable consumer singleton
-- `frontend/src/hooks/useCable.ts` — WebSocket connection hook
-- `Procfile.dev` — Foreman process definitions
+**Frontend**:
+- `src/lib/api.ts` — Typed fetch wrapper
+- `src/lib/cable.ts` — Action Cable consumer
+- `src/hooks/useChat.ts`, `useCable.ts` — Core hooks
+- `src/components/CrawlProgressBox.tsx` — Real-time crawl UI
+- `vite.config.ts` — Build config, Tailwind plugin
