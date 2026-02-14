@@ -54,8 +54,7 @@ export function CrawlProgressBox({
 }: CrawlProgressBoxProps) {
   const { t } = useI18n();
   const localizedCountryName = getCountryNameLocalized(countryCode, t);
-  const [thinkingText, setThinkingText] = useState('');
-  const [thinkingType, setThinkingType] = useState<string | null>(null);
+  const [thinkingBlocks, setThinkingBlocks] = useState<ThinkingBlock[]>([]);
   const [claudeOutputText, setClaudeOutputText] = useState('');
   const [categories, setCategories] = useState<CategoryState[]>([
     {
@@ -226,11 +225,32 @@ export function CrawlProgressBox({
     if (data.type === 'thinking') {
       const text = (data.text as string) || '';
       const type = (data.thinking_type as string) || null;
+      const operationId = (data.operation_id as string) || 'default';
+
       if (text) {
-        setThinkingText((prev) => prev + text);
-      }
-      if (type && !thinkingType) {
-        setThinkingType(type);
+        setThinkingBlocks((prev) => {
+          // Find or create thinking block for this operation
+          const existingIdx = prev.findIndex((b) => b.operationId === operationId);
+          if (existingIdx >= 0) {
+            // Append to existing block
+            const updated = [...prev];
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              content: updated[existingIdx].content + text,
+            };
+            return updated;
+          } else {
+            // Create new block
+            const newBlock: ThinkingBlock = {
+              id: `thinking_${operationId}`,
+              content: text,
+              status: 'thinking',
+              type: type || undefined,
+              operationId,
+            };
+            return [...prev, newBlock];
+          }
+        });
       }
     } else if (data.type === 'claude_text') {
       const text = (data.text as string) || '';
@@ -321,6 +341,13 @@ export function CrawlProgressBox({
       const count = (data.document_count as number) || 0;
       setDocumentCount(count);
       setIsComplete(true);
+      // Mark all thinking blocks as done
+      setThinkingBlocks((prev) =>
+        prev.map((block) => ({
+          ...block,
+          status: 'done',
+        })),
+      );
       // Mark all legislations as fully parsed and completed
       setCategories((prev) =>
         prev.map((cat) => ({
@@ -441,12 +468,6 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
-  // Construct ThinkingBlock for ClaudeOutputPanel
-  const thinking: ThinkingBlock = {
-    content: thinkingText,
-    status: thinkingType === 'done' || isComplete ? 'done' : 'thinking',
-    type: thinkingType || undefined,
-  };
 
   return (
     <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
@@ -500,7 +521,7 @@ export function CrawlProgressBox({
 
         {/* Right panel: Claude Output + Thinking integrated (50%) */}
         <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-          <ClaudeOutputPanel outputText={claudeOutputText} thinking={thinking} />
+          <ClaudeOutputPanel outputText={claudeOutputText} thinkingBlocks={thinkingBlocks} />
         </div>
       </div>
 

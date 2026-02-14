@@ -6,6 +6,7 @@ import type { ThinkingBlock } from '@/lib/chatStore';
 
 interface ClaudeOutputPanelProps {
   outputText: string;
+  thinkingBlocks?: ThinkingBlock[];
   thinking?: ThinkingBlock;
   isExpanded?: boolean;
 }
@@ -192,10 +193,13 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
   return result;
 }
 
-export function ClaudeOutputPanel({ outputText, thinking, isExpanded = true }: ClaudeOutputPanelProps) {
+export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpanded = true }: ClaudeOutputPanelProps) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(!isExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Use thinkingBlocks if provided, otherwise fall back to single thinking for backward compatibility
+  const blocksToRender = thinkingBlocks && thinkingBlocks.length > 0 ? thinkingBlocks : (thinking ? [thinking] : []);
 
   // Remove markdown code block markers if present (```json ... ```)
   const cleanText = outputText
@@ -235,11 +239,14 @@ export function ClaudeOutputPanel({ outputText, thinking, isExpanded = true }: C
       {!collapsed && (
         <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
           <div className="space-y-3">
-            {thinking && thinking.content && (
-              <div className="flex-none">
-                <ThinkingCard thinking={thinking} />
-              </div>
-            )}
+            {/* Render all thinking blocks */}
+            {blocksToRender.map((block) => (
+              block.content && (
+                <div key={block.id || block.operationId} className="flex-none">
+                  <ThinkingCard thinking={block} />
+                </div>
+              )
+            ))}
             {outputText ? (
               <div className="rounded-lg border border-white/10 bg-black/40 p-4">
                 <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">

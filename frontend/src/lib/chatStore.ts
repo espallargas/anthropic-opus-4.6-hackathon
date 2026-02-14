@@ -38,10 +38,12 @@ export interface UsageReport {
 }
 
 export interface ThinkingBlock {
+  id?: string;
   content: string;
   status: 'thinking' | 'done';
   type?: string;
   budgetTokens?: number;
+  operationId?: string;
 }
 
 export interface ChatMessage {
