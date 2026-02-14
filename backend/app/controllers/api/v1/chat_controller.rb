@@ -4,123 +4,150 @@ module Api
       include ActionController::Live
 
       MODEL = "claude-opus-4-6".freeze
-      MAX_TOKENS = 16_000
-      THINKING_BUDGET = 10_000
+      MAX_TOKENS = 128_000
       MAX_TURNS = 10
+      BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25].freeze
 
-      LOCALE_TO_LANGUAGE = { 'pt-BR' => 'Portuguese', 'en' => 'English' }.freeze
-
-      SYSTEM_PROMPT_TEMPLATE = <<~PROMPT.freeze
-        You are a specialist assistant in immigration processes.
-
-        User data:
-        - Origin country: %<origin_country>s
-        - Nationality: %<nationality>s
-        - Destination country: %<destination_country>s
-        - Objective: %<objective>s
-        - Additional information: %<additional_info>s
-
-        LANGUAGE: Always respond in %<language>s, unless the user writes in a different language or explicitly asks you to use another language.
-
-        Respond clearly and practically. Cite legal requirements when relevant.
-        Always ask if you need more details to provide an accurate answer.
-
-        You have access to tools to search for visa requirements and processing timelines.
-        Use them when the user asks about documents, requirements, or timelines.
-      PROMPT
-
+      LOCALE_TO_LANGUAGE = { "pt-BR" => "Portuguese", "en" => "English" }.freeze
       DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Be concise and direct.".freeze
 
-      def create
+      def create # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
         response.headers["Content-Type"] = "text/event-stream"
         response.headers["Cache-Control"] = "no-cache"
         response.headers["X-Accel-Buffering"] = "no"
 
         sse = ActionController::Live::SSE.new(response.stream)
         messages = params.require(:messages).map { |m| { role: m[:role], content: m[:content] } }
+        system_vars = extract_system_vars
         system_prompt = build_system_prompt
         client = Rails.application.config.x.anthropic
 
-        sse.write({ type: 'message_start', server_time: Time.current.iso8601(3) })
+        sse.write({ type: "message_start", server_time: Time.current.iso8601(3) })
 
         total_input_tokens = 0
         total_output_tokens = 0
+        container_id = nil
+        agent_usage = {}
 
         MAX_TURNS.times do
           text_content = ""
           tool_use_blocks = []
           thinking_blocks = []
+          server_tool_use_blocks = []
+          result_blocks = []
           stop_reason = nil
+          thinking_active = false
 
-          stream = client.messages.stream(
+          stream_params = {
             model: MODEL,
             max_tokens: MAX_TOKENS,
-            system: system_prompt,
+            system_: system_prompt,
             messages: messages,
             tools: Tools::Definitions::TOOLS,
-            thinking: { type: 'enabled', budget_tokens: THINKING_BUDGET }
-          )
+            thinking: { type: "adaptive" },
+            betas: BETAS
+          }
+          stream_params[:container] = container_id if container_id
 
-          thinking_active = false
+          stream = client.beta.messages.stream(stream_params)
 
           stream.each do |event|
             case event.type
             when :thinking
               unless thinking_active
                 thinking_active = true
-                sse.write({ type: 'thinking_start', server_time: Time.current.iso8601(3) })
+                sse.write({ type: "thinking_start", server_time: Time.current.iso8601(3) })
               end
-              sse.write({ type: 'thinking_token', token: event.thinking, server_time: Time.current.iso8601(3) })
+              sse.write({ type: "thinking_token", token: event.thinking, server_time: Time.current.iso8601(3) })
+
             when :text
               if thinking_active
                 thinking_active = false
-                sse.write({ type: 'thinking_end', server_time: Time.current.iso8601(3) })
+                sse.write({ type: "thinking_end", server_time: Time.current.iso8601(3) })
               end
-              sse.write({ type: 'token', token: event.text, server_time: Time.current.iso8601(3) })
+              sse.write({ type: "token", token: event.text, server_time: Time.current.iso8601(3) })
               text_content += event.text
-            when :content_block_stop
-              if event.content_block.type == :thinking
-                if thinking_active
-                  thinking_active = false
-                  sse.write({ type: 'thinking_end', server_time: Time.current.iso8601(3) })
-                end
-                block = event.content_block
-                thinking_blocks << { type: 'thinking', thinking: block.thinking, signature: block.signature }
-                next
-              end
-              next unless event.content_block.type == :tool_use
 
+            when :content_block_stop
               block = event.content_block
-              input = parse_tool_input(block.input)
-              tool_use_blocks << { id: block.id, name: block.name, input: input }
-              sse.write({ type: "tool_use_start", tool_call_id: block.id, tool_name: block.name, tool_input: input,
-                          server_time: Time.current.iso8601(3) })
+              block_type = block.type.to_s
+
+              # Close thinking if still active when non-thinking block finishes
+              if thinking_active && block_type != "thinking"
+                thinking_active = false
+                sse.write({ type: "thinking_end", server_time: Time.current.iso8601(3) })
+              end
+
+              case block_type
+              when "thinking"
+                thinking_active = false
+                thinking_blocks << {
+                  type: "thinking",
+                  thinking: block.thinking,
+                  signature: block.signature
+                }
+
+              when "tool_use"
+                input = parse_tool_input(block.input)
+                caller_info = extract_caller(block)
+                tool_block = { id: block.id, name: block.name, input: input }
+                tool_block[:caller] = caller_info if caller_info
+                tool_use_blocks << tool_block
+
+                sse.write({
+                            type: "tool_use_start",
+                            tool_call_id: block.id,
+                            tool_name: block.name,
+                            tool_input: input,
+                            server_time: Time.current.iso8601(3)
+                          })
+
+              when "server_tool_use"
+                input = parse_tool_input(block.respond_to?(:input) ? block.input : {})
+                server_tool_use_blocks << { id: block.id, name: block.name, input: input }
+
+              when "bash_code_execution_tool_result", "code_execution_tool_result"
+                result_blocks << serialize_result_block(block)
+              end
+
             when :message_stop
               stop_reason = event.message.stop_reason.to_s
               usage = event.message.usage
               total_input_tokens += usage.input_tokens if usage.respond_to?(:input_tokens)
               total_output_tokens += usage.output_tokens if usage.respond_to?(:output_tokens)
+
+              # Track container ID for code execution reuse
+              if event.message.respond_to?(:container) && event.message.container
+                ctr = event.message.container
+                container_id = ctr.respond_to?(:id) ? ctr.id : ctr.to_s
+              end
             end
           end
 
           break unless stop_reason == "tool_use" && tool_use_blocks.any?
 
-          assistant_content = []
-          thinking_blocks.each { |tb| assistant_content << tb }
-          assistant_content << { type: 'text', text: text_content } if text_content.present?
-          tool_use_blocks.each do |tb|
-            assistant_content << { type: "tool_use", id: tb[:id], name: tb[:name], input: tb[:input] }
-          end
+          # Build assistant content preserving all block types
+          assistant_content = build_assistant_content(
+            thinking_blocks, text_content, server_tool_use_blocks, tool_use_blocks, result_blocks
+          )
           messages << { role: "assistant", content: assistant_content }
 
-          # Tool results are handled natively by Claude API
-          # No custom tool execution needed - web_search and other tools work natively
+          # Execute programmatic tool calls via agent executor
+          tool_results = execute_tool_calls(tool_use_blocks, system_vars, sse, agent_usage)
+          messages << { role: "user", content: tool_results }
         end
 
-        sse.write({ type: 'usage_report', total_input_tokens: total_input_tokens, total_output_tokens: total_output_tokens, server_time: Time.current.iso8601(3) })
-        sse.write({ type: 'message_end', server_time: Time.current.iso8601(3) })
+        sse.write({
+                    type: "usage_report",
+                    total_input_tokens: total_input_tokens,
+                    total_output_tokens: total_output_tokens,
+                    agent_usage: agent_usage,
+                    server_time: Time.current.iso8601(3)
+                  })
+        sse.write({ type: "message_end", server_time: Time.current.iso8601(3) })
       rescue StandardError => e
         Rails.logger.error("Chat SSE error: #{e.class} - #{e.message}")
+        Rails.logger.error(e.backtrace&.first(5)&.join("\n"))
         begin
           sse&.write({ type: "error", error: e.message, server_time: Time.current.iso8601(3) })
         rescue StandardError
@@ -131,6 +158,109 @@ module Api
       end
 
       private
+
+      def extract_system_vars
+        vars = params[:system_vars]
+        return {} unless vars
+
+        vars.to_unsafe_h.symbolize_keys
+      end
+
+      def extract_caller(block)
+        # Try direct accessor
+        if block.respond_to?(:caller) && block.caller
+          caller_obj = block.caller
+          caller_type = caller_obj.respond_to?(:type) ? caller_obj.type.to_s : nil
+          if caller_type == "code_execution_20250825"
+            return { type: caller_type,
+                     tool_id: caller_obj.respond_to?(:tool_id) ? caller_obj.tool_id : nil }
+          end
+        end
+
+        # Try hash conversion
+        if block.respond_to?(:to_h)
+          block_hash = block.to_h
+          caller_info = block_hash[:caller] || block_hash["caller"]
+          if caller_info
+            ct = (caller_info[:type] || caller_info["type"]).to_s
+            if ct == "code_execution_20250825"
+              return { type: ct,
+                       tool_id: caller_info[:tool_id] || caller_info["tool_id"] }
+            end
+          end
+        end
+
+        nil
+      rescue StandardError
+        nil
+      end
+
+      def build_assistant_content(thinking_blocks, text_content, server_tool_use_blocks, tool_use_blocks, result_blocks)
+        content = thinking_blocks.dup
+        content << { type: "text", text: text_content } if text_content.present?
+        server_tool_use_blocks.each do |stb|
+          content << { type: "server_tool_use", id: stb[:id], name: stb[:name], input: stb[:input] }
+        end
+        tool_use_blocks.each do |tb|
+          block = { type: "tool_use", id: tb[:id], name: tb[:name], input: tb[:input] }
+          block[:caller] = tb[:caller] if tb[:caller]
+          content << block
+        end
+        result_blocks.each { |rb| content << rb }
+        content
+      end
+
+      def execute_tool_calls(tool_use_blocks, system_vars, sse, agent_usage)
+        executor = Agents::Executor.new(system_vars: system_vars, sse: sse)
+
+        tool_use_blocks.map do |tb|
+          if programmatic_call?(tb)
+            result = executor.execute(tb[:name], tb[:input])
+
+            # Track per-agent token usage
+            if result[:usage]
+              agent_usage[tb[:name]] = {
+                input_tokens: result.dig(:usage, :input_tokens) || 0,
+                output_tokens: result.dig(:usage, :output_tokens) || 0
+              }
+            end
+
+            content = result[:success] ? result[:data].to_json : { error: result[:error] }.to_json
+            { type: "tool_result", tool_use_id: tb[:id], content: content }
+          else
+            # Non-programmatic tool call — return empty result (shouldn't happen with current setup)
+            { type: "tool_result", tool_use_id: tb[:id],
+              content: { error: "Tool not implemented: #{tb[:name]}" }.to_json }
+          end
+        end
+      end
+
+      def programmatic_call?(tool_block)
+        # A tool call is programmatic if it has a caller from code_execution OR if it's one of our agent tools
+        return true if tool_block[:caller]
+
+        Agents::Executor::AGENTS.key?(tool_block[:name])
+      end
+
+      def serialize_result_block(block)
+        block_type = block.type.to_s
+        tool_use_id = block.respond_to?(:tool_use_id) ? block.tool_use_id : nil
+
+        content = if block.respond_to?(:content) && block.content
+                    result = block.content
+                    {
+                      type: result.respond_to?(:type) ? result.type.to_s : block_type.sub("_tool_result", "_result"),
+                      stdout: result.respond_to?(:stdout) ? result.stdout : "",
+                      stderr: result.respond_to?(:stderr) ? result.stderr : "",
+                      return_code: result.respond_to?(:return_code) ? result.return_code : 0,
+                      content: result.respond_to?(:content) ? (result.content || []) : []
+                    }
+                  else
+                    { type: "code_execution_result", stdout: "", stderr: "", return_code: 0, content: [] }
+                  end
+
+        { type: block_type, tool_use_id: tool_use_id, content: content }
+      end
 
       def parse_tool_input(input)
         case input
@@ -148,16 +278,49 @@ module Api
 
       def build_system_prompt
         vars = params[:system_vars]
-        return DEFAULT_SYSTEM_PROMPT if vars.blank?
 
-        language = LOCALE_TO_LANGUAGE[vars[:locale].to_s] || 'English'
+        prompts = load_agent_prompts
+        orchestrator_prompt = prompts.dig("orchestrator", "system_prompt")
+        return DEFAULT_SYSTEM_PROMPT if vars.blank? || orchestrator_prompt.blank?
 
-        format(SYSTEM_PROMPT_TEMPLATE, origin_country: vars[:origin_country].to_s,
-                                       nationality: vars[:nationality].to_s,
-                                       destination_country: vars[:destination_country].to_s,
-                                       objective: vars[:objective].to_s,
-                                       additional_info: vars[:additional_info].to_s.presence || "None",
-                                       language: language)
+        language = LOCALE_TO_LANGUAGE[vars[:locale].to_s] || "English"
+
+        legislation_context = build_legislation_context(vars[:destination_country])
+
+        replacements = {
+          "origin_country" => vars[:origin_country].to_s,
+          "nationality" => vars[:nationality].to_s,
+          "destination_country" => vars[:destination_country].to_s,
+          "objective" => vars[:objective].to_s,
+          "additional_info" => vars[:additional_info].to_s.presence || "None",
+          "language" => language,
+          "legislation_context" => legislation_context
+        }
+
+        replacements.reduce(orchestrator_prompt) { |prompt, (key, val)| prompt.gsub("{{#{key}}}", val) }
+      end
+
+      def build_legislation_context(country_code)
+        return "No legislation data available yet." if country_code.blank?
+
+        country = Country.find_by(code: country_code.to_s.upcase)
+        return "No legislation data available yet." unless country&.legislations&.exists?
+
+        country.legislations
+               .where(is_deprecated: false)
+               .group_by(&:category)
+               .map do |cat, laws|
+                 items = laws.map { |l| "- #{l.title}: #{l.summary || l.content.to_s.truncate(200)}" }.join("\n")
+                 "### #{cat.to_s.humanize.titleize}\n#{items}"
+               end
+               .join("\n\n")
+      end
+
+      def load_agent_prompts
+        @load_agent_prompts ||= YAML.load_file(Rails.root.join("config/agent_prompts.yml"))
+      rescue StandardError => e
+        Rails.logger.error("Failed to load agent prompts: #{e.message}")
+        {}
       end
     end
   end

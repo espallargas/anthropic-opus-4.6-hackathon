@@ -39,7 +39,17 @@ module SSEMessageSchema
     error: { fields: [:message, :code], required_fields: [:message] },
 
     # Completion
-    complete: { fields: [:message, :document_count], required_fields: [:message] }
+    complete: { fields: [:message, :document_count], required_fields: [:message] },
+
+    # Agent lifecycle events (multi-agent orchestration)
+    agent_start: { fields: [:agent_name, :agent_label, :task], required_fields: [:agent_name] },
+    agent_token: { fields: [:agent_name, :token], required_fields: [:agent_name, :token] },
+    agent_tool_use_start: { fields: [:agent_name, :tool_call_id, :tool_name, :tool_input],
+                            required_fields: [:agent_name, :tool_name] },
+    agent_tool_use_result: { fields: [:agent_name, :tool_call_id, :tool_name, :result],
+                             required_fields: [:agent_name, :tool_name] },
+    agent_end: { fields: [:agent_name, :result_summary, :usage, :duration_ms],
+                 required_fields: [:agent_name] }
   }.freeze
 
   # Validate message against schema
