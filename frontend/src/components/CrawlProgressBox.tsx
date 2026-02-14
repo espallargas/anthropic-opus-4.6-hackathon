@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { X, Pause } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { getCountryNameLocalized } from '@/lib/countries'
 import { ThinkingPanel } from './ThinkingPanel'
 import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
 import { ClaudeOutputPanel } from './ClaudeOutputPanel'
@@ -43,11 +44,13 @@ interface CategoryState {
 
 export function CrawlProgressBox({
   countryCode,
-  countryName,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  countryName: _countryName,
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
   const { t } = useI18n()
+  const localizedCountryName = getCountryNameLocalized(countryCode, t)
   const [thinkingText, setThinkingText] = useState('')
   const [thinkingType, setThinkingType] = useState<string | null>(null)
   const [claudeOutputText, setClaudeOutputText] = useState('')
@@ -151,6 +154,17 @@ export function CrawlProgressBox({
     return categoryMap
   }, [])
 
+  // Update category names when language changes
+  useEffect(() => {
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        name: t(`admin.category.${cat.id}`),
+        description: t(`admin.category.${cat.id}.description`),
+      })),
+    )
+  }, [t])
+
   // Update refs whenever dependencies change
   useEffect(() => {
     onCompleteRef.current = onComplete
@@ -178,7 +192,12 @@ export function CrawlProgressBox({
         const categoryKey = cat.id as keyof typeof categoryCounts
         const count = categoryCounts[categoryKey] || 0
         // If category had items before but doesn't anymore, mark as just completed
-        if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && count === 0 && !cat.legislationsParsed) {
+        if (
+          cat.itemsBeingDocumented &&
+          cat.itemsBeingDocumented > 0 &&
+          count === 0 &&
+          !cat.legislationsParsed
+        ) {
           justCompletedCategories.add(cat.id)
           console.log(`[JSON_MONITOR] ${cat.name}: disappeared from JSON, marking as complete!`)
         }
@@ -441,7 +460,9 @@ export function CrawlProgressBox({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-white">
+            {localizedCountryName}
+          </h3>
           <div className="mt-1 flex gap-3">
             {documentCount > 0 && (
               <p className="text-xs font-medium text-emerald-400/80">
@@ -516,10 +537,10 @@ export function CrawlProgressBox({
       {showPauseConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="rounded-lg border border-white/20 bg-black/95 p-6 shadow-xl">
-            <h3 className="mb-2 text-sm font-semibold text-white">{t('admin.crawl.stop_confirm')}</h3>
-            <p className="mb-4 text-xs text-white/70">
-              {t('admin.crawl.stop_description')}
-            </p>
+            <h3 className="mb-2 text-sm font-semibold text-white">
+              {t('admin.crawl.stop_confirm')}
+            </h3>
+            <p className="mb-4 text-xs text-white/70">{t('admin.crawl.stop_description')}</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleCancelPause}
