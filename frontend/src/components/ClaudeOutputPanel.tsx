@@ -1,37 +1,42 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import prettier from 'prettier/standalone'
-import parserBabel from 'prettier/plugins/babel'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/atom-one-dark.css'
 
 interface ClaudeOutputPanelProps {
   outputText: string
   isExpanded?: boolean
 }
 
-async function formatJSON(text: string): Promise<string> {
+function formatJSON(text: string): string {
   try {
-    return await prettier.format(text, {
-      plugins: [parserBabel],
-      parser: 'json',
-      printWidth: 80,
-      tabWidth: 2,
-    })
+    // First try to complete the JSON if it's incomplete
+    let testText = text
+    const openBraces = (testText.match(/{/g) || []).length
+    const closeBraces = (testText.match(/}/g) || []).length
+    const openBrackets = (testText.match(/\[/g) || []).length
+    const closeBrackets = (testText.match(/]/g) || []).length
+
+    if (openBraces > closeBraces) {
+      testText += '}'.repeat(openBraces - closeBraces)
+    }
+    if (openBrackets > closeBrackets) {
+      testText += ']'.repeat(openBrackets - closeBrackets)
+    }
+
+    // Parse and format
+    const parsed = JSON.parse(testText)
+    return JSON.stringify(parsed, null, 2)
   } catch {
-    // If formatting fails, return as-is
+    // If parsing fails, return as-is
     return text
   }
 }
 
 export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutputPanelProps) {
   const [collapsed, setCollapsed] = useState(!isExpanded)
-  const [formattedText, setFormattedText] = useState('')
   const contentRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (contentRef.current && outputText) {
-      contentRef.current.scrollTop = contentRef.current.scrollHeight
-    }
-  }, [outputText])
+  const highlightRef = useRef<HTMLPreElement>(null)
 
   // Remove markdown code block markers if present (```json ... ```)
   const cleanText = outputText
@@ -41,14 +46,22 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
 
   const isJSON = cleanText.startsWith('{') || cleanText.startsWith('[')
 
-  // Format JSON with Prettier
+  // Format JSON
+  const formattedText = isJSON ? formatJSON(cleanText) : cleanText
+
   useEffect(() => {
-    if (isJSON && cleanText) {
-      formatJSON(cleanText).then(setFormattedText)
-    } else {
-      setFormattedText(cleanText)
+    if (contentRef.current && outputText) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight
     }
-  }, [cleanText, isJSON])
+  }, [outputText])
+
+  // Highlight when content updates
+  useEffect(() => {
+    if (highlightRef.current) {
+      highlightRef.current.textContent = formattedText
+      hljs.highlightElement(highlightRef.current)
+    }
+  }, [formattedText])
 
   return (
     <div className="flex h-full flex-col border border-white/5 bg-black/20">
@@ -72,8 +85,11 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
         <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
           {outputText ? (
             <div className="rounded-lg border border-white/10 bg-black/40 p-4">
-              <pre className="font-mono text-xs break-words whitespace-pre-wrap text-blue-200/90">
-                {formattedText || cleanText}
+              <pre
+                ref={highlightRef}
+                className="language-json font-mono text-xs break-words whitespace-pre-wrap"
+              >
+                {formattedText}
               </pre>
             </div>
           ) : (
