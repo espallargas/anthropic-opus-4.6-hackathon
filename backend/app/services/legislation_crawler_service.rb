@@ -221,9 +221,16 @@ class LegislationCrawlerService
     stream_response.each do |event|
       event_count += 1
 
+      # Log only content_block_start and server_tool_use for debugging
+      event_type = event.type.to_s
+      if event_type == 'content_block_start'
+        Rails.logger.info("[EVENT] content_block_start at index #{event.index}")
+      end
+
       # Detect server_tool_use (web_search) blocks and emit search_started immediately
-      if event.type.to_s == 'content_block_start'
+      if event_type == 'content_block_start'
         block_type = event.content_block.type
+        Rails.logger.info("[BLOCK] type=#{block_type} at index #{event.index}")
 
         # Emit search_started when we detect a server_tool_use web_search
         if block_type == 'server_tool_use'
