@@ -329,11 +329,16 @@ class LegislationCrawlerService
 
       # Emit search_result when message is about to stop
       # This ensures we get the final text block with JSON results
-      if event.type.to_s == 'message_stop' && !text_block_completed
-        Rails.logger.info("  📨 MESSAGE_STOP detected - emitting search_results from final content")
-        text_block_completed = true
-        # Emit search_results now while still in stream loop (before response closes)
-        emit_search_results_for_stream(collector)
+      if event.type.to_s == 'message_stop'
+        Rails.logger.info("  📨 MESSAGE_STOP detected!")
+        Rails.logger.info("     text_block_completed=#{text_block_completed}")
+        Rails.logger.info("     collector.content.length=#{collector.content.length}")
+        if !text_block_completed
+          Rails.logger.info("  📨 EMITTING search_results from final content")
+          text_block_completed = true
+          # Emit search_results now while still in stream loop (before response closes)
+          emit_search_results_for_stream(collector)
+        end
       end
 
       # Emit token tracking
@@ -680,8 +685,10 @@ class LegislationCrawlerService
     # This is called DURING the streaming loop (when message_stop event arrives)
     # So events are sent before the HTTP response closes
 
-    Rails.logger.info("🔍 [SEARCH_RESULTS_STREAM] Emitting search_results during stream")
+    Rails.logger.info("="*80)
+    Rails.logger.info("🔍 [SEARCH_RESULTS_STREAM] STARTING - Emitting search_results during stream")
     Rails.logger.info("   Content blocks available: #{collector.content.length}")
+    Rails.logger.info("="*80)
 
     category_map = {
       'federal_laws' => 'Federal Laws',
@@ -714,12 +721,14 @@ class LegislationCrawlerService
 
       # Fallback: Emit search_started for all categories if not already emitted
       # This ensures categories show their progress even if we missed the real events
+      Rails.logger.info("   🔍 FALLBACK: Emitting search_started for all categories")
       search_index = 0
       category_map.each do |_category_key, category_label|
         search_index += 1
-        Rails.logger.info("  🔍 Fallback: Emitting search_started for #{category_label}")
+        Rails.logger.info("     ✓ Emitting search_started: #{category_label} (#{search_index}/6)")
         emit(:search_started, category: category_label, query: "Searching #{category_label}...", index: search_index, total: 6)
       end
+      Rails.logger.info("   🔍 FALLBACK: Done emitting search_started")
 
       # Emit search_result for each category with actual count from parsed data
       # IMPORTANT: Emit for ALL categories (even if 0 results) so frontend can mark them as done
