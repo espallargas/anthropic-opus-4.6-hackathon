@@ -5,20 +5,22 @@ module Api
         include ActionController::Live
 
         def index
-          # Query using SQL to calculate status directly in database
+          # Use subquery to count legislations efficiently
+          legislation_count = Legislation
+                              .select("country_id, COUNT(*) as count")
+                              .group(:country_id)
+
           active = Country
-                   .select("countries.*, COUNT(legislations.id) as legislation_count")
-                   .left_joins(:legislations)
                    .where.not(last_crawled_at: nil)
+                   .left_joins("LEFT JOIN (#{legislation_count.to_sql}) as leg_count ON countries.id = leg_count.country_id")
+                   .select("countries.*, COALESCE(leg_count.count, 0) as legislation_count")
                    .order(:name)
-                   .group("countries.id")
 
           pending = Country
-                    .select("countries.*, COUNT(legislations.id) as legislation_count")
-                    .left_joins(:legislations)
                     .where(last_crawled_at: nil)
+                    .left_joins("LEFT JOIN (#{legislation_count.to_sql}) as leg_count ON countries.id = leg_count.country_id")
+                    .select("countries.*, COALESCE(leg_count.count, 0) as legislation_count")
                     .order(:name)
-                    .group("countries.id")
 
           render json: {
             active: format_countries(active),
