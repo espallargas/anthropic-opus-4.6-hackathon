@@ -22,6 +22,8 @@ interface Category {
   searchTotal?: number
   webSearchResults?: WebSearchResult[]
   itemsBeingDocumented?: number // Items found while parsing JSON
+  webResultsCrawled?: boolean // True when web results have been crawled
+  legislationsParsed?: boolean // True when legislations have been fully parsed
 }
 
 interface CategoriesPanelProps {
@@ -58,15 +60,27 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
             className={`rounded px-2.5 py-2 transition-colors ${CATEGORY_COLORS[category.status]}`}
           >
             <div className="flex items-start gap-2.5">
-              {/* Status icon */}
+              {/* Status icon - color changes based on what's been completed */}
               <div className="mt-0.5 flex-shrink-0 text-current">
-                {STATUS_ICONS[category.status]}
+                {category.status === 'done' && category.webResultsCrawled ? (
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                ) : category.status === 'done' && category.legislationsParsed ? (
+                  <CheckCircle2 className="h-3 w-3 text-purple-400" />
+                ) : (
+                  STATUS_ICONS[category.status]
+                )}
               </div>
 
               {/* Category info */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-xs font-medium text-current">{category.name}</p>
+                  <p
+                    className={`truncate text-xs font-medium ${
+                      category.webResultsCrawled ? 'text-emerald-300' : 'text-current'
+                    }`}
+                  >
+                    {category.name}
+                  </p>
                   {category.searchIndex !== undefined && (
                     <span className="flex-shrink-0 rounded bg-current/30 px-1.5 py-0.5 text-xs font-medium text-current">
                       [{category.searchIndex}/{category.searchTotal || 6}]
@@ -108,16 +122,24 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   <span className="text-xs font-medium text-blue-300">Searching...</span>
                 )}
 
-                {/* Web results from search */}
+                {/* Web results from search - green when crawled */}
                 {category.resultCount > 0 && (
-                  <span className="text-xs font-medium text-blue-300">
+                  <span
+                    className={`text-xs font-medium ${
+                      category.webResultsCrawled ? 'text-emerald-300' : 'text-blue-300'
+                    }`}
+                  >
                     {category.resultCount} web results crawled
                   </span>
                 )}
 
-                {/* Show legislations being parsed - progresses as JSON arrives */}
+                {/* Show legislations being parsed - purple when complete */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span className="text-xs font-medium text-emerald-300">
+                  <span
+                    className={`text-xs font-medium ${
+                      category.legislationsParsed ? 'text-purple-300' : 'text-emerald-300'
+                    }`}
+                  >
                     {category.itemsBeingDocumented} legislations parsed
                   </span>
                 )}

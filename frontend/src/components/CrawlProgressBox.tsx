@@ -277,6 +277,7 @@ export function CrawlProgressBox({
               status: 'done' as CategoryStatus,
               resultCount,
               searchQuery: undefined,
+              webResultsCrawled: true,
             }
           }
           return cat
@@ -297,6 +298,13 @@ export function CrawlProgressBox({
       const count = (data.document_count as number) || 0
       setDocumentCount(count)
       setIsComplete(true)
+      // Mark all legislations as fully parsed
+      setCategories((prev) =>
+        prev.map((cat) => ({
+          ...cat,
+          legislationsParsed: true,
+        })),
+      )
       setTimeout(() => onCompleteRef.current(), 1200)
     } else if (data.type === 'batch_saved') {
       const count = (data.total_saved as number) || 0
