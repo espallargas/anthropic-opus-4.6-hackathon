@@ -85,27 +85,27 @@ function App() {
                   onNewChat={handleNewChat}
                   onDeleteChat={store.deleteChat}
                 />
-                {/* Resize handle - invisible hit area with visual feedback */}
+                {/* Resize handle - invisible hit area with visual line */}
                 <div
                   className="absolute right-0 top-0 h-full cursor-col-resize select-none transition-all"
                   onMouseDown={handleMouseDown}
                   style={{
                     userSelect: 'none',
-                    width: '6px',
-                    marginRight: '-3px',
-                    background: isResizing ? 'rgba(255, 255, 255, 0.4)' : 'transparent'
+                    width: '4px',
+                    marginRight: '-2px',
+                    background: 'transparent'
                   }}
                   title="Arraste para redimensionar"
                 >
-                  {/* Visual line - thin, only shows on hover/drag */}
+                  {/* Visual line - thin and minimal */}
                   <div
                     style={{
                       position: 'absolute',
-                      right: '2.5px',
+                      right: '1.5px',
                       top: 0,
                       height: '100%',
-                      width: isResizing ? '2px' : '1px',
-                      background: isResizing ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)',
+                      width: isResizing ? '1px' : '0.5px',
+                      background: isResizing ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)',
                       transition: 'all 200ms'
                     }}
                   />

@@ -4,7 +4,7 @@ import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
 
 export function Navbar() {
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const isAdmin = location.pathname === '/admin';
