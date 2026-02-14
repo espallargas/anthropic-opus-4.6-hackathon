@@ -59,21 +59,12 @@ function getParsingColors(
     }
   }
 
-  // Parsing in progress → blue to cyan gradient
+  // Parsing in progress → cyan
   if (itemsBeingDocumented && itemsBeingDocumented > 0) {
-    // If more items found, use more cyan (further along)
-    if (itemsBeingDocumented > 10) {
-      return {
-        icon: 'text-cyan-500',
-        text: 'text-cyan-300',
-        spinner: 'text-cyan-500',
-      }
-    }
-    // Early in parsing, bright blue
     return {
-      icon: 'text-blue-400',
-      text: 'text-blue-300',
-      spinner: 'text-blue-400',
+      icon: 'text-cyan-500',
+      text: 'text-cyan-300',
+      spinner: 'text-cyan-500',
     }
   }
 
