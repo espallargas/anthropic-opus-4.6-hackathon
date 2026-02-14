@@ -182,23 +182,26 @@ export function CrawlProgressBox({
 
     previousItemCountRef.current = itemCount
     setItemsFoundCount(itemCount)
-    setCategories((prev) =>
-      prev.map((cat) => {
+    setCategories((prev) => {
+      const updated = prev.map((cat) => {
         // Don't update if this category has already been marked as parsed
         if (cat.legislationsParsed) {
+          console.log(`%c⛔ Skipping ${cat.name} - legislationsParsed=${cat.legislationsParsed}`, 'color: #ef4444')
           return cat
         }
         const categoryKey = cat.id as keyof typeof categoryCounts
         const count = categoryCounts[categoryKey] || 0
         if (count > 0 && cat.itemsBeingDocumented !== count) {
+          console.log(`%c📊 Updating ${cat.name}: ${cat.itemsBeingDocumented} → ${count}`, 'color: #3b82f6')
           return {
             ...cat,
             itemsBeingDocumented: count,
           }
         }
         return cat
-      }),
-    )
+      })
+      return updated
+    })
   }, [claudeOutputText, countItemsInPartialJSON, parsePartialJSONByCategory])
 
   // Process incoming SSE messages
