@@ -18,18 +18,32 @@ class LegislationCrawlerService
 
   # Single unified emit method - type-safe with schema validation
   def emit(type, **data)
+    puts "🔴 [EMIT_CALLED] #{type} with data: #{data.inspect[0..80]}"
+    $stdout.flush
+
     begin
       message = ::SSEMessageSchema.format(type, data)
       json_msg = message.to_json
+      puts "🟡 [EMIT_FORMATTED] #{type}: #{json_msg[0..100]}"
+      $stdout.flush
+
       Rails.logger.info("[EMIT] #{type}: #{json_msg[0..150]}")
       if @sse
         # SSE.write expects a hash, will convert to JSON automatically with 'data: ' prefix
+        puts "🟢 [EMIT_WRITING] #{type} to SSE (sse=#{@sse.class})"
+        $stdout.flush
         @sse.write(message)
+        puts "🟢 [✓ EMIT_SUCCESS] #{type} written to SSE stream"
+        $stdout.flush
         Rails.logger.info("[✓ EMIT_SUCCESS] #{type} written to SSE stream")
       else
+        puts "🔴 [✗ EMIT_WARNING] SSE is nil, cannot write #{type}"
+        $stdout.flush
         Rails.logger.warn("[✗ EMIT_WARNING] SSE is nil, cannot write #{type}")
       end
     rescue StandardError => e
+      puts "🔴 [✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}"
+      $stdout.flush
       Rails.logger.error("[✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}")
       Rails.logger.error(e.backtrace.join("\n"))
       @sse&.write({ type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) })
