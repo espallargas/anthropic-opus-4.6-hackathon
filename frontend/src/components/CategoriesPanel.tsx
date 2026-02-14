@@ -83,11 +83,13 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 <div className="flex items-center gap-2">
                   <p
                     className={`truncate text-xs font-medium ${
-                      category.legislationsParsed
+                      category.itemsBeingDocumented && category.itemsBeingDocumented > 0
                         ? 'text-purple-300'
-                        : category.webResultsCrawled
-                          ? 'text-emerald-300'
-                          : 'text-current'
+                        : category.legislationsParsed
+                          ? 'text-purple-300'
+                          : category.webResultsCrawled
+                            ? 'text-emerald-300'
+                            : 'text-current'
                     }`}
                   >
                     {category.name}
@@ -147,11 +149,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
                 {/* Show legislations being parsed - hide web results when parsing starts */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span
-                    className={`text-xs font-medium ${
-                      category.legislationsParsed ? 'text-purple-300' : 'text-emerald-300'
-                    }`}
-                  >
+                  <span className="text-xs font-medium text-purple-300">
                     {category.itemsBeingDocumented} legislations parsed
                   </span>
                 )}
