@@ -50,12 +50,12 @@ function getParsingColors(
   legislationsParsed?: boolean,
   webResultsCrawled?: boolean,
 ): { icon: string; text: string; spinner: string } {
-  // Parsing complete → green
+  // Parsing complete → vibrant green
   if (legislationsParsed) {
     return {
-      icon: 'text-emerald-400',
-      text: 'text-emerald-300',
-      spinner: 'text-emerald-400',
+      icon: 'text-green-500',
+      text: 'text-green-400',
+      spinner: 'text-green-500',
     }
   }
 
