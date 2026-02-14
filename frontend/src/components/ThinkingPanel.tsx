@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 
 interface ThinkingPanelProps {
   thinkingText: string
+  thinkingType?: string | null
   isExpanded?: boolean
   inputTokens?: number
   outputTokens?: number
@@ -10,6 +11,7 @@ interface ThinkingPanelProps {
 
 export function ThinkingPanel({
   thinkingText,
+  thinkingType,
   isExpanded = true,
   inputTokens,
   outputTokens,
@@ -26,6 +28,16 @@ export function ThinkingPanel({
   const totalTokens = (inputTokens || 0) + (outputTokens || 0)
   const maxTokens = 128000
 
+  // Map thinking effort levels to colors
+  const thinkingTypeColors: Record<string, { bg: string; text: string }> = {
+    low: { bg: 'bg-blue-500/10', text: 'text-blue-300' },
+    medium: { bg: 'bg-cyan-500/10', text: 'text-cyan-300' },
+    high: { bg: 'bg-violet-500/10', text: 'text-violet-300' },
+    max: { bg: 'bg-purple-500/10', text: 'text-purple-300' },
+  }
+
+  const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null
+
   return (
     <div className="flex h-full flex-col border-r border-white/10 bg-blue-500/5">
       {/* Header */}
@@ -36,6 +48,13 @@ export function ThinkingPanel({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-blue-300">[≡]</span>
           <span className="text-xs font-semibold text-white">Thinking</span>
+          {thinkingType && thinkingTypeColor && (
+            <span
+              className={`rounded px-2 py-0.5 text-xs font-medium ${thinkingTypeColor.bg} ${thinkingTypeColor.text}`}
+            >
+              {thinkingType}
+            </span>
+          )}
         </div>
         {collapsed ? (
           <ChevronDown className="h-3.5 w-3.5 text-white/40" />

@@ -14,7 +14,7 @@ module SSEMessageSchema
     search: { fields: [:count, :total, :category, :query], required_fields: [:count, :total, :query] },
 
     # Claude thinking (structured for UI rendering, linked via operation_id)
-    thinking: { fields: [:text, :is_summary, :operation_id], required_fields: [:text] },
+    thinking: { fields: [:text, :is_summary, :operation_id, :thinking_type], required_fields: [:text] },
 
     # Claude response text
     claude_text: { fields: [:text], required_fields: [:text] },

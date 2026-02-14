@@ -8,6 +8,8 @@ class LegislationCrawlerService
     @client = Rails.application.config.x.anthropic
     @operation_id_counter = 0
     @current_operation_id = nil
+    @thinking_effort = "high"  # Configure thinking effort level: low, medium, high, max
+    @thinking_type_emitted = false  # Track if we've emitted the thinking type
   end
 
   # Generate a unique operation ID for grouping related messages
@@ -282,7 +284,10 @@ class LegislationCrawlerService
         begin
           if event.delta.respond_to?(:thinking) && event.delta.thinking
             thinking_text = event.delta.thinking
-            emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id)
+            # Emit thinking type only once at the start
+            thinking_type = @thinking_type_emitted ? nil : @thinking_effort
+            @thinking_type_emitted = true if !@thinking_type_emitted
+            emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id, thinking_type: thinking_type)
           end
         rescue => e
           # Silent
@@ -427,6 +432,7 @@ class LegislationCrawlerService
           system_: system_prompt,
           messages: messages,
           output_config: {
+            effort: @thinking_effort,
             format: {
               type: "json_schema",
               schema: legislation_schema

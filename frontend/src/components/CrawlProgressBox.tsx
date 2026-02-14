@@ -36,6 +36,8 @@ interface CategoryState {
   searchTotal?: number
   webSearchResults?: WebSearchResult[]
   itemsBeingDocumented?: number // Items found while parsing JSON in real-time
+  webResultsCrawled?: boolean // True when web results have been crawled
+  legislationsParsed?: boolean // True when legislations have been fully parsed
 }
 
 export function CrawlProgressBox({
@@ -45,6 +47,7 @@ export function CrawlProgressBox({
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
   const [thinkingText, setThinkingText] = useState('')
+  const [thinkingType, setThinkingType] = useState<string | null>(null)
   const [claudeOutputText, setClaudeOutputText] = useState('')
   const [categories, setCategories] = useState<CategoryState[]>([
     {
@@ -170,6 +173,7 @@ export function CrawlProgressBox({
   }, [documentCount, onDocCountUpdate])
 
   // Count items in real-time as Claude output (JSON) arrives
+  // Only update for categories that haven't finished parsing yet
   useEffect(() => {
     if (!claudeOutputText) return
 
@@ -180,6 +184,10 @@ export function CrawlProgressBox({
     setItemsFoundCount(itemCount)
     setCategories((prev) =>
       prev.map((cat) => {
+        // Don't update if this category has already been marked as parsed
+        if (cat.legislationsParsed) {
+          return cat
+        }
         const categoryKey = cat.id as keyof typeof categoryCounts
         const count = categoryCounts[categoryKey] || 0
         if (count > 0 && cat.itemsBeingDocumented !== count) {
@@ -197,8 +205,12 @@ export function CrawlProgressBox({
   const processMessage = useCallback((data: SSEMessage) => {
     if (data.type === 'thinking') {
       const text = (data.text as string) || ''
+      const type = (data.thinking_type as string) || null
       if (text) {
         setThinkingText((prev) => prev + text)
+      }
+      if (type && !thinkingType) {
+        setThinkingType(type)
       }
     } else if (data.type === 'claude_text') {
       const text = (data.text as string) || ''
@@ -489,6 +501,7 @@ export function CrawlProgressBox({
           >
             <ThinkingPanel
               thinkingText={thinkingText}
+              thinkingType={thinkingType}
               inputTokens={inputTokens}
               outputTokens={outputTokens}
             />
