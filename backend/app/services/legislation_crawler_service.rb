@@ -463,6 +463,11 @@ class LegislationCrawlerService
             Rails.logger.info("    Thinking length: #{block.thinking.to_s.length}")
           end
         end
+
+        # FALLBACK: If search_results were never emitted during streaming,
+        # emit them now with the complete response
+        Rails.logger.info("[POST-STREAM] Checking if search_results need to be emitted...")
+        emit_search_results_post_stream(response)
       end
     rescue Timeout::Error => e
       Rails.logger.error("Claude API timeout after 300s: #{e.message}")
@@ -681,6 +686,60 @@ class LegislationCrawlerService
       Rails.logger.warn("Error emitting search_results: #{e.message}")
       # Fallback: emit search_result for all categories with 0 results to mark as done
       Rails.logger.info("  ⚠️ FALLBACK: Emitting 0 results for all categories (error: #{e.class})")
+      category_map.each do |_category_key, category_label|
+        emit(:search_result, category: category_label, result_count: 0)
+      end
+    end
+  end
+
+  def emit_search_results_post_stream(response)
+    # FALLBACK: Emit search_results after streaming if they weren't emitted during streaming
+    # This ensures categories are always marked as 'done' even if streaming logic fails
+    Rails.logger.info("[POST-STREAM] emit_search_results_post_stream called")
+
+    category_map = {
+      'federal_laws' => 'Federal Laws',
+      'regulations' => 'Regulations',
+      'consular' => 'Consular Rules',
+      'jurisdictional' => 'Jurisdictional',
+      'complementary' => 'Health & Complementary',
+      'auxiliary' => 'Auxiliary'
+    }
+
+    # Find text blocks
+    text_blocks = response.content.select { |block| block.type == :text }
+    Rails.logger.info("[POST-STREAM] Found #{text_blocks.length} text blocks")
+
+    return if text_blocks.empty?
+
+    # Try to parse JSON from concatenated text
+    full_text = text_blocks.map { |block| block.text }.join("\n")
+    Rails.logger.info("[POST-STREAM] Full text length: #{full_text.length} chars")
+
+    begin
+      # Extract JSON from the text
+      json_match = full_text.match(/\{[\s\S]*\}/)
+      Rails.logger.info("[POST-STREAM] JSON match found: #{!json_match.nil?}")
+      return unless json_match
+
+      json_str = json_match[0]
+      data = JSON.parse(json_str)
+
+      return unless data.is_a?(Hash)
+
+      # Emit search_result for each category with actual count from parsed data
+      Rails.logger.info("[POST-STREAM] Emitting search results for all categories")
+      category_map.each do |category_key, category_label|
+        items = data[category_key] || []
+        count = items.is_a?(Array) ? items.length : 0
+
+        Rails.logger.info("[POST-STREAM] Emitting search_result: #{category_label} (#{count} items)")
+        emit(:search_result, category: category_label, result_count: count)
+      end
+    rescue => e
+      Rails.logger.warn("[POST-STREAM] Error parsing JSON or emitting results: #{e.message}")
+      # Fallback: emit 0 results for all categories
+      Rails.logger.info("[POST-STREAM] FALLBACK: Emitting 0 results for all categories")
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
       end
