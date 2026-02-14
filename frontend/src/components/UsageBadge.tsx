@@ -20,7 +20,7 @@ export function UsageBadge({ report }: UsageBadgeProps) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="text-[10px] text-white/20 transition-colors hover:text-white/40"
+        className="text-muted-foreground/40 hover:text-muted-foreground/70 text-[10px] transition-colors"
       >
         {t('usage.label')}: {total.toLocaleString()}
       </button>
@@ -30,7 +30,10 @@ export function UsageBadge({ report }: UsageBadgeProps) {
           {agentEntries.map(([name, usage]) => {
             const label = t(`agent.${name}`) !== `agent.${name}` ? t(`agent.${name}`) : name;
             return (
-              <div key={name} className="flex items-center gap-2 text-[10px] text-white/20">
+              <div
+                key={name}
+                className="text-muted-foreground/40 flex items-center gap-2 text-[10px]"
+              >
                 <span className="truncate">{label}</span>
                 <span>{(usage.input_tokens + usage.output_tokens).toLocaleString()}</span>
               </div>

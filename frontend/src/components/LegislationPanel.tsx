@@ -50,15 +50,15 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
   return (
     <div className="space-y-1 text-xs">
       {loading ? (
-        <p className="px-2 py-1 text-white/40">{t('admin.legislation_panel.loading')}</p>
+        <p className="text-muted-foreground/70 px-2 py-1">{t('admin.legislation_panel.loading')}</p>
       ) : Object.keys(legislations).length === 0 ? (
-        <p className="px-2 py-1 text-white/40">{t('admin.legislation_panel.empty')}</p>
+        <p className="text-muted-foreground/70 px-2 py-1">{t('admin.legislation_panel.empty')}</p>
       ) : (
         Object.entries(legislations).map(([category, laws]) => (
           <div key={category}>
             <button
               onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
-              className="flex w-full items-center gap-2 px-2 py-1 text-white/60 transition-colors hover:text-white/80"
+              className="text-muted-foreground hover:text-foreground/80 flex w-full items-center gap-2 px-2 py-1 transition-colors"
             >
               <ChevronDown
                 className={`h-3 w-3 flex-shrink-0 transition-transform ${expandedCategory === category ? 'rotate-180' : ''}`}
@@ -73,21 +73,23 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
                 {laws.map((law) => (
                   <div
                     key={law.id}
-                    className="py-0.5 text-white/60 transition-colors hover:text-white/80"
+                    className="text-muted-foreground hover:text-foreground/80 py-0.5 transition-colors"
                   >
                     <div className="flex items-start gap-2">
-                      <span className="text-white/40">•</span>
+                      <span className="text-muted-foreground/70">•</span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs text-white/80">{law.title}</p>
+                        <p className="text-foreground/80 truncate text-xs">{law.title}</p>
                         {law.summary && (
-                          <p className="line-clamp-2 text-xs text-white/50">{law.summary}</p>
+                          <p className="text-muted-foreground line-clamp-2 text-xs">
+                            {law.summary}
+                          </p>
                         )}
                         {law.source_url && (
                           <a
                             href={law.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                            className="text-primary hover:text-primary/80 text-xs hover:underline"
                           >
                             {t('legislation.source')}
                           </a>

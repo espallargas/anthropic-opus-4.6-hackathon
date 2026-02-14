@@ -32,14 +32,14 @@ interface CategoriesPanelProps {
 }
 
 const CATEGORY_COLORS = {
-  pending: 'text-white/50',
-  searching: 'text-blue-300 bg-blue-500/10 border border-blue-400/20',
-  done: 'text-white/70',
-  error: 'text-red-300 bg-red-500/10',
+  pending: 'text-muted-foreground',
+  searching: 'text-primary/80 bg-primary/5 border border-primary/15',
+  done: 'text-muted-foreground',
+  error: 'text-destructive bg-destructive/10',
 };
 
 const STATUS_ICONS = {
-  pending: <div className="h-3 w-3 rounded-full border border-white/30" />,
+  pending: <div className="border-muted-foreground/50 h-3 w-3 rounded-full border" />,
   searching: <Loader2 className="h-3 w-3 animate-spin text-blue-400" />,
   done: <CheckCircle2 className="h-3 w-3" />,
   error: <AlertCircle className="h-3 w-3" />,
@@ -80,9 +80,9 @@ function getParsingColors(
 
   // Default (pending/searching) - neutral
   return {
-    icon: 'text-white/50',
-    text: 'text-white/50',
-    spinner: 'text-white/50',
+    icon: 'text-muted-foreground',
+    text: 'text-muted-foreground',
+    spinner: 'text-muted-foreground',
   };
 }
 
@@ -90,10 +90,10 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
   const { t } = useI18n();
 
   return (
-    <div className="flex h-full flex-col bg-black/30">
+    <div className="bg-card/20 flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-white/10 bg-white/[0.02] px-3 py-2.5">
-        <p className="text-xs font-semibold text-white">{t('admin.categories.title')}</p>
+      <div className="border-border bg-card/30 border-b px-3 py-2.5">
+        <p className="text-foreground text-xs font-semibold">{t('admin.categories.title')}</p>
       </div>
 
       {/* Categories list */}
@@ -154,14 +154,14 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                       🔍 "{category.searchQuery}"
                     </p>
                     {category.webSearchResults && category.webSearchResults.length > 0 && (
-                      <div className="max-h-24 space-y-0.5 overflow-y-auto rounded bg-black/30 p-1">
+                      <div className="bg-card/30 max-h-24 space-y-0.5 overflow-y-auto rounded p-1">
                         {category.webSearchResults.map((result, idx) => (
                           <a
                             key={idx}
                             href={result.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block truncate text-xs text-blue-300 hover:text-blue-100 hover:underline"
+                            className="text-primary/80 hover:text-primary block truncate text-xs hover:underline"
                             title={result.title}
                           >
                             {result.index}/{result.total}: {result.title}
@@ -180,7 +180,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
               {/* Status indicators - stacked right column */}
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 {category.status === 'searching' && (
-                  <span className="text-xs font-medium text-blue-300">
+                  <span className="text-primary/80 text-xs font-medium">
                     {t('admin.categories.searching')}
                   </span>
                 )}
@@ -190,7 +190,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   (!category.itemsBeingDocumented || category.itemsBeingDocumented === 0) && (
                     <span
                       className={`text-xs font-medium ${
-                        category.webResultsCrawled ? 'text-violet-300' : 'text-blue-300'
+                        category.webResultsCrawled ? 'text-muted-foreground' : 'text-primary/80'
                       }`}
                     >
                       {category.resultCount} {t('admin.categories.results_crawled')}

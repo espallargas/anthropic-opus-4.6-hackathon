@@ -518,11 +518,11 @@ export function CrawlProgressBox({
   };
 
   return (
-    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="border-border bg-background flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
+      <div className="border-border bg-card/30 flex items-center justify-between border-b px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-white">
+          <h3 className="text-foreground text-sm font-semibold tracking-tight">
             {localizedCountryName}
           </h3>
           <div className="mt-1 flex gap-3">
@@ -542,7 +542,7 @@ export function CrawlProgressBox({
           {!isComplete && (
             <button
               onClick={handlePause}
-              className="text-white/40 transition-colors hover:text-white/80"
+              className="text-muted-foreground/70 hover:text-foreground/80 transition-colors"
               title={t('admin.crawl.pause')}
             >
               <Pause className="h-4 w-4" />
@@ -550,7 +550,7 @@ export function CrawlProgressBox({
           )}
           <button
             onClick={onComplete}
-            className="text-white/40 transition-colors hover:text-white/80"
+            className="text-muted-foreground/70 hover:text-foreground/80 transition-colors"
             title={t('admin.crawl.close')}
           >
             <X className="h-4 w-4" />
@@ -561,7 +561,7 @@ export function CrawlProgressBox({
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Left panel: Categories (50%) */}
-        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r border-white/10 bg-black/30">
+        <div className="border-border bg-card/20 flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r">
           <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>
@@ -574,8 +574,8 @@ export function CrawlProgressBox({
       </div>
 
       {/* Status Bar */}
-      <div className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5">
-        <div className="text-xs text-white/70">
+      <div className="border-border bg-card/30 flex flex-none items-center justify-between border-t px-3 py-2.5">
+        <div className="text-muted-foreground text-xs">
           {currentPhase ? (
             <span>{currentPhase}</span>
           ) : isComplete ? (
@@ -588,16 +588,18 @@ export function CrawlProgressBox({
 
       {/* Pause Confirmation Modal */}
       {showPauseConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="rounded-lg border border-white/20 bg-black/95 p-6 shadow-xl">
-            <h3 className="mb-2 text-sm font-semibold text-white">
+        <div className="bg-background/60 fixed inset-0 z-50 flex items-center justify-center">
+          <div className="border-input bg-background/95 rounded-lg border p-6 shadow-xl">
+            <h3 className="text-foreground mb-2 text-sm font-semibold">
               {t('admin.crawl.stop_confirm')}
             </h3>
-            <p className="mb-4 text-xs text-white/70">{t('admin.crawl.stop_description')}</p>
+            <p className="text-muted-foreground mb-4 text-xs">
+              {t('admin.crawl.stop_description')}
+            </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleCancelPause}
-                className="rounded border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10"
+                className="border-input bg-muted/30 text-foreground/80 hover:bg-accent rounded border px-3 py-1.5 text-xs font-medium transition-colors"
               >
                 {t('admin.crawl.stop_cancel')}
               </button>

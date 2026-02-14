@@ -25,7 +25,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
 
   return (
     <div
-      className={`my-1 rounded-lg border bg-white/5 backdrop-blur-sm ${
+      className={`bg-muted/30 my-1 rounded-lg border backdrop-blur-sm ${
         isThinking ? 'animate-thinking-pulse border-purple-400/30' : 'border-purple-400/10'
       }`}
     >
@@ -38,7 +38,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
           className={`h-4 w-4 text-purple-400 ${isThinking ? 'animate-pulse' : 'opacity-50'}`}
         />
         <div className="flex-1">
-          <span className="font-medium text-white/60">
+          <span className="text-muted-foreground font-medium">
             {isThinking ? t('thinking.active') : t('thinking.done')}
           </span>
         </div>
@@ -50,15 +50,15 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
           </span>
         )}
         {expanded ? (
-          <ChevronDown className="h-3 w-3 text-white/30" />
+          <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
         ) : (
-          <ChevronRight className="h-3 w-3 text-white/30" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
         )}
       </button>
 
       {expanded && thinking.content && (
-        <div className="border-t border-white/5 px-3 py-2">
-          <p className="max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap text-white/30">
+        <div className="border-border/50 border-t px-3 py-2">
+          <p className="text-muted-foreground/50 max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap">
             {thinking.content}
           </p>
         </div>

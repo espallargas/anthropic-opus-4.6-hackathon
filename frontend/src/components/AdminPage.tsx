@@ -38,21 +38,21 @@ export function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <p className="text-sm text-white/50">{t('admin.crawl.loading')}</p>
+      <div className="bg-background text-foreground flex h-screen items-center justify-center">
+        <p className="text-muted-foreground text-sm">{t('admin.crawl.loading')}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
+      <div className="bg-background text-foreground flex h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-sm font-semibold text-red-400">{t('admin.crawl.error')}</p>
-          <p className="mt-2 text-xs text-white/50">{error}</p>
+          <p className="text-muted-foreground mt-2 text-xs">{error}</p>
           <button
             onClick={refetch}
-            className="mt-4 px-4 py-2 text-xs font-semibold text-white hover:text-white/80"
+            className="text-foreground hover:text-foreground/80 mt-4 px-4 py-2 text-xs font-semibold"
           >
             {t('admin.crawl.retry')}
           </button>
@@ -63,23 +63,25 @@ export function AdminPage() {
 
   if (active.length === 0 && pending.length === 0) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
+      <div className="bg-background text-foreground flex h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-sm font-semibold text-white/50">{t('admin.crawl.no_countries')}</p>
+          <p className="text-muted-foreground text-sm font-semibold">
+            {t('admin.crawl.no_countries')}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-black text-white">
+    <div className="bg-background text-foreground flex h-screen w-full">
       {/* Main admin panel */}
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl space-y-8 p-6">
           {/* Header */}
           <div>
             <h1 className="text-xl font-semibold">{t('admin.header.title')}</h1>
-            <p className="mt-1 text-xs text-white/40">{t('admin.header.description')}</p>
+            <p className="text-muted-foreground/70 mt-1 text-xs">{t('admin.header.description')}</p>
           </div>
 
           {/* Active countries section (green + yellow) */}

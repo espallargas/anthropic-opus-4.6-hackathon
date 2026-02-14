@@ -121,13 +121,13 @@ export function CountryPicker({
           {selectedCodes.map((code) => (
             <span
               key={code}
-              className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs text-white"
+              className="bg-muted/50 text-foreground flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
             >
               {countryCodeToFlag(code)} {getCountryNameLocalized(code, t)}
               <button
                 type="button"
                 onClick={() => removeTag(code)}
-                className="ml-0.5 cursor-pointer text-white/50 hover:text-white"
+                className="text-muted-foreground hover:text-foreground ml-0.5 cursor-pointer"
               >
                 ×
               </button>
@@ -143,7 +143,7 @@ export function CountryPicker({
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={t('setup.search.placeholder')}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 transition-colors outline-none focus:border-white/25"
+        className="border-border bg-muted/30 text-foreground placeholder-muted-foreground/70 focus:border-input w-full rounded-lg border px-4 py-2.5 text-sm transition-colors outline-none"
       />
       <div
         ref={listRef}
@@ -160,16 +160,16 @@ export function CountryPicker({
               onClick={() => handleSelect(country.code)}
               className={`relative flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-left text-sm transition-all ${
                 isSelected
-                  ? 'scale-[1.02] bg-white/15 ring-1 ring-white/30'
+                  ? 'bg-muted/50 ring-ring/30 scale-[1.02] ring-1'
                   : isHighlighted
-                    ? 'bg-white/10 ring-1 ring-white/20'
-                    : 'bg-white/5 hover:bg-white/10'
+                    ? 'bg-muted/40 ring-ring/20 ring-1'
+                    : 'bg-muted/30 hover:bg-accent'
               }`}
             >
               <span className="shrink-0 text-base">{countryCodeToFlag(country.code)}</span>
-              <span className="truncate text-white/90">{country.name}</span>
+              <span className="text-foreground/90 truncate">{country.name}</span>
               {multiple && isSelected && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] text-black">
+                <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
                   ✓
                 </span>
               )}

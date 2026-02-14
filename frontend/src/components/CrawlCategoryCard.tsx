@@ -45,7 +45,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
           ? 'animate-agent-complete border-green-400/15'
           : isError
             ? 'border-red-400/40'
-            : 'border-white/10';
+            : 'border-border';
 
   const StatusIcon =
     category.phase === 'searching'
@@ -70,7 +70,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
             : '';
 
   return (
-    <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>
+    <div className={`bg-muted/30 rounded-lg border backdrop-blur-sm ${borderClass}`}>
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -78,7 +78,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
       >
         {StatusIcon && <StatusIcon className={statusIconClass} />}
         <div className="flex-1">
-          <span className="truncate font-medium text-white/80">{category.name}</span>
+          <span className="text-foreground/80 truncate font-medium">{category.name}</span>
         </div>
         {category.phase === 'searching' && (
           <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-blue-400/70">
@@ -96,14 +96,14 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
           </span>
         )}
         {expanded ? (
-          <ChevronDown className="h-3 w-3 text-white/30" />
+          <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
         ) : (
-          <ChevronRight className="h-3 w-3 text-white/30" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
         )}
       </button>
 
       {expanded && (
-        <div className="space-y-1 border-t border-white/5 px-3 py-2">
+        <div className="border-border/50 space-y-1 border-t px-3 py-2">
           {category.webSearchResults && category.webSearchResults.length > 0 && (
             <div className="space-y-1">
               {category.webSearchResults.slice(0, 3).map((result, idx) => (
@@ -112,21 +112,21 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
                   href={result.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block truncate text-[10px] text-blue-300/80 hover:text-blue-300 hover:underline"
+                  className="text-primary/70 hover:text-primary block truncate text-[10px] hover:underline"
                   title={result.title}
                 >
                   {result.title}
                 </a>
               ))}
               {category.webSearchResults.length > 3 && (
-                <p className="text-[10px] text-white/30">
+                <p className="text-muted-foreground/50 text-[10px]">
                   +{category.webSearchResults.length - 3} {t('admin.crawl.more')}
                 </p>
               )}
             </div>
           )}
           {!category.searchQuery && category.description && (
-            <p className="text-[10px] text-white/50">{category.description}</p>
+            <p className="text-muted-foreground text-[10px]">{category.description}</p>
           )}
         </div>
       )}

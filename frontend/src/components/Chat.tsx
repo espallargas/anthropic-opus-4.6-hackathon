@@ -109,7 +109,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                     className={`rounded-lg px-4 py-2 text-sm ${
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground whitespace-pre-wrap'
-                        : 'text-foreground prose prose-invert prose-sm max-w-none'
+                        : 'text-foreground prose prose-invert prose-sm max-w-none [&_li]:leading-[1.85] [&_p]:leading-[1.85]'
                     }`}
                   >
                     {msg.content ? (

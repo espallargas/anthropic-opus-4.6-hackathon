@@ -34,7 +34,7 @@ export function Sidebar({
 
   return (
     <aside
-      className="hidden flex-col border-r border-white/10 bg-black transition-[width] duration-300 ease-in-out md:flex"
+      className="border-border bg-background hidden flex-col border-r transition-[width] duration-300 ease-in-out md:flex"
       style={{ width: '100%', height: '100%' }}
     >
       {/* Collapse toggle */}
@@ -56,8 +56,8 @@ export function Sidebar({
             key={chat.id}
             className={`group flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
               chat.id === activeChatId
-                ? 'bg-white/10 text-white'
-                : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                ? 'bg-muted/40 text-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80'
             }`}
             onClick={() => onSelectChat(chat.id)}
             title={chatLabel(chat, t, locale)}
@@ -69,7 +69,7 @@ export function Sidebar({
                 e.stopPropagation();
                 onDeleteChat(chat.id);
               }}
-              className="shrink-0 text-white/0 transition-colors group-hover:text-white/40 hover:!text-red-400"
+              className="group-hover:text-muted-foreground/70 shrink-0 text-transparent transition-colors hover:!text-red-400"
               title={t('sidebar.deleteChat')}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -79,10 +79,10 @@ export function Sidebar({
       </nav>
 
       {/* New chat button */}
-      <div className="border-b border-white/10 p-2">
+      <div className="border-border border-b p-2">
         <button
           onClick={onNewChat}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
+          className="text-muted-foreground hover:bg-accent/50 hover:text-foreground/80 flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors"
           title={t('sidebar.newChat')}
         >
           <Plus className="h-4 w-4 shrink-0" />

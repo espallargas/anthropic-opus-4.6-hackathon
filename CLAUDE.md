@@ -67,6 +67,7 @@ All user-facing text in the frontend **must** go through the `t()` function from
 
 - `.claude/docs/git-conventions.md` — Detailed commit/branch rules
 - `.claude/docs/clean-code.md` — Naming, TypeScript, comment conventions
+- `.claude/docs/design-system.md` — Color tokens, spacing, shared components, theme rules
 
 ## Key Files
 

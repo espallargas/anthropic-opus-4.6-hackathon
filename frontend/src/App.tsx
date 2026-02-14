@@ -1,5 +1,6 @@
 import { AdminPage } from '@/components/AdminPage';
 import { Chat } from '@/components/Chat';
+import { DesignPage } from '@/components/DesignPage';
 import { Navbar } from '@/components/Navbar';
 import { SetupForm } from '@/components/SetupForm';
 import { Sidebar } from '@/components/Sidebar';
@@ -20,6 +21,7 @@ function App() {
   const { t } = useI18n();
   const store = useChatStore();
   const isAdmin = location.pathname === '/admin';
+  const isDesign = location.pathname === '/design';
 
   const handleSetup = (vars: SystemVars) => {
     const natNames = vars.nationality
@@ -93,10 +95,12 @@ function App() {
   const showingSetup = showSetup || !store.activeChat;
 
   return (
-    <div className="flex h-screen w-full flex-col bg-black text-white">
+    <div className="bg-background text-foreground flex h-screen w-full flex-col">
       <Navbar />
       <div ref={containerRef} className="flex min-h-0 flex-1">
-        {isAdmin ? (
+        {isDesign ? (
+          <DesignPage />
+        ) : isAdmin ? (
           <AdminPage />
         ) : (
           <>

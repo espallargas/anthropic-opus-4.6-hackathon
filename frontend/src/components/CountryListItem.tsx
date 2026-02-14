@@ -34,7 +34,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
 
   return (
     <div className="space-y-0">
-      <div className="flex items-center gap-3 rounded px-2 py-2 transition-all hover:bg-white/5">
+      <div className="hover:bg-accent/50 flex items-center gap-3 rounded px-2 py-2 transition-all">
         {/* Status dot */}
         <div className={`h-2 w-2 rounded-full ${statusColor} flex-shrink-0`} />
 
@@ -45,7 +45,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{localizedName}</div>
           {country.last_crawled_at && (
-            <div className="text-xs text-white/40">
+            <div className="text-muted-foreground/70 text-xs">
               {t('admin.country_item.updated')} {timeAgo(country.last_crawled_at)}
             </div>
           )}
@@ -53,9 +53,9 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
 
         {/* Document count */}
         {currentDocCount > 0 && (
-          <div className="flex-shrink-0 text-xs text-white/60">
+          <div className="text-muted-foreground flex-shrink-0 text-xs">
             {currentDocCount}
-            <span className="ml-1 text-white/40">
+            <span className="text-muted-foreground/70 ml-1">
               {currentDocCount === 1 ? t('admin.units.doc') : t('admin.units.docs')}
             </span>
           </div>
@@ -65,7 +65,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         {currentDocCount > 0 && (
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="p-1 text-white/40 transition-colors hover:text-white/60"
+            className="text-muted-foreground/70 hover:text-muted-foreground p-1 transition-colors"
             title={t('admin.country_item.view_legislations')}
           >
             <ChevronDown
@@ -78,7 +78,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="p-1 text-white/40 transition-colors hover:text-white/60 disabled:opacity-30"
+          className="text-muted-foreground/70 hover:text-muted-foreground p-1 transition-colors disabled:opacity-30"
           title={t('admin.country_item.refresh_legislation')}
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />

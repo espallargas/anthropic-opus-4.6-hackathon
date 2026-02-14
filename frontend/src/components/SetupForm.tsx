@@ -100,7 +100,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
   const currentStep = steps[step];
 
   return (
-    <div className="flex min-h-0 flex-1 text-white">
+    <div className="text-foreground flex min-h-0 flex-1">
       {/* Left: form content */}
       <div className="flex min-w-0 flex-1 flex-col gap-6 px-12 py-10">
         {/* Progress dots */}
@@ -109,7 +109,11 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
             <div
               key={i}
               className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                i === step ? 'scale-125 bg-white' : i < step ? 'bg-white/50' : 'bg-white/20'
+                i === step
+                  ? 'bg-foreground scale-125'
+                  : i < step
+                    ? 'bg-foreground/50'
+                    : 'bg-foreground/20'
               }`}
             />
           ))}
@@ -123,7 +127,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             {currentStep.description && (
-              <p className="text-sm text-white/50">{currentStep.description}</p>
+              <p className="text-muted-foreground text-sm">{currentStep.description}</p>
             )}
           </div>
 
@@ -152,7 +156,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
             <button
               type="button"
               onClick={goBack}
-              className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+              className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
             >
               {t('setup.back')}
             </button>
@@ -160,7 +164,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
             <button
               type="button"
               onClick={onCancel}
-              className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+              className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
             >
               {t('setup.cancel')}
             </button>
@@ -171,7 +175,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
             type="button"
             onClick={goNext}
             disabled={!isStepValid()}
-            className="cursor-pointer rounded-lg bg-white px-6 py-2 text-sm font-medium text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer rounded-lg px-6 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-30"
           >
             {step === TOTAL_STEPS - 1 ? t('setup.start') : t('setup.next')}
           </button>

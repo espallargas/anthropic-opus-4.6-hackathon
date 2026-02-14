@@ -117,14 +117,14 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
         if (afterStr.startsWith(':')) {
           // It's a key
           elements.push(
-            <span key={`${lineIdx}-key-${i}`} className="text-red-300">
+            <span key={`${lineIdx}-key-${i}`} className="text-primary">
               {str}
             </span>,
           );
         } else {
           // It's a string value
           elements.push(
-            <span key={`${lineIdx}-str-${i}`} className="text-green-300">
+            <span key={`${lineIdx}-str-${i}`} className="text-foreground/70">
               {str}
             </span>,
           );
@@ -138,7 +138,7 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
           i++;
         }
         elements.push(
-          <span key={`${lineIdx}-num-${i}`} className="text-orange-300">
+          <span key={`${lineIdx}-num-${i}`} className="text-accent-foreground">
             {num}
           </span>,
         );
@@ -146,21 +146,21 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
       // Handle booleans and null
       else if (line.slice(i, i + 4) === 'true') {
         elements.push(
-          <span key={`${lineIdx}-bool-${i}`} className="text-blue-300">
+          <span key={`${lineIdx}-bool-${i}`} className="text-primary/80">
             true
           </span>,
         );
         i += 4;
       } else if (line.slice(i, i + 5) === 'false') {
         elements.push(
-          <span key={`${lineIdx}-bool-${i}`} className="text-blue-300">
+          <span key={`${lineIdx}-bool-${i}`} className="text-primary/80">
             false
           </span>,
         );
         i += 5;
       } else if (line.slice(i, i + 4) === 'null') {
         elements.push(
-          <span key={`${lineIdx}-null-${i}`} className="text-gray-400">
+          <span key={`${lineIdx}-null-${i}`} className="text-muted-foreground">
             null
           </span>,
         );
@@ -169,7 +169,7 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
       // Handle punctuation
       else if (/[{}[\]:,]/.test(line[i])) {
         elements.push(
-          <span key={`${lineIdx}-punct-${i}`} className="text-white">
+          <span key={`${lineIdx}-punct-${i}`} className="text-foreground">
             {line[i]}
           </span>,
         );
@@ -244,19 +244,19 @@ export function ClaudeOutputPanel({
   }, []);
 
   return (
-    <div className="flex h-full flex-col border border-white/5 bg-black/20">
+    <div className="border-border/50 bg-card/20 flex h-full flex-col border">
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+        className="border-border bg-card/30 hover:bg-accent/50 flex items-center justify-between gap-2 border-b px-3 py-2.5 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-white">{t('admin.output.title')}</span>
+          <span className="text-foreground text-xs font-semibold">{t('admin.output.title')}</span>
         </div>
         {collapsed ? (
-          <ChevronDown className="h-3.5 w-3.5 text-white/40" />
+          <ChevronDown className="text-muted-foreground/70 h-3.5 w-3.5" />
         ) : (
-          <ChevronUp className="h-3.5 w-3.5 text-white/40" />
+          <ChevronUp className="text-muted-foreground/70 h-3.5 w-3.5" />
         )}
       </button>
 
@@ -264,7 +264,7 @@ export function ClaudeOutputPanel({
       {!collapsed && (
         <div
           ref={contentRef}
-          className="flex-1 overflow-auto bg-black/20 p-4"
+          className="bg-card/20 flex-1 overflow-auto p-4"
           onScroll={handleScroll}
         >
           <div className="space-y-3">
@@ -278,14 +278,16 @@ export function ClaudeOutputPanel({
                 ),
             )}
             {outputText ? (
-              <div className="rounded-lg border border-white/10 bg-black/40 p-4">
+              <div className="border-border bg-background/40 rounded-lg border p-4">
                 <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
                   {isJSON ? syntaxHighlightJSON(formattedText) : formattedText}
                 </pre>
               </div>
             ) : (
               <div className="flex h-full items-center justify-center">
-                <span className="text-xs text-white/30 italic">{t('admin.output.waiting')}</span>
+                <span className="text-muted-foreground/50 text-xs italic">
+                  {t('admin.output.waiting')}
+                </span>
               </div>
             )}
           </div>

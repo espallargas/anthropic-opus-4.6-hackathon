@@ -59,19 +59,19 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
     : [];
 
   return (
-    <div className="flex items-center justify-center gap-3 border-b border-white/5 px-4 py-2 text-xs text-white/50">
+    <div className="border-border/50 text-muted-foreground flex items-center justify-center gap-3 border-b px-4 py-2 text-xs">
       {/* Nationalities */}
       {nationalities.length > 0 && (
         <>
           <span className="flex items-center gap-1.5">
-            <span className="text-white/30">{t('chat.context.nationalities')}</span>
+            <span className="text-muted-foreground/50">{t('chat.context.nationalities')}</span>
             {nationalities.map((code) => (
               <span key={code} className="text-sm" title={getCountryNameLocalized(code, t)}>
                 {countryCodeToFlag(code)}
               </span>
             ))}
           </span>
-          <span className="h-3 w-px bg-white/10" />
+          <span className="bg-border h-3 w-px" />
         </>
       )}
 
@@ -81,19 +81,19 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
         <span>{systemVars.objective}</span>
       </span>
 
-      <span className="h-3 w-px bg-white/10" />
+      <span className="bg-border h-3 w-px" />
 
       {/* Origin → Destination */}
       <span className="flex items-center gap-1.5">
-        <span className="text-white/30">{t('chat.context.from')}</span>
+        <span className="text-muted-foreground/50">{t('chat.context.from')}</span>
         <span className="text-sm">{originFlag}</span>
         <span>{originName}</span>
       </span>
 
-      <ArrowRight className="h-3 w-3 text-white/30" />
+      <ArrowRight className="text-muted-foreground/50 h-3 w-3" />
 
       <span className="flex items-center gap-1.5">
-        <span className="text-white/30">{t('chat.context.to')}</span>
+        <span className="text-muted-foreground/50">{t('chat.context.to')}</span>
         <span className="text-sm">{destFlag}</span>
         <span>{destName}</span>
       </span>

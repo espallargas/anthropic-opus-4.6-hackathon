@@ -46,38 +46,38 @@ export function AgentCard({ agent }: AgentCardProps) {
       : null;
 
   return (
-    <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>
+    <div className={`bg-muted/30 rounded-lg border backdrop-blur-sm ${borderClass}`}>
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
       >
         <StatusIcon className={statusIconClass} />
-        <span className="flex-1 truncate font-medium text-white/80">{label}</span>
+        <span className="text-foreground/80 flex-1 truncate font-medium">{label}</span>
         {agent.task && (
-          <span className="hidden max-w-[120px] truncate text-[10px] text-white/30 sm:inline">
+          <span className="text-muted-foreground/50 hidden max-w-[120px] truncate text-[10px] sm:inline">
             {agent.task}
           </span>
         )}
         {timingBadge && (
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/40">
+          <span className="bg-muted/40 text-muted-foreground/70 rounded px-1.5 py-0.5 text-[10px]">
             {timingBadge}
           </span>
         )}
         {tokenBadge && (
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/30">
+          <span className="bg-muted/40 text-muted-foreground/50 rounded px-1.5 py-0.5 text-[10px]">
             {tokenBadge}
           </span>
         )}
         {expanded ? (
-          <ChevronDown className="h-3 w-3 text-white/30" />
+          <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
         ) : (
-          <ChevronRight className="h-3 w-3 text-white/30" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
         )}
       </button>
 
       {expanded && (
-        <div className="space-y-1 border-t border-white/5 px-3 py-2">
+        <div className="border-border/50 space-y-1 border-t px-3 py-2">
           {agent.toolCalls.length > 0 && (
             <div className="space-y-1">
               {agent.toolCalls.map((tc) => (
@@ -86,13 +86,17 @@ export function AgentCard({ agent }: AgentCardProps) {
             </div>
           )}
           {agent.tokens && (
-            <p className="line-clamp-3 text-[10px] leading-relaxed text-white/40">{agent.tokens}</p>
+            <p className="text-muted-foreground/70 line-clamp-3 text-[10px] leading-relaxed">
+              {agent.tokens}
+            </p>
           )}
           {isDone && agent.resultSummary && (
-            <p className="text-[10px] leading-relaxed text-white/50">{agent.resultSummary}</p>
+            <p className="text-muted-foreground text-[10px] leading-relaxed">
+              {agent.resultSummary}
+            </p>
           )}
           {!agent.toolCalls.length && !agent.tokens && isRunning && (
-            <p className="text-[10px] text-white/30">{t('agent.analyzing')}</p>
+            <p className="text-muted-foreground/50 text-[10px]">{t('agent.analyzing')}</p>
           )}
         </div>
       )}
