@@ -60,6 +60,8 @@ export function CountryPicker({
           onChange(current.filter((c) => c !== code));
         } else {
           onChange([...current, code]);
+          setSearch('');
+          inputRef.current?.focus();
         }
       } else {
         onChange(code === value ? '' : code);

@@ -23,19 +23,19 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
   useEffect(() => {
     if (loading || !containerRef.current) return;
 
-    // Measure on first render after loading
-    const handleResize = () => {
-      if (!containerRef.current) return;
+    const el = containerRef.current;
+    const measure = () => {
       setSize({
-        width: containerRef.current.clientWidth || 400,
-        height: containerRef.current.clientHeight || 500,
+        width: el.clientWidth || 400,
+        height: el.clientHeight || 500,
       });
     };
 
-    // Measure on mount after loading
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    measure();
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [loading]);
 
   // Smooth rotation to POV on origin change

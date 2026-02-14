@@ -178,10 +178,10 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
         </div>
       </div>
 
-      {/* Right: Globe (steps 1-2, with enter/exit animation) */}
+      {/* Right: Globe (steps 1-2, with fade animation) */}
       {step < 3 && (
         <div
-          className={`relative hidden flex-1 overflow-hidden transition-all duration-700 ease-in-out md:block ${
+          className={`relative hidden flex-1 transition-all duration-700 ease-in-out md:block ${
             showGlobe ? 'max-w-[50%] opacity-100' : 'max-w-0 opacity-0'
           }`}
         >
