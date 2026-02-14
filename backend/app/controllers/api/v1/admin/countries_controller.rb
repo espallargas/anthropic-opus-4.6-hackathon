@@ -31,7 +31,8 @@ module Api
 
           # Fetch all legislations grouped by category using database
           legislations = country.legislations
-                                .select(:id, :category, :title, :content, :summary, :source_url, :date_effective, :is_deprecated, :replaced_by_id, :crawled_at)
+                                .select(:id, :category, :title, :content, :summary, :source_url,
+                                        :date_effective, :is_deprecated, :replaced_by_id, :crawled_at)
                                 .order(:category, :title)
                                 .group_by(&:category)
 

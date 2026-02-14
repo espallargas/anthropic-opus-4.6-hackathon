@@ -37,7 +37,7 @@ class LegislationCrawlerService
 
   # Single unified emit method - type-safe with schema validation
   def emit(type, **data)
-    message = ::SSEMessageSchema.format(type, data)
+    message = SSEMessageSchema.format(type, data)
     return unless sse
 
     sse.write(message)
@@ -264,7 +264,7 @@ class LegislationCrawlerService
             thinking_text = event.delta.thinking
             # Emit thinking type only once at the start
             thinking_type = thinking_type_emitted ? nil : thinking_effort
-            true unless thinking_type_emitted
+            self.thinking_type_emitted = true unless thinking_type_emitted
             emit(:thinking, text: thinking_text, is_summary: false, operation_id: operation_id,
                             thinking_type: thinking_type)
           end
@@ -293,7 +293,8 @@ class LegislationCrawlerService
       collector.add_event(event)
     end
 
-    Rails.logger.info("[BUILD_RESPONSE] Stream complete, got #{event_count} events, #{collector.content.length} content blocks")
+    Rails.logger.info("[BUILD_RESPONSE] Stream complete, got #{event_count} events, " \
+                      "#{collector.content.length} content blocks")
     collector
   end
 
@@ -556,7 +557,7 @@ class LegislationCrawlerService
           }
         end
       end
-    rescue JSON::ParserError, StandardError => e
+    rescue StandardError => e
       Rails.logger.warn("Failed to parse legislation JSON: #{e.message}")
     end
 

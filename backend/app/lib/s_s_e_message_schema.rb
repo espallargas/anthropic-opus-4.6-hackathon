@@ -43,7 +43,7 @@ module SSEMessageSchema
   }.freeze
 
   # Validate message against schema
-  def self.validate(type, data)
+  def self.valid?(type, data)
     schema = TYPES[type.to_sym]
     raise ArgumentError, "Unknown message type: #{type}" unless schema
 
@@ -62,7 +62,7 @@ module SSEMessageSchema
 
   # Format message for SSE transport
   def self.format(type, data)
-    validate(type, data)
+    valid?(type, data)
     {
       type: type.to_s,
       timestamp: Time.current.iso8601(3),
