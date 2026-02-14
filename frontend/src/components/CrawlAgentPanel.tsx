@@ -14,6 +14,7 @@ interface CategoryState {
   name: string;
   description: string;
   status: CategoryStatus;
+  phase: 'pending' | 'searching' | 'indexing' | 'completed';
   resultCount: number;
   searchQuery?: string;
   searchIndex?: number;

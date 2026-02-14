@@ -1,9 +1,12 @@
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useI18n } from '@/lib/i18n';
+import { ThinkingCard } from './ThinkingCard';
+import type { ThinkingBlock } from '@/lib/chatStore';
 
 interface ClaudeOutputPanelProps {
   outputText: string;
+  thinking?: ThinkingBlock;
   isExpanded?: boolean;
 }
 
@@ -189,7 +192,7 @@ function syntaxHighlightJSON(text: string): ReactNode[] {
   return result;
 }
 
-export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutputPanelProps) {
+export function ClaudeOutputPanel({ outputText, thinking, isExpanded = true }: ClaudeOutputPanelProps) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(!isExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -231,17 +234,24 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
       {/* Content */}
       {!collapsed && (
         <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
-          {outputText ? (
-            <div className="rounded-lg border border-white/10 bg-black/40 p-4">
-              <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
-                {isJSON ? syntaxHighlightJSON(formattedText) : formattedText}
-              </pre>
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <span className="text-xs text-white/30 italic">{t('admin.output.waiting')}</span>
-            </div>
-          )}
+          <div className="space-y-3">
+            {thinking && thinking.content && (
+              <div className="flex-none">
+                <ThinkingCard thinking={thinking} />
+              </div>
+            )}
+            {outputText ? (
+              <div className="rounded-lg border border-white/10 bg-black/40 p-4">
+                <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
+                  {isJSON ? syntaxHighlightJSON(formattedText) : formattedText}
+                </pre>
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <span className="text-xs text-white/30 italic">{t('admin.output.waiting')}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

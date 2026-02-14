@@ -40,6 +40,8 @@ export interface UsageReport {
 export interface ThinkingBlock {
   content: string;
   status: 'thinking' | 'done';
+  type?: string;
+  budgetTokens?: number;
 }
 
 export interface ChatMessage {

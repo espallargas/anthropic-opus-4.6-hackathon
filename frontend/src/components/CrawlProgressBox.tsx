@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Pause } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { getCountryNameLocalized } from '@/lib/countries';
-import { ThinkingCard } from './ThinkingCard';
 import { CrawlAgentPanel } from './CrawlAgentPanel';
 import { ClaudeOutputPanel } from './ClaudeOutputPanel';
 import type { ThinkingBlock } from '@/lib/chatStore';
@@ -35,6 +34,7 @@ interface CategoryState {
   name: string;
   description: string;
   status: CategoryStatus;
+  phase: 'pending' | 'searching' | 'indexing' | 'completed';
   resultCount: number;
   searchQuery?: string;
   searchIndex?: number;
@@ -63,6 +63,7 @@ export function CrawlProgressBox({
       name: t('admin.category.federal_laws'),
       description: t('admin.category.federal_laws.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
     {
@@ -70,6 +71,7 @@ export function CrawlProgressBox({
       name: t('admin.category.regulations'),
       description: t('admin.category.regulations.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
     {
@@ -77,6 +79,7 @@ export function CrawlProgressBox({
       name: t('admin.category.consular'),
       description: t('admin.category.consular.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
     {
@@ -84,6 +87,7 @@ export function CrawlProgressBox({
       name: t('admin.category.jurisdictional'),
       description: t('admin.category.jurisdictional.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
     {
@@ -91,6 +95,7 @@ export function CrawlProgressBox({
       name: t('admin.category.complementary'),
       description: t('admin.category.complementary.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
     {
@@ -98,6 +103,7 @@ export function CrawlProgressBox({
       name: t('admin.category.auxiliary'),
       description: t('admin.category.auxiliary.description'),
       status: 'pending',
+      phase: 'pending',
       resultCount: 0,
     },
   ]);
@@ -181,59 +187,26 @@ export function CrawlProgressBox({
   }, [documentCount, onDocCountUpdate]);
 
   // Count items in real-time as Claude output (JSON) arrives
-  // Mark categories as complete when they disappear from the JSON (next category appears)
+  // Only update itemsBeingDocumented during indexing phase
   useEffect(() => {
     if (!claudeOutputText) return;
 
     const categoryCounts = parsePartialJSONByCategory(claudeOutputText);
 
-    setCategories((prev) => {
-      // First pass: detect which categories just disappeared (count = 0 after having items)
-      const justCompletedCategories = new Set<string>();
-      prev.forEach((cat) => {
-        const categoryKey = cat.id as keyof typeof categoryCounts;
-        const count = categoryCounts[categoryKey] || 0;
-        // If category had items before but doesn't anymore, mark as just completed
-        if (
-          cat.itemsBeingDocumented &&
-          cat.itemsBeingDocumented > 0 &&
-          count === 0 &&
-          !cat.legislationsParsed
-        ) {
-          justCompletedCategories.add(cat.id);
-        }
-      });
-
-      // Second pass: update category states
-      return prev.map((cat) => {
-        const categoryKey = cat.id as keyof typeof categoryCounts;
-        const count = categoryCounts[categoryKey] || 0;
-
-        // If this category just completed (had items, now gone from JSON)
-        if (justCompletedCategories.has(cat.id)) {
+    setCategories((prev) =>
+      prev.map((cat) => {
+        // Only update count during indexing phase
+        if (cat.phase === 'indexing') {
+          const categoryKey = cat.id as keyof typeof categoryCounts;
+          const count = categoryCounts[categoryKey] || 0;
           return {
             ...cat,
-            itemsBeingDocumented: 0,
-            legislationsParsed: true,
-            status: 'done' as CategoryStatus,
+            itemsBeingDocumented: count,
           };
         }
-
-        // If this category has items in the current JSON, update count
-        if (count > 0) {
-          if (cat.itemsBeingDocumented !== count) {
-            return {
-              ...cat,
-              itemsBeingDocumented: count,
-              legislationsParsed: false, // Back to parsing if count changed
-              status: 'searching' as CategoryStatus,
-            };
-          }
-        }
-
         return cat;
-      });
-    });
+      }),
+    );
   }, [claudeOutputText, parsePartialJSONByCategory]);
 
   // Process incoming SSE messages
@@ -264,6 +237,7 @@ export function CrawlProgressBox({
             return {
               ...cat,
               status: 'searching' as CategoryStatus,
+              phase: 'searching',
               searchQuery: query,
               searchIndex,
               searchTotal,
@@ -311,7 +285,8 @@ export function CrawlProgressBox({
           if (cat.id === categoryId) {
             return {
               ...cat,
-              status: 'done' as CategoryStatus,
+              status: 'searching' as CategoryStatus,
+              phase: 'indexing',
               resultCount,
               searchQuery: undefined,
               webResultsCrawled: true,
@@ -334,10 +309,11 @@ export function CrawlProgressBox({
       const count = (data.document_count as number) || 0;
       setDocumentCount(count);
       setIsComplete(true);
-      // Mark all legislations as fully parsed
+      // Mark all legislations as fully parsed and completed
       setCategories((prev) =>
         prev.map((cat) => ({
           ...cat,
+          phase: 'completed',
           legislationsParsed: true,
         })),
       );
@@ -453,10 +429,11 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
-  // Construct ThinkingBlock for ThinkingCard
+  // Construct ThinkingBlock for ClaudeOutputPanel
   const thinking: ThinkingBlock = {
     content: thinkingText,
     status: thinkingType === 'done' || isComplete ? 'done' : 'thinking',
+    type: thinkingType || undefined,
   };
 
   return (
@@ -502,22 +479,16 @@ export function CrawlProgressBox({
 
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left panel: Thinking + Categories */}
-        <div className="flex min-h-0 w-[40%] flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
-          {/* Thinking card - adaptive height */}
-          <div className="min-h-0 flex-none overflow-hidden border-b border-white/10">
-            <ThinkingCard thinking={thinking} />
-          </div>
-
-          {/* Categories Panel - takes remaining space */}
+        {/* Left panel: Categories (50%) */}
+        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
           <div className="min-h-0 flex-1 overflow-hidden bg-black/30">
             <CrawlAgentPanel categories={categories} />
           </div>
         </div>
 
-        {/* Right panel: Claude Output (60%) */}
-        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-b border-white/10">
-          <ClaudeOutputPanel outputText={claudeOutputText} />
+        {/* Right panel: Claude Output + Thinking integrated (50%) */}
+        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+          <ClaudeOutputPanel outputText={claudeOutputText} thinking={thinking} />
         </div>
       </div>
 

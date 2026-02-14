@@ -15,6 +15,7 @@ interface CategoryState {
   name: string;
   description: string;
   status: CategoryStatus;
+  phase: 'pending' | 'searching' | 'indexing' | 'completed';
   resultCount: number;
   searchQuery?: string;
   searchIndex?: number;
@@ -30,34 +31,38 @@ interface CrawlCategoryCardProps {
 }
 
 export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
-  const isSearching = category.status === 'searching';
-  const isDone = category.status === 'done';
   const isError = category.status === 'error';
   const [expanded, setExpanded] = useState(true);
 
-  const borderClass = isSearching
+  const borderClass = category.phase === 'searching'
     ? 'animate-agent-active border-blue-400/30'
-    : isDone
-      ? 'animate-agent-complete border-green-400/15'
-      : isError
-        ? 'border-red-400/40'
-        : 'border-white/10';
+    : category.phase === 'indexing'
+      ? 'animate-agent-indexing border-purple-400/30'
+      : category.phase === 'completed'
+        ? 'animate-agent-complete border-green-400/15'
+        : isError
+          ? 'border-red-400/40'
+          : 'border-white/10';
 
-  const StatusIcon = isSearching
+  const StatusIcon = category.phase === 'searching'
     ? Loader2
-    : isDone
-      ? CheckCircle2
-      : isError
-        ? XCircle
-        : CheckCircle2;
+    : category.phase === 'indexing'
+      ? Loader2
+      : category.phase === 'completed'
+        ? CheckCircle2
+        : isError
+          ? XCircle
+          : null;
 
-  const statusIconClass = isSearching
+  const statusIconClass = category.phase === 'searching'
     ? 'h-4 w-4 animate-spin text-blue-400'
-    : isDone
-      ? 'h-4 w-4 text-green-400'
-      : isError
-        ? 'h-4 w-4 text-red-400'
-        : 'h-4 w-4 text-white/30';
+    : category.phase === 'indexing'
+      ? 'h-4 w-4 animate-spin text-purple-400'
+      : category.phase === 'completed'
+        ? 'h-4 w-4 text-green-400'
+        : isError
+          ? 'h-4 w-4 text-red-400'
+          : '';
 
   return (
     <div className={`rounded-lg border bg-white/5 backdrop-blur-sm ${borderClass}`}>
@@ -66,14 +71,19 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
       >
-        <StatusIcon className={statusIconClass} />
+        {StatusIcon && <StatusIcon className={statusIconClass} />}
         <span className="flex-1 truncate font-medium text-white/80">{category.name}</span>
-        {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/40">
-            {category.itemsBeingDocumented} parsed
+        {category.phase === 'searching' && category.searchQuery && (
+          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-400/70">
+            {category.searchQuery}
           </span>
         )}
-        {isDone && category.resultCount > 0 && (
+        {category.phase === 'indexing' && category.itemsBeingDocumented && (
+          <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400/70">
+            {category.itemsBeingDocumented} parsing
+          </span>
+        )}
+        {category.phase === 'completed' && category.resultCount > 0 && (
           <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400/70">
             {category.resultCount} found
           </span>

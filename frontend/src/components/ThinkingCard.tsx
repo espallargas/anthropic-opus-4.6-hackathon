@@ -29,6 +29,11 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         <span className="flex-1 font-medium text-white/60">
           {isThinking ? t('thinking.active') : t('thinking.done')}
         </span>
+        {thinking.type && (
+          <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300/80">
+            {thinking.type === 'high' ? 'High effort' : 'Adaptive'}
+          </span>
+        )}
         {expanded ? (
           <ChevronDown className="h-3 w-3 text-white/30" />
         ) : (
