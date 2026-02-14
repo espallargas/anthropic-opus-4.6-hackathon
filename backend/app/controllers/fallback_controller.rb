@@ -1,5 +1,5 @@
-class FallbackController < ActionController::Base
+class FallbackController < ApplicationController
   def index
-    render file: Rails.root.join("public", "index.html"), layout: false
+    render file: Rails.public_path.join("index.html"), layout: false
   end
 end

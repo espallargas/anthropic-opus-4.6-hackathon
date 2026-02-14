@@ -3,11 +3,11 @@ module Api
     class ChatController < ApplicationController
       include ActionController::Live
 
-      MODEL = 'claude-opus-4-6'
+      MODEL = "claude-opus-4-6".freeze
       MAX_TOKENS = 4096
       MAX_TURNS = 10
 
-      SYSTEM_PROMPT_TEMPLATE = <<~PROMPT
+      SYSTEM_PROMPT_TEMPLATE = <<~PROMPT.freeze
         Você é um assistente especializado em processos de imigração.
 
         Dados do usuário:
@@ -24,22 +24,22 @@ module Api
         Use-as quando o usuário perguntar sobre documentos, requisitos ou prazos.
       PROMPT
 
-      DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Be concise and direct.'
+      DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Be concise and direct.".freeze
 
       def create
-        response.headers['Content-Type'] = 'text/event-stream'
-        response.headers['Cache-Control'] = 'no-cache'
-        response.headers['X-Accel-Buffering'] = 'no'
+        response.headers["Content-Type"] = "text/event-stream"
+        response.headers["Cache-Control"] = "no-cache"
+        response.headers["X-Accel-Buffering"] = "no"
 
         sse = ActionController::Live::SSE.new(response.stream)
         messages = params.require(:messages).map { |m| { role: m[:role], content: m[:content] } }
         system_prompt = build_system_prompt
         client = Rails.application.config.x.anthropic
 
-        sse.write({ type: 'message_start', server_time: Time.current.iso8601(3) })
+        sse.write({ type: "message_start", server_time: Time.current.iso8601(3) })
 
         MAX_TURNS.times do
-          text_content = ''
+          text_content = ""
           tool_use_blocks = []
           stop_reason = nil
 
@@ -53,7 +53,7 @@ module Api
           stream.each do |event|
             case event.type
             when :text
-              sse.write({ type: 'token', token: event.text, server_time: Time.current.iso8601(3) })
+              sse.write({ type: "token", token: event.text, server_time: Time.current.iso8601(3) })
               text_content += event.text
             when :content_block_stop
               next unless event.content_block.type == :tool_use
@@ -61,30 +61,31 @@ module Api
               block = event.content_block
               input = parse_tool_input(block.input)
               tool_use_blocks << { id: block.id, name: block.name, input: input }
-              sse.write({ type: 'tool_use_start', tool_call_id: block.id, tool_name: block.name, tool_input: input, server_time: Time.current.iso8601(3) })
+              sse.write({ type: "tool_use_start", tool_call_id: block.id, tool_name: block.name, tool_input: input,
+                          server_time: Time.current.iso8601(3) })
             when :message_stop
               stop_reason = event.message.stop_reason.to_s
             end
           end
 
-          break unless stop_reason == 'tool_use' && tool_use_blocks.any?
+          break unless stop_reason == "tool_use" && tool_use_blocks.any?
 
           assistant_content = []
-          assistant_content << { type: 'text', text: text_content } if text_content.present?
+          assistant_content << { type: "text", text: text_content } if text_content.present?
           tool_use_blocks.each do |tb|
-            assistant_content << { type: 'tool_use', id: tb[:id], name: tb[:name], input: tb[:input] }
+            assistant_content << { type: "tool_use", id: tb[:id], name: tb[:name], input: tb[:input] }
           end
-          messages << { role: 'assistant', content: assistant_content }
+          messages << { role: "assistant", content: assistant_content }
 
           # Tool results are handled natively by Claude API
           # No custom tool execution needed - web_search and other tools work natively
         end
 
-        sse.write({ type: 'message_end', server_time: Time.current.iso8601(3) })
+        sse.write({ type: "message_end", server_time: Time.current.iso8601(3) })
       rescue StandardError => e
         Rails.logger.error("Chat SSE error: #{e.class} - #{e.message}")
         begin
-          sse&.write({ type: 'error', error: e.message, server_time: Time.current.iso8601(3) })
+          sse&.write({ type: "error", error: e.message, server_time: Time.current.iso8601(3) })
         rescue StandardError
           nil
         end
@@ -110,13 +111,13 @@ module Api
 
       def build_system_prompt
         vars = params[:system_vars]
-        return DEFAULT_SYSTEM_PROMPT unless vars.present?
+        return DEFAULT_SYSTEM_PROMPT if vars.blank?
 
         format(SYSTEM_PROMPT_TEMPLATE, origin_country: vars[:origin_country].to_s,
                                        nationality: vars[:nationality].to_s,
                                        destination_country: vars[:destination_country].to_s,
                                        objective: vars[:objective].to_s,
-                                       additional_info: vars[:additional_info].to_s.presence || 'Nenhuma')
+                                       additional_info: vars[:additional_info].to_s.presence || "Nenhuma")
       end
     end
   end

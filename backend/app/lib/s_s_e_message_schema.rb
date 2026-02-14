@@ -8,7 +8,8 @@ module SSEMessageSchema
     phase: { fields: [:message], required_fields: [:message] },
 
     # Web search execution
-    search_started: { fields: [:operation_id, :category, :query, :index, :total], required_fields: [:category, :query] },
+    search_started: { fields: [:operation_id, :category, :query, :index, :total],
+                      required_fields: [:category, :query] },
     search_result: { fields: [:operation_id, :category, :result_count], required_fields: [:category, :result_count] },
     web_search_result: { fields: [:category, :title, :url, :snippet, :index, :total], required_fields: [:title, :url] },
     search: { fields: [:count, :total, :category, :query], required_fields: [:count, :total, :query] },
@@ -21,7 +22,8 @@ module SSEMessageSchema
 
     # Metadata and diagnostics
     timing: { fields: [:message, :elapsed_ms], required_fields: [:message] },
-    tokens: { fields: [:input_tokens, :output_tokens, :total_budget], required_fields: [:input_tokens, :output_tokens] },
+    tokens: { fields: [:input_tokens, :output_tokens, :total_budget],
+              required_fields: [:input_tokens, :output_tokens] },
     debug: { fields: [:block_type], required_fields: [] },
 
     # Status updates
@@ -52,9 +54,7 @@ module SSEMessageSchema
 
     # Warn about unknown fields (but don't error)
     data.each_key do |field|
-      unless schema[:fields].include?(field)
-        Rails.logger.warn("Unknown field '#{field}' for message type '#{type}'")
-      end
+      Rails.logger.warn("Unknown field '#{field}' for message type '#{type}'") unless schema[:fields].include?(field)
     end
 
     true

@@ -7,18 +7,18 @@ module Api
         def index
           # Query using SQL to calculate status directly in database
           active = Country
-            .select("countries.*, COUNT(legislations.id) as legislation_count")
-            .left_joins(:legislations)
-            .where("last_crawled_at IS NOT NULL")
-            .order(:name)
-            .group("countries.id")
+                   .select("countries.*, COUNT(legislations.id) as legislation_count")
+                   .left_joins(:legislations)
+                   .where.not(last_crawled_at: nil)
+                   .order(:name)
+                   .group("countries.id")
 
           pending = Country
-            .select("countries.*, COUNT(legislations.id) as legislation_count")
-            .left_joins(:legislations)
-            .where("last_crawled_at IS NULL")
-            .order(:name)
-            .group("countries.id")
+                    .select("countries.*, COUNT(legislations.id) as legislation_count")
+                    .left_joins(:legislations)
+                    .where(last_crawled_at: nil)
+                    .order(:name)
+                    .group("countries.id")
 
           render json: {
             active: format_countries(active),
@@ -31,9 +31,9 @@ module Api
 
           # Fetch all legislations grouped by category using database
           legislations = country.legislations
-            .select(:id, :category, :title, :content, :summary, :source_url, :date_effective, :is_deprecated, :replaced_by_id, :crawled_at)
-            .order(:category, :title)
-            .group_by(&:category)
+                                .select(:id, :category, :title, :content, :summary, :source_url, :date_effective, :is_deprecated, :replaced_by_id, :crawled_at)
+                                .order(:category, :title)
+                                .group_by(&:category)
 
           # Format for JSON response - category comes as string from enum
           formatted_legislations = legislations.transform_values do |laws|
@@ -44,9 +44,9 @@ module Api
         end
 
         def crawl
-          response.headers['Content-Type'] = 'text/event-stream'
-          response.headers['Cache-Control'] = 'no-cache'
-          response.headers['X-Accel-Buffering'] = 'no'
+          response.headers["Content-Type"] = "text/event-stream"
+          response.headers["Cache-Control"] = "no-cache"
+          response.headers["X-Accel-Buffering"] = "no"
 
           sse = ActionController::Live::SSE.new(response.stream)
           country = Country.find_by!(code: params[:code])
@@ -74,12 +74,12 @@ module Api
         def format_countries(countries)
           countries.map do |country|
             status = if country.last_crawled_at.nil?
-              "red"
-            elsif country.last_crawled_at < 1.week.ago
-              "yellow"
-            else
-              "green"
-            end
+                       "red"
+                     elsif country.last_crawled_at < 1.week.ago
+                       "yellow"
+                     else
+                       "green"
+                     end
 
             {
               code: country.code,
