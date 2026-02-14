@@ -173,36 +173,43 @@ export function CrawlProgressBox({
   }, [documentCount, onDocCountUpdate])
 
   // Count items in real-time as Claude output (JSON) arrives
-  // Only update for categories that haven't finished parsing yet
+  // Mark categories as complete when they disappear from the JSON (next category appears)
   useEffect(() => {
     if (!claudeOutputText) return
 
-    const itemCount = countItemsInPartialJSON(claudeOutputText)
     const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
 
-    previousItemCountRef.current = itemCount
-    setItemsFoundCount(itemCount)
-    setCategories((prev) => {
-      const updated = prev.map((cat) => {
-        // Don't update if this category has already been marked as parsed
-        if (cat.legislationsParsed) {
-          console.log(`%c⛔ Skipping ${cat.name} - legislationsParsed=${cat.legislationsParsed}`, 'color: #ef4444')
-          return cat
-        }
+    setCategories((prev) =>
+      prev.map((cat) => {
         const categoryKey = cat.id as keyof typeof categoryCounts
         const count = categoryCounts[categoryKey] || 0
-        if (count > 0 && cat.itemsBeingDocumented !== count) {
-          console.log(`%c📊 Updating ${cat.name}: ${cat.itemsBeingDocumented} → ${count}`, 'color: #3b82f6')
+
+        // If this category has items in the current JSON
+        if (count > 0) {
+          // Update count if different
+          if (cat.itemsBeingDocumented !== count) {
+            return {
+              ...cat,
+              itemsBeingDocumented: count,
+              legislationsParsed: false, // Still parsing
+            }
+          }
+          return cat
+        }
+
+        // If this category had items before but doesn't anymore (moved to next category)
+        // AND it's not already marked as parsed, mark it as complete
+        if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && !cat.legislationsParsed) {
           return {
             ...cat,
-            itemsBeingDocumented: count,
+            legislationsParsed: true, // Done parsing this category!
           }
         }
+
         return cat
-      })
-      return updated
-    })
-  }, [claudeOutputText, countItemsInPartialJSON, parsePartialJSONByCategory])
+      }),
+    )
+  }, [claudeOutputText, parsePartialJSONByCategory])
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
@@ -288,24 +295,6 @@ export function CrawlProgressBox({
               resultCount,
               searchQuery: undefined,
               webResultsCrawled: true,
-            }
-          }
-          return cat
-        }),
-      )
-    } else if (data.type === 'category_parse_complete') {
-      const category = data.category as string
-      const itemCount = (data.item_count as number) || 0
-
-      console.log(`[PARSE_COMPLETE] ${category} - ${itemCount} items`)
-
-      setCategories((prev) =>
-        prev.map((cat) => {
-          if (cat.name === category) {
-            return {
-              ...cat,
-              legislationsParsed: true,
-              itemsBeingDocumented: itemCount,
             }
           }
           return cat
