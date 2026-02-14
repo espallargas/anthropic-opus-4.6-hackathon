@@ -31,7 +31,7 @@ interface CrawlAgentPanelProps {
 
 export function CrawlAgentPanel({ categories }: CrawlAgentPanelProps) {
   return (
-    <div className="my-2 space-y-2 border-l-2 border-white/10 pl-3">
+    <div className="my-2 space-y-2 px-3">
       {categories.map((category) => (
         <CrawlCategoryCard key={category.id} category={category} />
       ))}
