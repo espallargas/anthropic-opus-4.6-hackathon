@@ -39,8 +39,6 @@ class LegislationCrawlerService
   end
 
   def crawl
-    Rails.logger.info("[CRAWL_START] SSE class: #{@sse.class}, nil? #{@sse.nil?}")
-    Rails.logger.info("[CRAWL_START] Country: #{@country.name}")
     emit(:phase, message: "Starting crawl for #{@country.name}")
 
     existing_count = @country.legislations.count
@@ -196,9 +194,6 @@ class LegislationCrawlerService
   end
 
   def build_response_from_stream(operation_id = nil, **options)
-    puts "[BUILD_RESPONSE_FROM_STREAM] Starting with @sse=#{@sse.class rescue 'nil'}"
-    $stdout.flush
-
     collector = StreamResponseCollector.new
     event_count = 0
     search_count = 0
@@ -228,12 +223,8 @@ class LegislationCrawlerService
     category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
 
     stream_response = @client.messages.stream(**options)
-    puts "[STREAM_START] About to iterate over events"
-    $stdout.flush
     stream_response.each do |event|
       event_count += 1
-      puts "[EVENT_RECEIVED] ##{event_count} type=#{event.type}"
-      $stdout.flush
 
       # Detect web_search tool use blocks during streaming
       event_type = event.type.to_s
@@ -266,9 +257,6 @@ class LegislationCrawlerService
 
           if search_num <= category_list.length
             category = category_list[search_num - 1]
-            puts "[SEARCH_DONE] #{category} (#{search_num}/6) - #{result_count} results"
-            $stdout.flush
-            Rails.logger.info("[SEARCH_DONE] #{category} (#{search_num}/6) - #{result_count} results")
 
             emit(:search_result,
               category: category,
