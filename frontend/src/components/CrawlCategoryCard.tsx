@@ -37,14 +37,14 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
   const [expanded, setExpanded] = useState(true);
 
   const borderClass = category.phase === 'searching'
-    ? 'animate-agent-active border-blue-400/50'
+    ? 'animate-agent-active border-blue-400/30'
     : category.phase === 'indexing'
-      ? 'animate-agent-indexing border-purple-400/50'
+      ? 'animate-agent-indexing border-purple-400/30'
       : category.phase === 'completed'
-        ? 'animate-agent-complete border-green-400/40'
+        ? 'animate-agent-complete border-green-400/15'
         : isError
-          ? 'border-red-400/60'
-          : 'border-white/20';
+          ? 'border-red-400/40'
+          : 'border-white/10';
 
   const StatusIcon = category.phase === 'searching'
     ? Loader2
@@ -100,7 +100,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
       </button>
 
       {expanded && (
-        <div className="space-y-1 border-t border-white/10 px-3 py-2">
+        <div className="space-y-1 border-t border-white/5 px-3 py-2">
           {category.searchQuery && (
             <p className="line-clamp-2 text-xs text-white/70">
               🔍 <span className="italic">{category.searchQuery}</span>

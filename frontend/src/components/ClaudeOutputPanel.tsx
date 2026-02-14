@@ -238,11 +238,11 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
   }, []);
 
   return (
-    <div className="flex h-full flex-col border border-white/20 bg-black/20">
+    <div className="flex h-full flex-col border border-white/5 bg-black/20">
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-between gap-2 border-b border-white/20 bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+        className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
       >
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-white">{t('admin.output.title')}</span>
@@ -267,7 +267,7 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
               )
             ))}
             {outputText ? (
-              <div className="rounded-lg border border-white/20 bg-black/40 p-4">
+              <div className="rounded-lg border border-white/10 bg-black/40 p-4">
                 <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
                   {isJSON ? syntaxHighlightJSON(formattedText) : formattedText}
                 </pre>

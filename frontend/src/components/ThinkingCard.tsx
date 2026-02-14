@@ -26,7 +26,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
   return (
     <div
       className={`my-1 rounded-lg border bg-white/5 backdrop-blur-sm ${
-        isThinking ? 'animate-thinking-pulse border-purple-400/50' : 'border-purple-400/20'
+        isThinking ? 'animate-thinking-pulse border-purple-400/30' : 'border-purple-400/10'
       }`}
     >
       <button
@@ -55,7 +55,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
       </button>
 
       {expanded && thinking.content && (
-        <div className="border-t border-white/10 px-3 py-2">
+        <div className="border-t border-white/5 px-3 py-2">
           <p className="max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap text-white/30">
             {thinking.content}
           </p>
