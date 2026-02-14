@@ -39,6 +39,33 @@ export function AdminPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <p className="text-sm font-semibold text-red-400">{t('admin.crawl.error')}</p>
+          <p className="mt-2 text-xs text-white/50">{error}</p>
+          <button
+            onClick={refetch}
+            className="mt-4 px-4 py-2 text-xs font-semibold text-white hover:text-white/80"
+          >
+            {t('admin.crawl.retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (active.length === 0 && pending.length === 0) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <p className="text-sm font-semibold text-white/50">{t('admin.crawl.no_countries')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full bg-black text-white">
       {/* Main admin panel */}
