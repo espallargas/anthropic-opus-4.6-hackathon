@@ -197,12 +197,15 @@ export function CrawlProgressBox({
         const categoryKey = cat.id as keyof typeof categoryCounts;
         const count = categoryCounts[categoryKey] || 0;
 
-        // If category was in indexing and now has 0 items, mark as completed
-        if (cat.phase === 'indexing' && count === 0 && cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0) {
+        // If category was in indexing phase and now has 0 items
+        // (means it was parsed and moved to next category)
+        if (cat.phase === 'indexing' && count === 0) {
+          // Always mark as completed when count drops to 0 during indexing
           return {
             ...cat,
             phase: 'completed',
             itemsBeingDocumented: 0,
+            resultCount: cat.itemsBeingDocumented || 0, // Store final count
             legislationsParsed: true,
           };
         }

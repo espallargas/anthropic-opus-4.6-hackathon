@@ -1,5 +1,5 @@
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { ThinkingCard } from './ThinkingCard';
 import type { ThinkingBlock } from '@/lib/chatStore';
@@ -197,6 +197,7 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(!isExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
 
   // Use thinkingBlocks if provided, otherwise fall back to single thinking for backward compatibility
   const blocksToRender = thinkingBlocks && thinkingBlocks.length > 0 ? thinkingBlocks : (thinking ? [thinking] : []);
@@ -212,11 +213,29 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
   // Format JSON
   const formattedText = isJSON ? formatJSON(cleanText) : cleanText;
 
+  // Smart scroll: only auto-scroll if user is at bottom
   useEffect(() => {
-    if (contentRef.current && outputText) {
-      contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    if (!contentRef.current || !outputText) return;
+
+    const element = contentRef.current;
+    const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+
+    // Only auto-scroll if user hasn't scrolled up, or if they're already at bottom
+    if (!isUserScrolling || isAtBottom) {
+      element.scrollTop = element.scrollHeight;
     }
-  }, [outputText]);
+  }, [outputText, isUserScrolling]);
+
+  // Detect when user scrolls up
+  const handleScroll = useCallback(() => {
+    if (!contentRef.current) return;
+
+    const element = contentRef.current;
+    const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+
+    // If not at bottom, user is scrolling up
+    setIsUserScrolling(!isAtBottom);
+  }, []);
 
   return (
     <div className="flex h-full flex-col border border-white/5 bg-black/20">
@@ -237,7 +256,7 @@ export function ClaudeOutputPanel({ outputText, thinkingBlocks, thinking, isExpa
 
       {/* Content */}
       {!collapsed && (
-        <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4">
+        <div ref={contentRef} className="flex-1 overflow-auto bg-black/20 p-4" onScroll={handleScroll}>
           <div className="space-y-3">
             {/* Render all thinking blocks */}
             {blocksToRender.map((block) => (
