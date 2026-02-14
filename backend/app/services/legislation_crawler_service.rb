@@ -196,6 +196,7 @@ class LegislationCrawlerService
   end
 
   def build_response_from_stream(operation_id = nil, **options)
+    Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection")
     collector = StreamResponseCollector.new
     event_count = 0
     search_count = 0
@@ -307,6 +308,7 @@ class LegislationCrawlerService
       collector.add_event(event)
     end
 
+    Rails.logger.info("[BUILD_RESPONSE] Stream complete, got #{event_count} events, #{collector.content.length} content blocks")
     collector
   end
 
