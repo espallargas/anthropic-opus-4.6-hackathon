@@ -245,12 +245,17 @@ class LegislationCrawlerService
           tool_name = event.content_block.name rescue 'N/A'
 
           # DEBUG: Show what we're seeing
-          puts "\n🔍 [SERVER_TOOL_USE_DEBUG] Index: #{event.index}, Name: #{tool_name}, Class: #{event.content_block.class}"
+          puts "\n" + ("*" * 80)
+          puts "🔍 [SERVER_TOOL_USE] tool_name = '#{tool_name}'"
+          puts "*" * 80
+          puts "   Index: #{event.index}"
+          puts "   Class: #{event.content_block.class}"
           puts "   respond_to?(:name) = #{event.content_block.respond_to?(:name)}"
           puts "   respond_to?(:input) = #{event.content_block.respond_to?(:input)}"
           if event.content_block.respond_to?(:input)
             puts "   input preview: #{event.content_block.input.to_s[0..50]}"
           end
+          puts ("*" * 80) + "\n"
           $stdout.flush
 
           # If this is a web_search tool, emit search_started for the corresponding category
