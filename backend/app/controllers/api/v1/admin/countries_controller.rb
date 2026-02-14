@@ -54,6 +54,9 @@ module Api
           Rails.logger.info("Starting crawl for #{country.name}")
           LegislationCrawlerService.new(country, sse).crawl
           Rails.logger.info("Crawl finished for #{country.name}")
+        rescue ActionController::Live::ClientDisconnected
+          # Client disconnected - expected when user stops crawl
+          Rails.logger.info("Crawl stopped: client disconnected for #{country&.name}")
         rescue StandardError => e
           Rails.logger.error("Crawl SSE error: #{e.class} - #{e.message}")
           Rails.logger.error(e.backtrace.first(10).join("\n"))

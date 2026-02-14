@@ -26,9 +26,12 @@ class LegislationCrawlerService
       else
         Rails.logger.warn("[✗ SSE_NIL] Cannot send #{type} - SSE is nil")
       end
+    rescue ActionController::Live::ClientDisconnected
+      # Client disconnected - this is expected when user cancels crawl
+      Rails.logger.info("[CLIENT_DISCONNECTED] Crawl was stopped by user")
+      raise # Re-raise to stop processing
     rescue StandardError => e
       Rails.logger.error("[✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}")
-      @sse&.write({ type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) })
     end
   end
 
