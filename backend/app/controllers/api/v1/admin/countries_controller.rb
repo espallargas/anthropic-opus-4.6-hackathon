@@ -5,40 +5,24 @@ module Api
         include ActionController::Live
 
         def index
-          # Use raw SQL for better performance - avoids N+1 queries and left joins
-          result = ActiveRecord::Base.connection.execute(<<~SQL)
-            SELECT
-              countries.id,
-              countries.code,
-              countries.name,
-              countries.flag_emoji,
-              countries.last_crawled_at,
-              COUNT(legislations.id) as legislation_count
-            FROM countries
-            LEFT JOIN legislations ON countries.id = legislations.country_id
-            GROUP BY countries.id, countries.code, countries.name, countries.flag_emoji, countries.last_crawled_at
-            ORDER BY countries.name ASC
-          SQL
+          # Query using SQL to calculate status directly in database
+          active = Country
+                   .select("countries.*, COUNT(legislations.id) as legislation_count")
+                   .left_joins(:legislations)
+                   .where.not(last_crawled_at: nil)
+                   .order(:name)
+                   .group("countries.id")
 
-          active_rows = []
-          pending_rows = []
-
-          result.each do |row|
-            formatted = {
-              code: row['code'],
-              name: row['name'],
-              flag_emoji: row['flag_emoji'],
-              last_crawled_at: row['last_crawled_at'],
-              legislation_count: row['legislation_count'].to_i,
-              status: calculate_status(row['last_crawled_at'])
-            }
-
-            row['last_crawled_at'].nil? ? pending_rows << formatted : active_rows << formatted
-          end
+          pending = Country
+                    .select("countries.*, COUNT(legislations.id) as legislation_count")
+                    .left_joins(:legislations)
+                    .where(last_crawled_at: nil)
+                    .order(:name)
+                    .group("countries.id")
 
           render json: {
-            active: active_rows,
-            pending: pending_rows
+            active: format_countries(active),
+            pending: format_countries(pending)
           }
         end
 
@@ -88,13 +72,24 @@ module Api
 
         private
 
-        def calculate_status(last_crawled_at)
-          if last_crawled_at.nil?
-            "red"
-          elsif last_crawled_at < 1.week.ago
-            "yellow"
-          else
-            "green"
+        def format_countries(countries)
+          countries.map do |country|
+            status = if country.last_crawled_at.nil?
+                       "red"
+                     elsif country.last_crawled_at < 1.week.ago
+                       "yellow"
+                     else
+                       "green"
+                     end
+
+            {
+              code: country.code,
+              name: country.name,
+              flag_emoji: country.flag_emoji,
+              status: status,
+              last_crawled_at: country.last_crawled_at,
+              legislation_count: country.legislation_count.to_i
+            }
           end
         end
 
