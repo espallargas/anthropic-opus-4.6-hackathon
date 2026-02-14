@@ -5,7 +5,7 @@ import { CountrySection } from './CountrySection';
 import { CrawlProgressBox } from './CrawlProgressBox';
 
 export function AdminPage() {
-  const { active, pending, loading, refetch } = useAdminCountries();
+  const { active, pending, loading, error, refetch } = useAdminCountries();
   const { t } = useI18n();
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
