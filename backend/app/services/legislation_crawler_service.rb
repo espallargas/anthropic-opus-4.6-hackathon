@@ -190,6 +190,9 @@ class LegislationCrawlerService
   end
 
   def build_response_from_stream(operation_id = nil, **options)
+    puts "[BUILD_RESPONSE_FROM_STREAM] Starting with @sse=#{@sse.class rescue 'nil'}"
+    $stdout.flush
+
     collector = StreamResponseCollector.new
     event_count = 0
     search_count = 0
@@ -219,31 +222,36 @@ class LegislationCrawlerService
     category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
 
     stream_response = @client.messages.stream(**options)
+    puts "[STREAM_START] About to iterate over events"
+    $stdout.flush
     stream_response.each do |event|
       event_count += 1
+      puts "[EVENT_RECEIVED] ##{event_count} type=#{event.type}"
+      $stdout.flush
 
-      # Detect server_tool_use web_search blocks during streaming
+      # Detect web_search tool use blocks during streaming
       event_type = event.type.to_s
       if event_type == 'content_block_start'
         block_type = event.content_block.type.to_s
+        puts "[BLOCK_START] type=#{block_type.inspect}, index=#{event.index}"
+        $stdout.flush
 
-        if block_type == 'server_tool_use'
-          tool_name = event.content_block.name rescue 'N/A'
+        # Detect web_search_tool_result which indicates a search happened
+        if block_type == 'web_search_tool_result' && !server_tool_use_indices.include?(event.index)
+          server_tool_use_indices.add(event.index)
+          search_num = server_tool_use_indices.size
+          if search_num <= category_list.length
+            category = category_list[search_num - 1]
+            puts "[SEARCH_DETECTED] #{category} (#{search_num}/6)"
+            $stdout.flush
+            Rails.logger.info("[SEARCH_STARTED] #{category} (#{search_num}/6)")
 
-          if tool_name == 'web_search' && !server_tool_use_indices.include?(event.index)
-            server_tool_use_indices.add(event.index)
-            search_num = server_tool_use_indices.size
-            if search_num <= category_list.length
-              category = category_list[search_num - 1]
-              Rails.logger.info("[SEARCH_STARTED] #{category} (#{search_num}/6)")
-
-              emit(:search_started,
-                category: category,
-                query: "Searching #{category}...",
-                index: search_num,
-                total: 6
-              )
-            end
+            emit(:search_started,
+              category: category,
+              query: "Searching #{category}...",
+              index: search_num,
+              total: 6
+            )
           end
         end
       end
