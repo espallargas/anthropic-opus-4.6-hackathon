@@ -56,6 +56,8 @@ export function CrawlProgressBox({
   const localizedCountryName = getCountryNameLocalized(countryCode, t);
   const [thinkingBlocks, setThinkingBlocks] = useState<ThinkingBlock[]>([]);
   const [claudeOutputText, setClaudeOutputText] = useState('');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+  const [isResizing, setIsResizing] = useState(false);
   const [categories, setCategories] = useState<CategoryState[]>([
     {
       id: 'federal_laws',
@@ -508,11 +510,46 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
+  const handleMouseDown = () => {
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      // Get the container element
+      const container = document.querySelector('[data-crawl-container]') as HTMLElement;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
+
+      // Constrain between 25% and 75%
+      if (newWidth >= 25 && newWidth <= 75) {
+        setLeftPanelWidth(newWidth);
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing]);
+
 
   return (
-    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
+    <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl" data-crawl-container>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/20 bg-white/[0.02] px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">
             {localizedCountryName}
@@ -552,21 +589,27 @@ export function CrawlProgressBox({
 
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left panel: Categories (50%) */}
-        <div className="flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r border-white/10">
-          <div className="min-h-0 flex-1 overflow-hidden bg-black/30">
+        {/* Left panel: Categories */}
+        <div className="flex min-h-0 flex-none flex-col gap-0 overflow-hidden border-r border-white/20 bg-black/30" style={{ width: `${leftPanelWidth}%` }}>
+          <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>
         </div>
 
-        {/* Right panel: Claude Output + Thinking integrated (50%) */}
-        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
+        {/* Resize handle */}
+        <div
+          className={`w-0.5 flex-none bg-white/10 transition-colors ${isResizing ? 'bg-white/50' : 'hover:bg-white/30 cursor-col-resize'}`}
+          onMouseDown={handleMouseDown}
+        />
+
+        {/* Right panel: Claude Output + Thinking integrated */}
+        <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden" style={{ width: `${100 - leftPanelWidth}%` }}>
           <ClaudeOutputPanel outputText={claudeOutputText} thinkingBlocks={thinkingBlocks} />
         </div>
       </div>
 
       {/* Status Bar */}
-      <div className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex flex-none items-center justify-between border-t border-white/20 bg-white/[0.02] px-3 py-2.5">
         <div className="text-xs text-white/70">
           {currentPhase ? (
             <span>{currentPhase}</span>
