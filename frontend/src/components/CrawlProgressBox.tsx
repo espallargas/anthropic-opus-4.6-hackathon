@@ -94,10 +94,32 @@ export function CrawlProgressBox({
   const [documentCount, setDocumentCount] = useState(0)
   const [inputTokens, setInputTokens] = useState(0)
   const [outputTokens, setOutputTokens] = useState(0)
+  const [itemsFoundCount, setItemsFoundCount] = useState(0)
 
   const crawlStartedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
+
+  // Helper function to count items in partial JSON
+  const countItemsInPartialJSON = (jsonText: string): number => {
+    try {
+      // Try to find any array patterns like ["item1", "item2"]
+      const arrayMatches = jsonText.match(/\[([^\[\]]*)\]/g) || []
+      let totalItems = 0
+
+      for (const match of arrayMatches) {
+        // Remove brackets and count items (objects with title field)
+        const content = match.slice(1, -1)
+        // Count opening braces { which typically start each item
+        const itemCount = (content.match(/\{.*?"title"/g) || []).length
+        totalItems += itemCount
+      }
+
+      return totalItems
+    } catch {
+      return 0
+    }
+  }
 
   // Update refs whenever dependencies change
   useEffect(() => {
@@ -110,6 +132,17 @@ export function CrawlProgressBox({
       onDocCountUpdate(documentCount)
     }
   }, [documentCount, onDocCountUpdate])
+
+  // Count items in real-time as Claude output (JSON) arrives
+  useEffect(() => {
+    if (claudeOutputText) {
+      const itemCount = countItemsInPartialJSON(claudeOutputText)
+      if (itemCount > itemsFoundCount) {
+        console.log('[ITEMS_COUNTER] Found', itemCount, 'items so far')
+        setItemsFoundCount(itemCount)
+      }
+    }
+  }, [claudeOutputText])
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
@@ -345,11 +378,18 @@ export function CrawlProgressBox({
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
-          {documentCount > 0 && (
-            <p className="mt-1 text-xs font-medium text-emerald-400/80">
-              📊 {documentCount} documents
-            </p>
-          )}
+          <div className="mt-1 flex gap-3">
+            {itemsFoundCount > 0 && (
+              <p className="text-xs font-medium text-blue-400/80">
+                🔍 {itemsFoundCount} items found (parsing JSON...)
+              </p>
+            )}
+            {documentCount > 0 && (
+              <p className="text-xs font-medium text-emerald-400/80">
+                📊 {documentCount} documents saved
+              </p>
+            )}
+          </div>
         </div>
         <button
           onClick={onComplete}
