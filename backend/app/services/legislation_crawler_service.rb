@@ -18,34 +18,30 @@ class LegislationCrawlerService
 
   # Single unified emit method - type-safe with schema validation
   def emit(type, **data)
-    puts "🔴 [EMIT_CALLED] #{type} with data: #{data.inspect[0..80]}"
-    $stdout.flush
+    # ONLY log search-related events to reduce noise
+    if %w[search_started search_result web_search_result].include?(type.to_s)
+      puts "[EMIT] #{type}: #{data.inspect}"
+      $stdout.flush
+    end
 
     begin
       message = ::SSEMessageSchema.format(type, data)
       json_msg = message.to_json
-      puts "🟡 [EMIT_FORMATTED] #{type}: #{json_msg[0..100]}"
-      $stdout.flush
 
-      Rails.logger.info("[EMIT] #{type}: #{json_msg[0..150]}")
       if @sse
-        # SSE.write expects a hash, will convert to JSON automatically with 'data: ' prefix
-        puts "🟢 [EMIT_WRITING] #{type} to SSE (sse=#{@sse.class})"
-        $stdout.flush
         @sse.write(message)
-        puts "🟢 [✓ EMIT_SUCCESS] #{type} written to SSE stream"
-        $stdout.flush
-        Rails.logger.info("[✓ EMIT_SUCCESS] #{type} written to SSE stream")
+        if %w[search_started search_result web_search_result].include?(type.to_s)
+          puts "[✓ SENT] #{type} to frontend via SSE"
+          $stdout.flush
+        end
       else
-        puts "🔴 [✗ EMIT_WARNING] SSE is nil, cannot write #{type}"
+        puts "🔴 [✗ SSE_NIL] Cannot send #{type} - SSE is nil"
         $stdout.flush
-        Rails.logger.warn("[✗ EMIT_WARNING] SSE is nil, cannot write #{type}")
       end
     rescue StandardError => e
       puts "🔴 [✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}"
       $stdout.flush
       Rails.logger.error("[✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
       @sse&.write({ type: 'error', message: "Emit error: #{e.message}", timestamp: Time.current.iso8601(3) })
     end
   end
@@ -243,13 +239,10 @@ class LegislationCrawlerService
       # Detect server_tool_use (web_search) blocks and emit search_started immediately
       if event.type.to_s == 'content_block_start'
         block_type = event.content_block.type
-        puts "⏹️  [CONTENT_BLOCK_START] type=#{block_type} index=#{event.index}"
 
         # Emit search_started when we detect a server_tool_use web_search
         if block_type == 'server_tool_use'
           tool_name = event.content_block.name rescue 'N/A'
-          puts "🔧 [SERVER_TOOL_USE] #{tool_name}"
-          $stdout.flush
 
           # If this is a web_search tool, emit search_started for the corresponding category
           if tool_name == 'web_search' && !server_tool_use_indices.include?(event.index)
@@ -259,10 +252,24 @@ class LegislationCrawlerService
             search_num = server_tool_use_indices.size
             if search_num <= category_list.length
               category = category_list[search_num - 1]
-              puts "📢 Emitting search_started for #{category} (search #{search_num}/6)"
+
+              # AGGRESSIVE LOGGING FOR DEBUGGING
+              puts "\n" + ("=" * 80)
+              puts "🔴🔴🔴 [SEARCH_STARTED] #{search_num}/6 - #{category}"
+              puts "=" * 80
               $stdout.flush
-              Rails.logger.info("       📢 Emitting search_started for #{category} (search #{search_num}/6)")
-              emit(:search_started, category: category, query: "Searching #{category}...", index: search_num, total: 6)
+
+              emit(:search_started,
+                category: category,
+                query: "Searching #{category}...",
+                index: search_num,
+                total: 6,
+                message: "Web search ##{search_num} for #{category} started"
+              )
+
+              puts "✅ Event emitted successfully for #{category}"
+              puts "=" * 80 + "\n"
+              $stdout.flush
             end
           end
         end
@@ -704,19 +711,36 @@ class LegislationCrawlerService
         end
 
         # Then emit the search_result to mark category as done
+        puts "\n" + ("=" * 80)
+        puts "🟢🟢🟢 [SEARCH_RESULT] #{category_label} - #{count} items found"
+        puts "=" * 80
+        $stdout.flush
+
         emit(:search_result, category: category_label, result_count: count)
+
+        puts "✅ search_result event emitted for #{category_label}"
+        puts "=" * 80 + "\n"
+        $stdout.flush
       end
     rescue JSON::ParserError => e
+      puts "\n" + ("!" * 80)
+      puts "⚠️⚠️⚠️ [SEARCH_RESULT FALLBACK] JSON Parse Error: #{e.message}"
+      puts "!" * 80 + "\n"
+      $stdout.flush
+
       Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
       # Fallback: emit search_result for all categories with 0 results to mark as done
-      Rails.logger.info("  ⚠️ FALLBACK: Emitting 0 results for all categories (JSON parse failed)")
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
       end
     rescue => e
+      puts "\n" + ("!" * 80)
+      puts "⚠️⚠️⚠️ [SEARCH_RESULT FALLBACK] Error: #{e.class} - #{e.message}"
+      puts "!" * 80 + "\n"
+      $stdout.flush
+
       Rails.logger.warn("Error emitting search_results: #{e.message}")
       # Fallback: emit search_result for all categories with 0 results to mark as done
-      Rails.logger.info("  ⚠️ FALLBACK: Emitting 0 results for all categories (error: #{e.class})")
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
       end

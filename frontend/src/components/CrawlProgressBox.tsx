@@ -165,18 +165,19 @@ export function CrawlProgressBox({
       const query = (data.query as string) || ''
       const searchIndex = (data.index as number) || 0
       const searchTotal = (data.total as number) || 6
-      console.log(
-        '[SEARCH_STARTED] Category:',
-        category,
-        'Query:',
-        query.slice(0, 50),
-        'Index:',
-        searchIndex,
-      )
+      const message = (data.message as string) || ''
+
+      console.log('%c🔴 [SEARCH_STARTED]', 'color: red; font-weight: bold; font-size: 14px')
+      console.log('Category:', category)
+      console.log('Index:', searchIndex, 'of', searchTotal)
+      console.log('Query:', query)
+      console.log('Message:', message)
+      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: red')
+
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log('  -> Marking', category, 'as searching with query:', query.slice(0, 40))
+            console.log(`%c✅ Marked ${category} as searching`, 'color: green; font-weight: bold')
             return {
               ...cat,
               status: 'searching' as CategoryStatus,
@@ -229,11 +230,16 @@ export function CrawlProgressBox({
     } else if (data.type === 'search_result') {
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0
-      console.log('[SEARCH_RESULT] Category:', category, 'Count:', resultCount)
+
+      console.log('%c🟢 [SEARCH_RESULT]', 'color: green; font-weight: bold; font-size: 14px')
+      console.log('Category:', category)
+      console.log('Result Count:', resultCount)
+      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: green')
+
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            console.log('  -> Marking', category, 'as done with', resultCount, 'results')
+            console.log(`%c✅ Marked ${category} as DONE with ${resultCount} results`, 'color: lime; font-weight: bold')
             return {
               ...cat,
               status: 'done' as CategoryStatus,
