@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X } from 'lucide-react'
+import { X, Pause } from 'lucide-react'
 import { ThinkingPanel } from './ThinkingPanel'
 import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
 import { ClaudeOutputPanel } from './ClaudeOutputPanel'
@@ -90,16 +90,18 @@ export function CrawlProgressBox({
       resultCount: 0,
     },
   ])
-  const [statusMessages, setStatusMessages] = useState<string[]>([])
   const [isComplete, setIsComplete] = useState(false)
   const [documentCount, setDocumentCount] = useState(0)
   const [inputTokens, setInputTokens] = useState(0)
   const [outputTokens, setOutputTokens] = useState(0)
   const [itemsFoundCount, setItemsFoundCount] = useState(0)
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false)
+  const [currentPhase, setCurrentPhase] = useState<string>('')
 
   const crawlStartedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
+  const controllerRef = useRef<AbortController | null>(null)
 
   // Helper function to count items in partial JSON by category
   const parsePartialJSONByCategory = (jsonText: string): Record<string, number> => {
@@ -114,7 +116,7 @@ export function CrawlProgressBox({
 
     try {
       // Try to find each category's array
-      for (const [key, _] of Object.entries(categoryMap)) {
+      for (const key of Object.keys(categoryMap)) {
         // Match patterns like "federal_laws": [ ... items ... ]
         const pattern = new RegExp(`"${key}"\\s*:\\s*\\[`, 'i')
         if (pattern.test(jsonText)) {
@@ -256,11 +258,6 @@ export function CrawlProgressBox({
           return cat
         }),
       )
-
-      setStatusMessages((prev) => [
-        ...prev,
-        `🌐 ${category}: ${index}/${total} - ${title.substring(0, 40)}...`,
-      ])
     } else if (data.type === 'search_result') {
       const category = data.category as string
       const resultCount = (data.result_count as number) || 0
@@ -287,6 +284,7 @@ export function CrawlProgressBox({
       const message = data.message as string
       if (message) {
         setStatusMessages((prev) => [...prev, message])
+        setCurrentPhase(message)
       }
     } else if (data.type === 'tokens') {
       const inputTokens = (data.input_tokens as number) || 0
@@ -303,7 +301,7 @@ export function CrawlProgressBox({
       setDocumentCount(count)
     } else if (data.type === 'error') {
       const msg = data.message as string
-      setStatusMessages((prev) => [...prev, `Error: ${msg}`])
+      setCurrentPhase(`Error: ${msg}`)
       setCategories((prev) =>
         prev.map((cat) =>
           cat.status === 'searching' ? { ...cat, status: 'error' as CategoryStatus } : cat,
@@ -328,6 +326,7 @@ export function CrawlProgressBox({
     const startCrawl = async () => {
       try {
         const controller = new AbortController()
+        controllerRef.current = controller
         const timeoutId = setTimeout(() => controller.abort(), 300000)
 
         const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
@@ -339,7 +338,7 @@ export function CrawlProgressBox({
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-          setStatusMessages((prev) => [...prev, `Error: ${response.statusText}`])
+          setCurrentPhase(`Error: ${response.statusText}`)
           setIsComplete(true)
           setTimeout(() => onCompleteRef.current(), 1200)
           return
@@ -347,7 +346,7 @@ export function CrawlProgressBox({
 
         const reader = response.body?.getReader()
         if (!reader) {
-          setStatusMessages((prev) => [...prev, 'Error: No response stream'])
+          setCurrentPhase('Error: No response stream')
           setIsComplete(true)
           setTimeout(() => onCompleteRef.current(), 1200)
           return
@@ -355,7 +354,6 @@ export function CrawlProgressBox({
 
         const decoder = new TextDecoder()
         let buffer = ''
-        let messageCount = 0
 
         while (true) {
           const { done, value } = await reader.read()
@@ -371,7 +369,6 @@ export function CrawlProgressBox({
             const line = lines[i].trim()
             if (line.startsWith('data: ')) {
               try {
-                messageCount++
                 const jsonStr = line.slice(6)
                 const data = JSON.parse(jsonStr) as SSEMessage
                 if (processMessageRef.current) {
@@ -385,7 +382,7 @@ export function CrawlProgressBox({
         }
       } catch (error) {
         console.error('Crawl connection error:', error)
-        setStatusMessages((prev) => [...prev, 'Connection error'])
+        setCurrentPhase('Connection error')
         setIsComplete(true)
         setTimeout(() => onCompleteRef.current(), 1500)
       }
@@ -393,6 +390,23 @@ export function CrawlProgressBox({
 
     startCrawl()
   }, [countryCode])
+
+  const handlePause = () => {
+    setShowPauseConfirm(true)
+  }
+
+  const handleConfirmStop = () => {
+    if (controllerRef.current) {
+      controllerRef.current.abort()
+    }
+    setShowPauseConfirm(false)
+    setIsComplete(true)
+    setTimeout(() => onCompleteRef.current(), 800)
+  }
+
+  const handleCancelPause = () => {
+    setShowPauseConfirm(false)
+  }
 
   return (
     <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
@@ -413,20 +427,34 @@ export function CrawlProgressBox({
             )}
           </div>
         </div>
-        <button
-          onClick={onComplete}
-          className="text-white/40 transition-colors hover:text-white/80"
-          title="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {!isComplete && (
+            <button
+              onClick={handlePause}
+              className="text-white/40 transition-colors hover:text-white/80"
+              title="Pause crawl"
+            >
+              <Pause className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={onComplete}
+            className="text-white/40 transition-colors hover:text-white/80"
+            title="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Main content - 2x2 grid layout */}
+      {/* Main content - Vertical sections */}
       <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-        {/* Top row: Thinking + Claude Output */}
-        <div className="flex min-h-0 flex-1 gap-0 overflow-hidden border-b border-white/10">
-          {/* Left: Thinking panel (30%) */}
+        {/* Thinking + Claude Output (40% height) */}
+        <div
+          className="flex min-h-0 flex-none gap-0 overflow-hidden border-b border-white/10"
+          style={{ height: '280px' }}
+        >
+          {/* Left: Thinking panel (30% width) */}
           <div className="w-[30%] flex-none overflow-hidden border-r border-white/10">
             <ThinkingPanel
               thinkingText={thinkingText}
@@ -435,48 +463,57 @@ export function CrawlProgressBox({
             />
           </div>
 
-          {/* Right: Claude Output (70%) */}
+          {/* Right: Claude Output (70% width) */}
           <div className="flex-1 overflow-hidden">
             <ClaudeOutputPanel outputText={claudeOutputText} />
           </div>
         </div>
 
-        {/* Bottom row: Categories + Status */}
-        <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-          {/* Left: Categories (50%) */}
-          <div className="w-1/2 flex-none overflow-hidden border-r border-white/10">
-            <CategoriesPanel categories={categories} />
-          </div>
+        {/* Categories Panel (43% height) */}
+        <div className="min-h-0 flex-1 overflow-hidden border-b border-white/10">
+          <CategoriesPanel categories={categories} />
+        </div>
 
-          {/* Right: Status messages (50%) */}
-          <div className="flex-1 overflow-hidden">
-            {statusMessages.length > 0 ? (
-              <div className="flex h-full flex-col bg-black/30">
-                <div className="border-b border-white/10 bg-white/[0.02] px-3 py-2.5">
-                  <p className="text-xs font-semibold text-white">Status</p>
-                </div>
-                <div className="flex-1 space-y-1.5 overflow-y-auto px-2 py-2.5">
-                  {statusMessages.map((msg, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-white/70">
-                      <span className="mt-0.5 flex-shrink-0">→</span>
-                      <span className="break-words">{msg}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* Status Bar (5% height, ~40px) */}
+        <div
+          className="flex flex-none items-center justify-between border-t border-white/10 bg-white/[0.02] px-3 py-2.5"
+          style={{ height: '40px' }}
+        >
+          <div className="text-xs text-white/70">
+            {currentPhase ? (
+              <span>{currentPhase}</span>
+            ) : isComplete ? (
+              <span className="text-emerald-400/80">✓ Crawl complete</span>
             ) : (
-              <div className="flex h-full items-center justify-center bg-black/30">
-                <p className="text-xs text-white/30">Status messages will appear here</p>
-              </div>
+              <span>Starting crawl...</span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      {isComplete && (
-        <div className="border-t border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
-          <p className="text-xs font-medium text-emerald-400/80">✓ Crawl complete</p>
+      {/* Pause Confirmation Modal */}
+      {showPauseConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="rounded-lg border border-white/20 bg-black/95 p-6 shadow-xl">
+            <h3 className="mb-2 text-sm font-semibold text-white">Stop crawl?</h3>
+            <p className="mb-4 text-xs text-white/70">
+              Progress will be discarded. All data is only saved at the end.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCancelPause}
+                className="rounded border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmStop}
+                className="rounded border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
+              >
+                Stop & Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
