@@ -223,7 +223,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   >
                     {category.legislationsParsed
                       ? `${category.itemsBeingDocumented} legislations`
-                      : `${category.itemsBeingDocumented} legislations being parsed`}
+                      : `${category.itemsBeingDocumented} legislations parsed`}
                   </span>
                 )}
               </div>
