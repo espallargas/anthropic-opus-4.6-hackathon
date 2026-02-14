@@ -511,17 +511,22 @@ export function CrawlProgressBox({
     setShowPauseConfirm(false);
   };
 
-  const handleMouseDown = () => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    console.log('[RESIZE] Mouse down on resize handle');
     setIsResizing(true);
-  };
+  }, []);
 
   useEffect(() => {
+    if (!isResizing) return;
+
     const handleMouseUp = () => {
+      console.log('[RESIZE] Mouse up');
       setIsResizing(false);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing || !containerRef.current) return;
+      if (!containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
       const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
@@ -532,14 +537,13 @@ export function CrawlProgressBox({
       }
     };
 
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
   }, [isResizing]);
 
 
@@ -595,8 +599,9 @@ export function CrawlProgressBox({
 
         {/* Resize handle */}
         <div
-          className={`w-1 flex-none cursor-col-resize transition-colors ${isResizing ? 'bg-white/80' : 'bg-white/40 hover:bg-white/70'}`}
+          className={`w-1 flex-none cursor-col-resize select-none transition-colors ${isResizing ? 'bg-white/80' : 'bg-white/40 hover:bg-white/70'}`}
           onMouseDown={handleMouseDown}
+          style={{ userSelect: 'none' }}
           title="Arraste para redimensionar"
         />
 
