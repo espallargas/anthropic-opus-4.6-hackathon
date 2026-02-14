@@ -26,7 +26,7 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
 
   const isJSON = cleanText.startsWith('{') || cleanText.startsWith('[')
 
-  // Format JSON for display - handle partial/incomplete JSON
+  // Format JSON for display - handle partial/incomplete JSON with smart indentation
   const formattedText = isJSON
     ? (() => {
         try {
@@ -34,30 +34,69 @@ export function ClaudeOutputPanel({ outputText, isExpanded = true }: ClaudeOutpu
           const parsed = JSON.parse(cleanText)
           return JSON.stringify(parsed, null, 2)
         } catch {
-          // If parsing fails, it might be incomplete JSON - format it manually
-          try {
-            // Add closing brackets if missing to make it valid
-            let testText = cleanText
-            const openBraces = (testText.match(/{/g) || []).length
-            const closeBraces = (testText.match(/}/g) || []).length
-            const openBrackets = (testText.match(/\[/g) || []).length
-            const closeBrackets = (testText.match(/]/g) || []).length
+          // If parsing fails, apply manual formatting with indentation
+          const formatted = cleanText
+          let indent = 0
+          let result = ''
+          let inString = false
+          let escapeNext = false
 
-            // Add missing closing braces and brackets
-            if (openBraces > closeBraces) {
-              testText += '}'.repeat(openBraces - closeBraces)
-            }
-            if (openBrackets > closeBrackets) {
-              testText += ']'.repeat(openBrackets - closeBrackets)
+          for (let i = 0; i < formatted.length; i++) {
+            const char = formatted[i]
+            const nextChar = formatted[i + 1]
+
+            if (escapeNext) {
+              result += char
+              escapeNext = false
+              continue
             }
 
-            // Try parsing the completed version
-            const parsed = JSON.parse(testText)
-            return JSON.stringify(parsed, null, 2)
-          } catch {
-            // If all else fails, return as-is
-            return cleanText
+            if (char === '\\' && inString) {
+              escapeNext = true
+              result += char
+              continue
+            }
+
+            if (char === '"' && !escapeNext) {
+              inString = !inString
+              result += char
+              continue
+            }
+
+            if (inString) {
+              result += char
+              continue
+            }
+
+            // Handle formatting for non-string content
+            if (char === '{' || char === '[') {
+              result += char
+              indent++
+              if (nextChar && nextChar !== '}' && nextChar !== ']') {
+                result += '\n' + '  '.repeat(indent)
+              }
+            } else if (char === '}' || char === ']') {
+              indent = Math.max(0, indent - 1)
+              if (result.trimEnd().endsWith('\n' + '  '.repeat(indent + 1))) {
+                // Already indented, just close
+                result += char
+              } else if (!result.trimEnd().endsWith('{') && !result.trimEnd().endsWith('[')) {
+                result += '\n' + '  '.repeat(indent) + char
+              } else {
+                result += char
+              }
+            } else if (char === ',' && !inString) {
+              result += char + '\n' + '  '.repeat(indent)
+            } else if (char === ':' && !inString) {
+              result += char + ' '
+            } else if (char !== ' ' && char !== '\n' && char !== '\t') {
+              result += char
+            } else if (char === ' ' && result[result.length - 1] !== '\n') {
+              result += char
+            }
           }
+
+          return result.trim()
         }
       })()
     : cleanText
