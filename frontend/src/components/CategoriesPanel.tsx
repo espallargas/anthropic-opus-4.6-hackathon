@@ -59,21 +59,21 @@ function getParsingColors(
     }
   }
 
-  // Parsing in progress → yellow to amber gradient
+  // Parsing in progress → blue to cyan gradient
   if (itemsBeingDocumented && itemsBeingDocumented > 0) {
-    // If more items found, use more amber (further along)
+    // If more items found, use more cyan (further along)
     if (itemsBeingDocumented > 10) {
       return {
-        icon: 'text-amber-500',
-        text: 'text-amber-300',
-        spinner: 'text-amber-500',
+        icon: 'text-cyan-500',
+        text: 'text-cyan-300',
+        spinner: 'text-cyan-500',
       }
     }
-    // Early in parsing, bright yellow
+    // Early in parsing, bright blue
     return {
-      icon: 'text-yellow-400',
-      text: 'text-yellow-300',
-      spinner: 'text-yellow-400',
+      icon: 'text-blue-400',
+      text: 'text-blue-300',
+      spinner: 'text-blue-400',
     }
   }
 
@@ -86,11 +86,11 @@ function getParsingColors(
     }
   }
 
-  // Default (pending/searching)
+  // Default (pending/searching) - neutral
   return {
     icon: 'text-white/50',
     text: 'text-white/50',
-    spinner: 'text-blue-400',
+    spinner: 'text-white/50',
   }
 }
 
