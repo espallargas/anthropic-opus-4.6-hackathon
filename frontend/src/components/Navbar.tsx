@@ -1,4 +1,4 @@
-import { Globe, Languages, Settings, MessageSquare } from 'lucide-react';
+import { Languages, Settings, MessageSquare } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
@@ -12,8 +12,7 @@ export function Navbar() {
   return (
     <nav className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-black px-4">
       <div className="flex items-center gap-3">
-        <Globe className="h-5 w-5 text-white/70" />
-        <h1 className="text-sm font-semibold">{t('app.title')}</h1>
+        <img src="/logo.png" alt="FreePath Logo" className="h-8 w-auto" />
       </div>
 
       <div className="flex items-center gap-3">
