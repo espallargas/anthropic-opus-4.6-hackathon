@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import ReactGlobe from 'react-globe.gl'
 import { useGlobe } from '@/hooks/useGlobe'
 import { useI18n } from '@/lib/i18n'
@@ -7,11 +7,6 @@ interface GlobeProps {
   origin?: string
   destination?: string
   className?: string
-}
-
-interface GlobeInstance {
-  pointOfView(pov: { lat: number; lng: number; altitude: number }, duration?: number): void
-  _pov?: { lat: number; lng: number; altitude: number }
 }
 
 export function Globe({ origin, destination, className = '' }: GlobeProps) {

@@ -1,5 +1,5 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 
 interface ClaudeOutputPanelProps {
   outputText: string
@@ -82,12 +82,12 @@ function prettyPrintJSON(text: string): string {
   return result.trim()
 }
 
-function syntaxHighlightJSON(text: string): JSX.Element[] {
+function syntaxHighlightJSON(text: string): ReactNode[] {
   const lines = text.split('\n')
-  const result: JSX.Element[] = []
+  const result: ReactNode[] = []
 
   lines.forEach((line, lineIdx) => {
-    const elements: JSX.Element[] = []
+    const elements: ReactNode[] = []
     let i = 0
 
     while (i < line.length) {

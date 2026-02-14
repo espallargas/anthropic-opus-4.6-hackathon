@@ -97,7 +97,6 @@ export function CrawlProgressBox({
   const [documentCount, setDocumentCount] = useState(0)
   const [inputTokens, setInputTokens] = useState(0)
   const [outputTokens, setOutputTokens] = useState(0)
-  const [itemsFoundCount, setItemsFoundCount] = useState(0)
   const [showPauseConfirm, setShowPauseConfirm] = useState(false)
   const [currentPhase, setCurrentPhase] = useState<string>('')
 
@@ -105,7 +104,6 @@ export function CrawlProgressBox({
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
-  const previousItemCountRef = useRef(0)
 
   // Helper function to count items in partial JSON by category
   const parsePartialJSONByCategory = useCallback((jsonText: string): Record<string, number> => {
@@ -150,15 +148,6 @@ export function CrawlProgressBox({
 
     return categoryMap
   }, [])
-
-  // Helper to count total items
-  const countItemsInPartialJSON = useCallback(
-    (jsonText: string): number => {
-      const counts = parsePartialJSONByCategory(jsonText)
-      return Object.values(counts).reduce((a, b) => a + b, 0)
-    },
-    [parsePartialJSONByCategory],
-  )
 
   // Update refs whenever dependencies change
   useEffect(() => {
@@ -304,7 +293,6 @@ export function CrawlProgressBox({
     } else if (data.type === 'phase') {
       const message = data.message as string
       if (message) {
-        setStatusMessages((prev) => [...prev, message])
         setCurrentPhase(message)
       }
     } else if (data.type === 'tokens') {
@@ -443,11 +431,6 @@ export function CrawlProgressBox({
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-white">{countryName}</h3>
           <div className="mt-1 flex gap-3">
-            {itemsFoundCount > 0 && (
-              <p className="text-xs font-medium text-blue-400/80">
-                🔍 {itemsFoundCount} items found (parsing JSON...)
-              </p>
-            )}
             {documentCount > 0 && (
               <p className="text-xs font-medium text-emerald-400/80">
                 📊 {documentCount} documents saved
