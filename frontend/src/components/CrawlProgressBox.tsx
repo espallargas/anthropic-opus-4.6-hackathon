@@ -169,38 +169,46 @@ export function CrawlProgressBox({
     const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
     console.log('[JSON_COUNTS]', categoryCounts)
 
-    setCategories((prev) =>
-      prev.map((cat) => {
+    setCategories((prev) => {
+      // First pass: detect which categories just disappeared (count = 0 after having items)
+      const justCompletedCategories = new Set<string>()
+      prev.forEach((cat) => {
+        const categoryKey = cat.id as keyof typeof categoryCounts
+        const count = categoryCounts[categoryKey] || 0
+        // If category had items before but doesn't anymore, mark as just completed
+        if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && count === 0 && !cat.legislationsParsed) {
+          justCompletedCategories.add(cat.id)
+          console.log(`[JSON_MONITOR] ${cat.name}: disappeared from JSON, marking as complete!`)
+        }
+      })
+
+      // Second pass: update category states
+      return prev.map((cat) => {
         const categoryKey = cat.id as keyof typeof categoryCounts
         const count = categoryCounts[categoryKey] || 0
 
-        // If this category has items in the current JSON
+        // If this category just completed
+        if (justCompletedCategories.has(cat.id)) {
+          return {
+            ...cat,
+            legislationsParsed: true,
+          }
+        }
+
+        // If this category has items in the current JSON, update count
         if (count > 0) {
-          // Update count if different
           if (cat.itemsBeingDocumented !== count) {
             return {
               ...cat,
               itemsBeingDocumented: count,
-              legislationsParsed: false, // Still parsing
+              legislationsParsed: false, // Back to parsing if count changed
             }
           }
-          return cat
         }
 
-        // If this category had items before but doesn't anymore (moved to next category)
-        // Mark it as complete
-        if (cat.itemsBeingDocumented && cat.itemsBeingDocumented > 0 && !cat.legislationsParsed) {
-          console.log(`[JSON_MONITOR] ${cat.name}: moved to next category (count was ${cat.itemsBeingDocumented}), marking as complete!`)
-          return {
-            ...cat,
-            legislationsParsed: true, // Done parsing this category!
-          }
-        }
-
-        // If already marked as parsed, keep it that way
         return cat
-      }),
-    )
+      })
+    })
   }, [claudeOutputText, parsePartialJSONByCategory])
 
   // Process incoming SSE messages
