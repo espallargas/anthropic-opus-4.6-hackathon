@@ -304,9 +304,10 @@ export function CrawlProgressBox({
         'color: #a78bfa; font-weight: bold; font-size: 12px',
       )
 
-      setCategories((prev) =>
-        prev.map((cat) => {
+      setCategories((prev) => {
+        const updated = prev.map((cat) => {
           if (cat.name === category) {
+            console.log(`%c✅ Updated ${category} -> legislationsParsed: true`, 'color: #10b981')
             return {
               ...cat,
               legislationsParsed: true,
@@ -314,8 +315,10 @@ export function CrawlProgressBox({
             }
           }
           return cat
-        }),
-      )
+        })
+        console.log('Categories after parse_complete:', updated)
+        return updated
+      })
     } else if (data.type === 'phase') {
       const message = data.message as string
       if (message) {

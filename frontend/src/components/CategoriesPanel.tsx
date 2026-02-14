@@ -66,13 +66,13 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 category.itemsBeingDocumented > 0 &&
                 !category.legislationsParsed ? (
                   // Loading while parsing
-                  <Loader2 className="h-3 w-3 animate-spin text-purple-400" />
+                  <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
                 ) : category.legislationsParsed ? (
-                  // Purple checkmark when legislations parsed
-                  <CheckCircle2 className="h-3 w-3 text-purple-400" />
-                ) : category.webResultsCrawled ? (
-                  // Green checkmark when web results crawled
+                  // Green checkmark when legislations parsed
                   <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                ) : category.webResultsCrawled ? (
+                  // Purple checkmark when web results crawled
+                  <CheckCircle2 className="h-3 w-3 text-violet-400" />
                 ) : (
                   STATUS_ICONS[category.status]
                 )}
@@ -84,11 +84,11 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   <p
                     className={`truncate text-xs font-medium ${
                       category.itemsBeingDocumented && category.itemsBeingDocumented > 0
-                        ? 'text-purple-300'
+                        ? 'text-emerald-300'
                         : category.legislationsParsed
-                          ? 'text-purple-300'
+                          ? 'text-emerald-300'
                           : category.webResultsCrawled
-                            ? 'text-emerald-300'
+                            ? 'text-violet-300'
                             : 'text-current'
                     }`}
                   >
@@ -140,7 +140,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                   (!category.itemsBeingDocumented || category.itemsBeingDocumented === 0) && (
                     <span
                       className={`text-xs font-medium ${
-                        category.webResultsCrawled ? 'text-emerald-300' : 'text-blue-300'
+                        category.webResultsCrawled ? 'text-violet-300' : 'text-blue-300'
                       }`}
                     >
                       {category.resultCount} web results crawled
@@ -149,7 +149,7 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
 
                 {/* Show legislations being parsed - hide web results when parsing starts */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
-                  <span className="text-xs font-medium text-purple-300">
+                  <span className="text-xs font-medium text-emerald-300">
                     {category.itemsBeingDocumented} legislations parsed
                   </span>
                 )}
