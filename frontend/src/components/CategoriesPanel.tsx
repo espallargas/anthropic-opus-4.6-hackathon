@@ -21,6 +21,7 @@ interface Category {
   searchIndex?: number
   searchTotal?: number
   webSearchResults?: WebSearchResult[]
+  itemsBeingDocumented?: number // Items found while parsing JSON
 }
 
 interface CategoriesPanelProps {
@@ -109,10 +110,20 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                     <span className="text-xs font-medium text-blue-200">Searching</span>
                   </div>
                 )}
+
+                {/* Show items being documented while parsing JSON */}
+                {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
+                  <div className="flex-shrink-0 rounded bg-yellow-500/20 px-1.5 py-0.5">
+                    <p className="text-xs font-medium text-yellow-300">
+                      📝 {category.itemsBeingDocumented} docs
+                    </p>
+                  </div>
+                )}
+
                 {category.status === 'done' && category.resultCount > 0 && (
                   <div className="flex-shrink-0 rounded bg-current/20 px-1.5 py-0.5">
                     <p className="text-xs font-medium text-current">
-                      {category.resultCount} results
+                      ✓ {category.resultCount} results
                     </p>
                   </div>
                 )}

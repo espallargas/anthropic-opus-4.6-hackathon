@@ -35,6 +35,7 @@ interface CategoryState {
   searchIndex?: number
   searchTotal?: number
   webSearchResults?: WebSearchResult[]
+  itemsBeingDocumented?: number // Items found while parsing JSON in real-time
 }
 
 export function CrawlProgressBox({
@@ -100,25 +101,57 @@ export function CrawlProgressBox({
   const onCompleteRef = useRef(onComplete)
   const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
 
-  // Helper function to count items in partial JSON
-  const countItemsInPartialJSON = (jsonText: string): number => {
-    try {
-      // Try to find any array patterns like ["item1", "item2"]
-      const arrayMatches = jsonText.match(/\[([^\[\]]*)\]/g) || []
-      let totalItems = 0
-
-      for (const match of arrayMatches) {
-        // Remove brackets and count items (objects with title field)
-        const content = match.slice(1, -1)
-        // Count opening braces { which typically start each item
-        const itemCount = (content.match(/\{.*?"title"/g) || []).length
-        totalItems += itemCount
-      }
-
-      return totalItems
-    } catch {
-      return 0
+  // Helper function to count items in partial JSON by category
+  const parsePartialJSONByCategory = (
+    jsonText: string,
+  ): Record<string, number> => {
+    const categoryMap: Record<string, number> = {
+      federal_laws: 0,
+      regulations: 0,
+      consular: 0,
+      jurisdictional: 0,
+      complementary: 0,
+      auxiliary: 0,
     }
+
+    try {
+      // Try to find each category's array
+      for (const [key, _] of Object.entries(categoryMap)) {
+        // Match patterns like "federal_laws": [ ... items ... ]
+        const pattern = new RegExp(`"${key}"\\s*:\\s*\\[`, 'i')
+        if (pattern.test(jsonText)) {
+          // Find the opening bracket
+          const match = jsonText.match(pattern)
+          if (match) {
+            const startIdx = jsonText.indexOf(match[0]) + match[0].length
+            // Extract content until we hit a closing bracket (may be incomplete)
+            let bracketCount = 1
+            let endIdx = startIdx
+            for (let i = startIdx; i < jsonText.length && bracketCount > 0; i++) {
+              if (jsonText[i] === '[') bracketCount++
+              else if (jsonText[i] === ']') bracketCount--
+              endIdx = i
+            }
+
+            const arrayContent = jsonText.substring(startIdx, endIdx)
+            // Count objects with "title" field
+            const itemCount = (arrayContent.match(/\{[^}]*"title"/g) || [])
+              .length
+            categoryMap[key] = itemCount
+          }
+        }
+      }
+    } catch {
+      // Silent fail
+    }
+
+    return categoryMap
+  }
+
+  // Helper to count total items
+  const countItemsInPartialJSON = (jsonText: string): number => {
+    const counts = parsePartialJSONByCategory(jsonText)
+    return Object.values(counts).reduce((a, b) => a + b, 0)
   }
 
   // Update refs whenever dependencies change
@@ -141,6 +174,22 @@ export function CrawlProgressBox({
         console.log('[ITEMS_COUNTER] Found', itemCount, 'items so far')
         setItemsFoundCount(itemCount)
       }
+
+      // Also update individual category counts
+      const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
+      setCategories((prev) =>
+        prev.map((cat) => {
+          const categoryKey = cat.id as keyof typeof categoryCounts
+          const count = categoryCounts[categoryKey] || 0
+          if (count > 0 && cat.itemsBeingDocumented !== count) {
+            return {
+              ...cat,
+              itemsBeingDocumented: count,
+            }
+          }
+          return cat
+        }),
+      )
     }
   }, [claudeOutputText])
 
