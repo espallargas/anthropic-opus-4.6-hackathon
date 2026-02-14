@@ -10,6 +10,7 @@ class LegislationCrawlerService
     @current_operation_id = nil
     @thinking_effort = "high"  # Configure thinking effort level: low, medium, high, max
     @thinking_type_emitted = false  # Track if we've emitted the thinking type
+    @parse_complete_emitted = Set.new  # Track which categories have had parse_complete emitted
   end
 
   # Generate a unique operation ID for grouping related messages
@@ -726,8 +727,11 @@ class LegislationCrawlerService
         emit(:search_result, category: category_label, result_count: count)
 
         # Immediately emit category_parse_complete since we have parsed all items from the JSON
-        Rails.logger.info("  ✅ Emitting category_parse_complete: #{category_label} (#{count} items)")
-        emit(:category_parse_complete, category: category_label, item_count: count)
+        unless @parse_complete_emitted.include?(category_label)
+          Rails.logger.info("  ✅ Emitting category_parse_complete: #{category_label} (#{count} items)")
+          emit(:category_parse_complete, category: category_label, item_count: count)
+          @parse_complete_emitted.add(category_label)
+        end
       end
     rescue JSON::ParserError => e
       Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
@@ -828,8 +832,13 @@ class LegislationCrawlerService
         emit(:search_result, category: category_label, result_count: count)
 
         # Immediately emit category_parse_complete since we have parsed all items from the JSON
-        Rails.logger.info("[POST-STREAM] Emitting category_parse_complete: #{category_label} (#{count} items)")
-        emit(:category_parse_complete, category: category_label, item_count: count)
+        unless @parse_complete_emitted.include?(category_label)
+          Rails.logger.info("[POST-STREAM] Emitting category_parse_complete: #{category_label} (#{count} items)")
+          emit(:category_parse_complete, category: category_label, item_count: count)
+          @parse_complete_emitted.add(category_label)
+        else
+          Rails.logger.info("[POST-STREAM] Skipping duplicate category_parse_complete for #{category_label}")
+        end
       end
     rescue => e
       Rails.logger.warn("[POST-STREAM] Error parsing JSON or emitting results: #{e.message}")
@@ -837,7 +846,10 @@ class LegislationCrawlerService
       Rails.logger.info("[POST-STREAM] FALLBACK: Emitting 0 results for all categories")
       category_map.each do |_category_key, category_label|
         emit(:search_result, category: category_label, result_count: 0)
-        emit(:category_parse_complete, category: category_label, item_count: 0)
+        unless @parse_complete_emitted.include?(category_label)
+          emit(:category_parse_complete, category: category_label, item_count: 0)
+          @parse_complete_emitted.add(category_label)
+        end
       end
     end
   end
