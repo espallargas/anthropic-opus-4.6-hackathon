@@ -1,28 +1,28 @@
-import { useState } from 'react'
-import { useI18n } from '@/lib/i18n'
-import { CountryPicker } from '@/components/CountryPicker'
-import { ObjectivePicker } from '@/components/ObjectivePicker'
-import type { SystemVars } from '@/lib/chatStore'
+import { useState } from 'react';
+import { useI18n } from '@/lib/i18n';
+import { CountryPicker } from '@/components/CountryPicker';
+import { ObjectivePicker } from '@/components/ObjectivePicker';
+import type { SystemVars } from '@/lib/chatStore';
 
 interface SetupFormProps {
-  onSubmit: (vars: SystemVars) => void
-  defaultValues?: SystemVars
+  onSubmit: (vars: SystemVars) => void;
+  defaultValues?: SystemVars;
 }
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 4;
 
 export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
-  const { t } = useI18n()
-  const [step, setStep] = useState(0)
-  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+  const { t } = useI18n();
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
-  const [origin, setOrigin] = useState(defaultValues?.origin_country ?? '')
+  const [origin, setOrigin] = useState(defaultValues?.origin_country ?? '');
   const [nationalities, setNationalities] = useState<string[]>(() => {
-    const val = defaultValues?.nationality ?? ''
-    return val ? val.split(', ').filter(Boolean) : []
-  })
-  const [destination, setDestination] = useState(defaultValues?.destination_country ?? '')
-  const [objective, setObjective] = useState(defaultValues?.objective ?? '')
+    const val = defaultValues?.nationality ?? '';
+    return val ? val.split(', ').filter(Boolean) : [];
+  });
+  const [destination, setDestination] = useState(defaultValues?.destination_country ?? '');
+  const [objective, setObjective] = useState(defaultValues?.objective ?? '');
 
   const steps = [
     {
@@ -41,28 +41,28 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
       title: t('setup.step.objective'),
       description: t('setup.step.objective.description'),
     },
-  ]
+  ];
 
   const isStepValid = () => {
     switch (step) {
       case 0:
-        return origin !== ''
+        return origin !== '';
       case 1:
-        return nationalities.length > 0
+        return nationalities.length > 0;
       case 2:
-        return destination !== ''
+        return destination !== '';
       case 3: {
-        const otherLabel = t('setup.objective.other')
-        if (objective === otherLabel || objective === '') return false
-        return true
+        const otherLabel = t('setup.objective.other');
+        if (objective === otherLabel || objective === '') return false;
+        return true;
       }
       default:
-        return false
+        return false;
     }
-  }
+  };
 
   const goNext = () => {
-    if (!isStepValid()) return
+    if (!isStepValid()) return;
     if (step === TOTAL_STEPS - 1) {
       onSubmit({
         origin_country: origin,
@@ -70,20 +70,20 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
         destination_country: destination,
         objective,
         additional_info: '',
-      })
-      return
+      });
+      return;
     }
-    setDirection('forward')
-    setStep((s) => s + 1)
-  }
+    setDirection('forward');
+    setStep((s) => s + 1);
+  };
 
   const goBack = () => {
-    if (step === 0) return
-    setDirection('backward')
-    setStep((s) => s - 1)
-  }
+    if (step === 0) return;
+    setDirection('backward');
+    setStep((s) => s - 1);
+  };
 
-  const currentStep = steps[step]
+  const currentStep = steps[step];
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
@@ -94,7 +94,7 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
             <div
               key={i}
               className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                i === step ? 'bg-white scale-125' : i < step ? 'bg-white/50' : 'bg-white/20'
+                i === step ? 'scale-125 bg-white' : i < step ? 'bg-white/50' : 'bg-white/20'
               }`}
             />
           ))}
@@ -113,9 +113,7 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
           </div>
 
           {/* Input area */}
-          {step === 0 && (
-            <CountryPicker value={origin} onChange={(v) => setOrigin(v as string)} />
-          )}
+          {step === 0 && <CountryPicker value={origin} onChange={(v) => setOrigin(v as string)} />}
           {step === 1 && (
             <CountryPicker
               value={nationalities}
@@ -153,5 +151,5 @@ export function SetupForm({ onSubmit, defaultValues }: SetupFormProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,57 +1,57 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useChat } from '@/hooks/useChat'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ToolCallCard } from '@/components/ToolCallCard'
-import { ArrowUp, Square } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { useI18n } from '@/lib/i18n'
-import type { Chat as ChatType, ChatMessage } from '@/lib/chatStore'
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useChat } from '@/hooks/useChat';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ToolCallCard } from '@/components/ToolCallCard';
+import { ArrowUp, Square } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useI18n } from '@/lib/i18n';
+import type { Chat as ChatType, ChatMessage } from '@/lib/chatStore';
 
 interface ChatProps {
-  chat: ChatType
-  onUpdateMessages: (id: string, msgs: ChatMessage[]) => void
+  chat: ChatType;
+  onUpdateMessages: (id: string, msgs: ChatMessage[]) => void;
 }
 
 export function Chat({ chat, onUpdateMessages }: ChatProps) {
-  const { messages, status, error, sendMessage, stopStreaming } = useChat(chat, onUpdateMessages)
-  const { t } = useI18n()
-  const [input, setInput] = useState('')
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { messages, status, error, sendMessage, stopStreaming } = useChat(chat, onUpdateMessages);
+  const { t } = useI18n();
+  const [input, setInput] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const isStreaming = status === 'streaming'
+  const isStreaming = status === 'streaming';
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages])
+  }, [messages]);
 
   useEffect(() => {
     if (!isStreaming) {
-      inputRef.current?.focus()
+      inputRef.current?.focus();
     }
-  }, [isStreaming])
+  }, [isStreaming]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isStreaming) {
-        stopStreaming()
+        stopStreaming();
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isStreaming, stopStreaming])
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStreaming, stopStreaming]);
 
   const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isStreaming) return
-    sendMessage(input)
-    setInput('')
-  }
+    e.preventDefault();
+    if (!input.trim() || isStreaming) return;
+    sendMessage(input);
+    setInput('');
+  };
 
   return (
     <div className="flex h-full w-full flex-col items-center backdrop-blur-md">
@@ -134,5 +134,5 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
         </form>
       </div>
     </div>
-  )
+  );
 }

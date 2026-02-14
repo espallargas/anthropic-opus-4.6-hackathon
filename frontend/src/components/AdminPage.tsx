@@ -1,42 +1,42 @@
-import { useAdminCountries } from '@/hooks/useAdminCountries'
-import { useState, useCallback } from 'react'
-import { useI18n } from '@/lib/i18n'
-import { CountrySection } from './CountrySection'
-import { CrawlProgressBox } from './CrawlProgressBox'
+import { useAdminCountries } from '@/hooks/useAdminCountries';
+import { useState, useCallback } from 'react';
+import { useI18n } from '@/lib/i18n';
+import { CountrySection } from './CountrySection';
+import { CrawlProgressBox } from './CrawlProgressBox';
 
 export function AdminPage() {
-  const { active, pending, loading, refetch } = useAdminCountries()
-  const { t } = useI18n()
-  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
-  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null)
-  const [crawlInProgress, setCrawlInProgress] = useState(false)
-  const [liveDocCount, setLiveDocCount] = useState<Record<string, number>>({})
+  const { active, pending, loading, refetch } = useAdminCountries();
+  const { t } = useI18n();
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
+  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
+  const [crawlInProgress, setCrawlInProgress] = useState(false);
+  const [liveDocCount, setLiveDocCount] = useState<Record<string, number>>({});
 
   const handleCrawlStart = useCallback((code: string, name: string) => {
-    setSelectedCountryCode(code)
-    setSelectedCountryName(name)
-    setCrawlInProgress(true)
-  }, [])
+    setSelectedCountryCode(code);
+    setSelectedCountryName(name);
+    setCrawlInProgress(true);
+  }, []);
 
   const handleDocCountUpdate = useCallback((code: string, count: number) => {
-    setLiveDocCount((prev) => ({ ...prev, [code]: count }))
-  }, [])
+    setLiveDocCount((prev) => ({ ...prev, [code]: count }));
+  }, []);
 
   const handleCrawlComplete = useCallback(() => {
-    setCrawlInProgress(false)
+    setCrawlInProgress(false);
     // Delay refetch to ensure all DB writes are flushed
     // Backend has 500ms sleep, plus some processing, so 3-4s is safe
     setTimeout(() => {
-      refetch()
-    }, 3500)
-  }, [refetch])
+      refetch();
+    }, 3500);
+  }, [refetch]);
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white">
         <p className="text-sm text-white/50">{t('admin.crawl.loading')}</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -87,5 +87,5 @@ export function AdminPage() {
         />
       )}
     </div>
-  )
+  );
 }

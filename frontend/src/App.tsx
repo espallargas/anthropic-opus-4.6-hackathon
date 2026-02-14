@@ -1,65 +1,65 @@
-import { Chat } from '@/components/Chat'
-import { SetupForm } from '@/components/SetupForm'
-import { Globe } from '@/components/Globe'
-import { Sidebar } from '@/components/Sidebar'
-import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useCable } from './hooks/useCable'
-import { useChatStore } from './hooks/useChatStore'
-import { healthCheck } from './lib/api'
-import { I18nProvider } from './lib/i18n'
-import type { SystemVars } from './lib/chatStore'
-import { AdminPage } from '@/components/AdminPage'
+import { Chat } from '@/components/Chat';
+import { SetupForm } from '@/components/SetupForm';
+import { Globe } from '@/components/Globe';
+import { Sidebar } from '@/components/Sidebar';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useCable } from './hooks/useCable';
+import { useChatStore } from './hooks/useChatStore';
+import { healthCheck } from './lib/api';
+import { I18nProvider } from './lib/i18n';
+import type { SystemVars } from './lib/chatStore';
+import { AdminPage } from '@/components/AdminPage';
 
 function App() {
-  const location = useLocation()
-  const [health, setHealth] = useState<string | null>(null)
-  const [healthRtt, setHealthRtt] = useState<number | null>(null)
-  const [showSetup, setShowSetup] = useState(false)
-  const { status, roundTripMs } = useCable()
-  const store = useChatStore()
+  const location = useLocation();
+  const [health, setHealth] = useState<string | null>(null);
+  const [healthRtt, setHealthRtt] = useState<number | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
+  const { status, roundTripMs } = useCable();
+  const store = useChatStore();
 
   useEffect(() => {
-    const startMs = Date.now()
+    const startMs = Date.now();
     healthCheck()
       .then((data) => {
-        const rtt = Date.now() - startMs
-        setHealth(data.status)
-        setHealthRtt(rtt)
+        const rtt = Date.now() - startMs;
+        setHealth(data.status);
+        setHealthRtt(rtt);
       })
       .catch(() => {
-        const rtt = Date.now() - startMs
-        setHealth('error')
-        setHealthRtt(rtt)
-      })
-  }, [])
+        const rtt = Date.now() - startMs;
+        setHealth('error');
+        setHealthRtt(rtt);
+      });
+  }, []);
 
   if (location.pathname === '/admin') {
     return (
       <I18nProvider>
         <AdminPage />
       </I18nProvider>
-    )
+    );
   }
 
   const handleSetup = (vars: SystemVars) => {
-    store.createChat(vars)
-    setShowSetup(false)
-  }
+    store.createChat(vars);
+    setShowSetup(false);
+  };
 
   const handleNewChat = () => {
-    setShowSetup(true)
-  }
+    setShowSetup(true);
+  };
 
   const handleSelectChat = (id: string) => {
-    store.selectChat(id)
-    setShowSetup(false)
-  }
+    store.selectChat(id);
+    setShowSetup(false);
+  };
 
-  const showingSetup = showSetup || !store.activeChat
+  const showingSetup = showSetup || !store.activeChat;
 
-  const origin = store.activeChat?.systemVars.origin_country ?? ''
-  const destination = store.activeChat?.systemVars.destination_country ?? ''
+  const origin = store.activeChat?.systemVars.origin_country ?? '';
+  const destination = store.activeChat?.systemVars.destination_country ?? '';
 
   return (
     <I18nProvider>
@@ -94,7 +94,7 @@ function App() {
         </div>
       </div>
     </I18nProvider>
-  )
+  );
 }
 
-export default App
+export default App;

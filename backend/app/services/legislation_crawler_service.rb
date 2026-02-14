@@ -1,6 +1,18 @@
 class LegislationCrawlerService
   MODEL = 'claude-opus-4-6'
-  MAX_TOKENS = 128000  # Max tokens for extended thinking budget
+  MAX_TOKENS = 128000
+  TIMEOUT_SECONDS = 300
+
+  CATEGORY_LABEL_MAP = {
+    'federal_laws' => 'Federal Laws',
+    'regulations' => 'Regulations',
+    'consular' => 'Consular Rules',
+    'jurisdictional' => 'Jurisdictional',
+    'complementary' => 'Health & Complementary',
+    'auxiliary' => 'Auxiliary'
+  }.freeze
+
+  CATEGORY_LIST = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary'].freeze
 
   def initialize(country, sse = nil)
     @country = country
@@ -20,51 +32,40 @@ class LegislationCrawlerService
   end
 
   # Single unified emit method - type-safe with schema validation
-  def emit(type, **data)
+  def emit(type, **data);
     begin
-      message = ::SSEMessageSchema.format(type, data)
-      if @sse
-        @sse.write(message)
-        Rails.logger.info("[EMIT] #{type}") if type == 'search_started'
-      else
-        Rails.logger.warn("[✗ SSE_NIL] Cannot send #{type} - SSE is nil")
-      end
+      message = ::SSEMessageSchema.format(type, data);
+      return unless @sse;
+
+      @sse.write(message);
     rescue ActionController::Live::ClientDisconnected
-      # Client disconnected - this is expected when user cancels crawl
-      Rails.logger.info("[CLIENT_DISCONNECTED] Crawl was stopped by user")
-      raise # Re-raise to stop processing
+      raise;
     rescue StandardError => e
-      Rails.logger.error("[✗ EMIT_ERROR] #{type}: #{e.class} - #{e.message}")
-    end
-  end
+      Rails.logger.error("[EMIT_ERROR] #{type}: #{e.class} - #{e.message}");
+    end;
+  end;
 
-  def crawl
-    emit(:phase, message: "Starting crawl for #{@country.name}")
+  def crawl;
+    emit(:phase, message: "Starting crawl for #{@country.name}");
 
-    existing_count = @country.legislations.count
-    crawl_type = @country.last_crawled_at.nil? ? "first_crawl" : "update_search"
+    existing_count = @country.legislations.count;
+    crawl_type = @country.last_crawled_at.nil? ? "first_crawl" : "update_search";
 
-    emit(:phase, message: "Crawl type: #{crawl_type}")
-    emit(:phase, message: "Found #{existing_count} existing legislations")
+    emit(:phase, message: "Found #{existing_count} existing legislations");
 
-    # Build system prompt
-    system_prompt = build_system_prompt(crawl_type, existing_count)
+    system_prompt = build_system_prompt(crawl_type, existing_count);
+    results = call_claude_crawler(system_prompt);
 
-    # Call Claude Opus 4.6 with web_search tool
-    results = call_claude_crawler(system_prompt)
+    emit(:phase, message: "Saving results to database");
+    save_results(results);
 
-    # Save results to database
-    emit(:phase, message: "Saving results to database")
-    save_results(results)
+    @country.update!(last_crawled_at: Time.current);
 
-    @country.update!(last_crawled_at: Time.current)
+    total_docs = @country.legislations.count;
+    emit(:complete, message: "Crawl complete", document_count: total_docs);
 
-    # Get actual count from database (more accurate than results count)
-    total_docs = @country.legislations.count
-    emit(:complete, message: "Crawl complete", document_count: total_docs)
-
-    Rails.logger.info("[CRAWL_COMPLETE] #{@country.name} - #{total_docs} total legislations")
-  end
+    Rails.logger.info("Crawl complete: #{@country.name} - #{total_docs} legislations");
+  end;
 
   private
 
@@ -196,34 +197,16 @@ class LegislationCrawlerService
   end
 
   def build_response_from_stream(operation_id = nil, **options)
-    Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection")
-    collector = StreamResponseCollector.new
-    event_count = 0
-    search_count = 0
-    current_search_id = nil
-    search_started_ids = Set.new
-    text_block_completed = false
-    current_block_type = nil
-    category_map = {
-      'federal' => 'Federal Laws',
-      'regulation' => 'Regulations',
-      'consular' => 'Consular Rules',
-      'visa' => 'Consular Rules',
-      'embassy' => 'Consular Rules',
-      'regional' => 'Jurisdictional',
-      'provincial' => 'Jurisdictional',
-      'jurisdiction' => 'Jurisdictional',
-      'health' => 'Health & Complementary',
-      'complementary' => 'Health & Complementary',
-      'vaccine' => 'Health & Complementary',
-      'statistic' => 'Auxiliary',
-      'quota' => 'Auxiliary',
-      'occupation' => 'Auxiliary'
-    }
+    Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection");
+    collector = StreamResponseCollector.new;
+    event_count = 0;
+    search_count = 0;
+    current_search_id = nil;
+    search_started_ids = Set.new;
+    text_block_completed = false;
+    current_block_type = nil;
 
-    # Track which web_search server_tool_use blocks we've seen to emit search_started
-    server_tool_use_indices = Set.new
-    category_list = ['Federal Laws', 'Regulations', 'Consular Rules', 'Jurisdictional', 'Health & Complementary', 'Auxiliary']
+    server_tool_use_indices = Set.new;
 
     stream_response = @client.messages.stream(**options)
     stream_response.each do |event|
@@ -258,16 +241,16 @@ class LegislationCrawlerService
             end
           end
 
-          if search_num <= category_list.length
-            category = category_list[search_num - 1]
+          if search_num <= CATEGORY_LIST.length
+            category = CATEGORY_LIST[search_num - 1];
 
             emit(:search_result,
               category: category,
               result_count: result_count,
               index: search_num,
               total: 6
-            )
-          end
+            );
+          end;
         end
       end
 
@@ -395,16 +378,11 @@ class LegislationCrawlerService
       }
     ]
 
-    # Call Claude with streaming - use .stream() for real-time event handling
-    # The API handles web_search tool execution natively
-    Rails.logger.info("Calling Claude API with streaming, timeout: 300s")
+    current_operation_id = next_operation_id;
 
-    # Initialize operation_id for first streaming call
-    current_operation_id = next_operation_id
-
-    response = nil
+    response = nil;
     begin
-      Timeout.timeout(300) do  # 5 minute timeout
+      Timeout.timeout(TIMEOUT_SECONDS) do
         # Define web_search tool - Opus 4.6 supports native web_search
         web_search_tool = {
           type: "web_search_20250305",
@@ -414,7 +392,6 @@ class LegislationCrawlerService
         # Define structured output schema for legislation JSON
         legislation_schema = build_legislation_schema
 
-        Rails.logger.info("[CALL_CLAUDE] About to call build_response_from_stream")
         response = build_response_from_stream(
           current_operation_id,
           model: MODEL,
@@ -433,55 +410,26 @@ class LegislationCrawlerService
               schema: legislation_schema
             }
           }
-        )
-        Rails.logger.info("[CALL_CLAUDE] build_response_from_stream returned successfully")
-        Rails.logger.info("[CALL_CLAUDE] Response stop_reason: #{response.stop_reason}")
-        Rails.logger.info("Response content blocks: #{response.content.length}")
-        response.content.each_with_index do |block, idx|
-          Rails.logger.info("  Block #{idx}: type=#{block.type}")
-          if block.type == :text
-            Rails.logger.info("    Text length: #{block.text.length}")
-          elsif block.type == :thinking
-            Rails.logger.info("    Thinking length: #{block.thinking.to_s.length}")
-          end
-        end
-
-        # FALLBACK: If search_results were never emitted during streaming,
-        # emit them now with the complete response
-        Rails.logger.info("[POST-STREAM] Checking if search_results need to be emitted...")
-        emit_search_results_post_stream(response)
+        );
+        emit_search_results_post_stream(response);
       end
     rescue Timeout::Error => e
-      Rails.logger.error("Claude API timeout after 300s: #{e.message}")
-      emit(:error, message: "Claude API timeout - request took too long")
-      raise
+      Rails.logger.error("Claude API timeout after #{TIMEOUT_SECONDS}s: #{e.message}");
+      emit(:error, message: "Claude API timeout - request took too long");
+      raise;
     rescue => e
-      Rails.logger.error("Claude API error: #{e.class} - #{e.message}")
-      emit(:error, message: "Claude API error: #{e.message}")
-      raise
-    end
+      Rails.logger.error("Claude API error: #{e.class} - #{e.message}");
+      emit(:error, message: "Claude API error: #{e.message}");
+      raise;
+    end;
 
-    # If Claude used tool_use (web_search), handle it
-    has_tool_use = response.content.any? { |block| block.type == :tool_use }
+    emit(:phase, message: "Extracting legislation results");
+    legislation_results = extract_legislation_from_response(response);
 
-    if has_tool_use
-      Rails.logger.info("[TOOL_USE] Claude used web_search! Processing tool results...")
-      emit(:phase, message: "Processing web_search results")
+    doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 };
+    emit(:phase, message: "Preparing database save (#{doc_count} documents)");
 
-      # For now, since web_search is server-side, Claude should have already included results
-      # Extract what we can from text blocks
-      emit(:phase, message: "Extracting legislation results")
-      legislation_results = extract_legislation_from_response(response)
-    else
-      Rails.logger.warn("[NO_TOOL_USE] Claude did not use web_search, trying to extract from text blocks")
-      emit(:phase, message: "Extracting legislation results (no web_search used)")
-      legislation_results = extract_legislation_from_response(response)
-    end
-
-    doc_count = legislation_results.values.sum { |v| v.is_a?(Array) ? v.count : 0 }
-    emit(:phase, message: "Preparing database save (#{doc_count} documents)")
-
-    legislation_results
+    legislation_results;
   end
 
 
@@ -513,7 +461,7 @@ class LegislationCrawlerService
     }
   end
 
-  def build_user_prompt
+  def build_user_prompt;
     <<~PROMPT
       TASK: Use the web_search tool to research immigration laws for #{@country.name}.
 
@@ -546,16 +494,7 @@ class LegislationCrawlerService
     PROMPT
   end
 
-  def extract_legislation_from_response(response)
-    category_map = {
-      'federal_laws' => 'Federal Laws',
-      'regulations' => 'Regulations',
-      'consular' => 'Consular Rules',
-      'jurisdictional' => 'Jurisdictional',
-      'complementary' => 'Health & Complementary',
-      'auxiliary' => 'Auxiliary'
-    }
-
+  def extract_legislation_from_response(response);
     results = {
       federal_laws: [],
       regulations: [],
@@ -564,17 +503,6 @@ class LegislationCrawlerService
       complementary: [],
       auxiliary: []
     }
-
-    # Log all content blocks for debugging
-    Rails.logger.info("[EXTRACT] Response has #{response.content.length} content blocks:")
-    response.content.each_with_index do |block, idx|
-      Rails.logger.info("  Block #{idx}: type=#{block.type}")
-      if block.type == :text
-        Rails.logger.info("    Text (first 200 chars): #{block.text[0..200]}")
-      elsif block.type == :tool_use
-        Rails.logger.info("    ToolUse: #{block.name}")
-      end
-    end
 
     # Find text block with JSON
     json_text = nil
@@ -608,10 +536,9 @@ class LegislationCrawlerService
       return results unless data.is_a?(Hash)
 
       # First pass: extract all items from each category
-      ['federal_laws', 'regulations', 'consular', 'jurisdictional', 'complementary', 'auxiliary'].each do |category|
+      CATEGORY_LABEL_MAP.keys.each do |category|
         category_sym = category.to_sym
-        category_label = category_map[category]
-        items = data[category] || []
+        items = data[category] || [];
 
         items.each do |item|
           next unless item.is_a?(Hash)
@@ -636,74 +563,34 @@ class LegislationCrawlerService
     results
   end
 
-  def emit_search_results_for_stream(collector)
-    # Extract JSON from response text blocks and emit search_result for each category
-    # This is called DURING the streaming loop (when message_stop event arrives)
-    # So events are sent before the HTTP response closes
-
-    Rails.logger.info("="*80)
-    Rails.logger.info("🔍 [SEARCH_RESULTS_STREAM] STARTING - Emitting search_results during stream")
-    Rails.logger.info("   Content blocks available: #{collector.content.length}")
-    Rails.logger.info("="*80)
-
-    category_map = {
-      'federal_laws' => 'Federal Laws',
-      'regulations' => 'Regulations',
-      'consular' => 'Consular Rules',
-      'jurisdictional' => 'Jurisdictional',
-      'complementary' => 'Health & Complementary',
-      'auxiliary' => 'Auxiliary'
-    }
-
+  def emit_search_results_for_stream(collector);
     # Find text blocks that might contain JSON
-    text_blocks = collector.content.select { |block| block.type == :text }
-    Rails.logger.info("   Text blocks found: #{text_blocks.length}")
-    return if text_blocks.empty?
+    text_blocks = collector.content.select { |block| block.type == :text };
+    return if text_blocks.empty?;
 
-    # Try to parse JSON from concatenated text
-    full_text = text_blocks.map { |block| block.text }.join("\n")
-    Rails.logger.info("   Full text length: #{full_text.length} chars")
+    full_text = text_blocks.map { |block| block.text }.join("\n");
 
     begin
-      # Extract JSON from the text (Claude might have text before/after JSON)
-      json_match = full_text.match(/\{[\s\S]*\}/)
-      Rails.logger.info("   JSON match found: #{!json_match.nil?}")
-      return unless json_match
+      json_match = full_text.match(/\{[\s\S]*\}/);
+      return unless json_match;
 
-      json_str = json_match[0]
-      data = JSON.parse(json_str)
+      json_str = json_match[0];
+      data = JSON.parse(json_str);
 
-      return unless data.is_a?(Hash)
+      return unless data.is_a?(Hash);
 
-      # Fallback: Emit search_started for all categories if not already emitted
-      # This ensures categories show their progress even if we missed the real events
-      Rails.logger.info("   🔍 FALLBACK: Emitting search_started for all categories")
-      search_index = 0
-      category_map.each do |_category_key, category_label|
-        search_index += 1
-        Rails.logger.info("     ✓ Emitting search_started: #{category_label} (#{search_index}/6)")
-        emit(:search_started, category: category_label, query: "Searching #{category_label}...", index: search_index, total: 6)
-      end
-      Rails.logger.info("   🔍 FALLBACK: Done emitting search_started")
+      search_index = 0;
+      CATEGORY_LABEL_MAP.each do |category_key, category_label|
+        search_index += 1;
+        items = data[category_key] || [];
+        count = items.is_a?(Array) ? items.length : 0;
 
-      # Emit search_result for each category with actual count from parsed data
-      # IMPORTANT: Emit for ALL categories (even if 0 results) so frontend can mark them as done
-      search_index = 0
-      category_map.each do |category_key, category_label|
-        search_index += 1
-        items = data[category_key] || []
-        count = items.is_a?(Array) ? items.length : 0
-
-        Rails.logger.info("  📊 Emitting search_result (stream): #{category_label} (#{count} items)")
-
-        # First emit all the web search results (fake events from final JSON)
         if items.is_a?(Array) && items.length > 0
           items.each_with_index do |item, idx|
-            title = item['title'] || 'Unknown'
-            url = item['source_url'] || ''
-            snippet = item['summary'] || ''
+            title = item['title'] || 'Unknown';
+            url = item['source_url'] || '';
+            snippet = item['summary'] || '';
 
-            Rails.logger.info("    🌐 Emitting web_search_result for #{category_label}: #{title[0..40]}")
             emit(
               :web_search_result,
               category: category_label,
@@ -712,34 +599,28 @@ class LegislationCrawlerService
               snippet: snippet,
               index: idx + 1,
               total: count
-            )
-          end
-        end
+            );
+          end;
+        end;
 
-        # Then emit the search_result to mark category as done
-        Rails.logger.info("[SEARCH] Result: #{category_label} - #{count} items")
-        emit(:search_result, category: category_label, result_count: count)
+        emit(:search_result, category: category_label, result_count: count);
 
-        # Immediately emit category_parse_complete since we have parsed all items from the JSON
         unless @parse_complete_emitted.include?(category_label)
-          Rails.logger.info("  ✅ Emitting category_parse_complete: #{category_label} (#{count} items)")
-          emit(:category_parse_complete, category: category_label, item_count: count)
-          @parse_complete_emitted.add(category_label)
-        end
-      end
+          emit(:category_parse_complete, category: category_label, item_count: count);
+          @parse_complete_emitted.add(category_label);
+        end;
+      end;
     rescue JSON::ParserError => e
-      Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}")
-      # Fallback: emit search_result for all categories with 0 results to mark as done
-      category_map.each do |_category_key, category_label|
-        emit(:search_result, category: category_label, result_count: 0)
-      end
+      Rails.logger.warn("Failed to parse JSON for search_result emission: #{e.message}");
+      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
+        emit(:search_result, category: category_label, result_count: 0);
+      end;
     rescue => e
-      Rails.logger.warn("Error emitting search_results: #{e.message}")
-      # Fallback: emit search_result for all categories with 0 results to mark as done
-      category_map.each do |_category_key, category_label|
-        emit(:search_result, category: category_label, result_count: 0)
-      end
-    end
+      Rails.logger.warn("Error emitting search_results: #{e.message}");
+      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
+        emit(:search_result, category: category_label, result_count: 0);
+      end;
+    end;
   end
 
   def emit_web_search_results(result_block)
@@ -781,80 +662,42 @@ class LegislationCrawlerService
     end
   end
 
-  def emit_search_results_post_stream(response)
-    # FALLBACK: Emit search_results after streaming if they weren't emitted during streaming
-    # This ensures categories are always marked as 'done' even if streaming logic fails
-    Rails.logger.info("[EMIT_RESULTS] Starting post-stream emit")
+  def emit_search_results_post_stream(response);
+    text_blocks = response.content.select { |block| block.type == :text };
+    return if text_blocks.empty?;
 
-    category_map = {
-      'federal_laws' => 'Federal Laws',
-      'regulations' => 'Regulations',
-      'consular' => 'Consular Rules',
-      'jurisdictional' => 'Jurisdictional',
-      'complementary' => 'Health & Complementary',
-      'auxiliary' => 'Auxiliary'
-    }
-
-    # Find text blocks
-    text_blocks = response.content.select { |block| block.type == :text }
-    Rails.logger.info("[EMIT_RESULTS] Found #{text_blocks.length} text blocks")
-    return if text_blocks.empty?
-
-    # Try to parse JSON from concatenated text
-    full_text = text_blocks.map { |block| block.text }.join("\n")
-    Rails.logger.info("[EMIT_RESULTS] JSON text length: #{full_text.length} chars")
+    full_text = text_blocks.map { |block| block.text }.join("\n");
 
     begin
-      # Extract JSON from the text
-      json_match = full_text.match(/\{[\s\S]*\}/)
-      Rails.logger.info("[EMIT_RESULTS] JSON match found: #{!json_match.nil?}")
-      return unless json_match
+      json_match = full_text.match(/\{[\s\S]*\}/);
+      return unless json_match;
 
-      json_str = json_match[0]
-      data = JSON.parse(json_str)
-      Rails.logger.info("[EMIT_RESULTS] JSON parsed successfully, hash keys: #{data.keys.join(', ')}")
+      json_str = json_match[0];
+      data = JSON.parse(json_str);
 
-      return unless data.is_a?(Hash)
+      return unless data.is_a?(Hash);
 
-      # Emit category_parse_complete for each category with actual count from parsed data
-      category_map.each do |category_key, category_label|
-        items = data[category_key] || []
-        count = items.is_a?(Array) ? items.length : 0
+      CATEGORY_LABEL_MAP.each do |category_key, category_label|
+        items = data[category_key] || [];
+        count = items.is_a?(Array) ? items.length : 0;
 
-        unless @parse_complete_emitted.include?(category_label)
-          begin
-            emit(:category_parse_complete, category: category_label, item_count: count)
-            Rails.logger.info("[PARSE_COMPLETE] #{category_label} (#{count} items)")
-            @parse_complete_emitted.add(category_label)
-          rescue => emit_error
-            Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
-          end
-        end
-      end
+        next if @parse_complete_emitted.include?(category_label);
+
+        emit(:category_parse_complete, category: category_label, item_count: count);
+        @parse_complete_emitted.add(category_label);
+      end;
     rescue => e
-      Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}")
-      # Fallback: emit 0 results for all categories
-      category_map.each do |_category_key, category_label|
-        unless @parse_complete_emitted.include?(category_label)
-          begin
-            emit(:category_parse_complete, category: category_label, item_count: 0)
-            Rails.logger.info("[PARSE_COMPLETE_FALLBACK] #{category_label} (0 items)")
-            @parse_complete_emitted.add(category_label)
-          rescue => emit_error
-            Rails.logger.warn("[PARSE_COMPLETE_ERROR] #{category_label}: #{emit_error.message}")
-          end
-        end
-      end
-    end
-  end
+      Rails.logger.warn("[PARSE_ERROR] Error parsing JSON: #{e.message}");
+      CATEGORY_LABEL_MAP.each do |_category_key, category_label|
+        next if @parse_complete_emitted.include?(category_label);
 
-  def emit_search_results_from_response(collector)
-    # This method is no longer used - we now emit during stream at message_stop
-    # Keeping it in case we need it for debugging
-    Rails.logger.info("⚠️  [DEPRECATED] emit_search_results_from_response called (should use emit_search_results_for_stream)")
-  end
+        emit(:category_parse_complete, category: category_label, item_count: 0);
+        @parse_complete_emitted.add(category_label);
+      end;
+    end;
+  end;
 
-  def parse_claude_results(results)
+  def parse_claude_results(results);
     parsed = {}
 
     results.each do |category_str, documents|
@@ -877,36 +720,31 @@ class LegislationCrawlerService
     parsed
   end
 
-  def parse_date(date_str)
-    return nil if date_str.blank?
-    Date.parse(date_str.to_s)
+  def parse_date(date_str);
+    return nil if date_str.blank?;
+    Date.parse(date_str.to_s);
   rescue StandardError
-    nil
-  end
+    nil;
+  end;
 
-  def save_results(results)
-    legislations_to_insert = []
-    legislations_to_update = []
+  def save_results(results);
+    legislations_to_insert = [];
+    legislations_to_update = [];
 
     results.each do |category, documents|
       documents.each do |doc|
-        # Check if legislation with same title already exists
-        existing = @country.legislations.find_by(title: doc[:title])
+        existing = @country.legislations.find_by(title: doc[:title]);
 
         if existing
-          # Compare dates to determine if it's an update or duplicate
-          new_date = doc[:date_effective]
-          old_date = existing.date_effective
+          new_date = doc[:date_effective];
+          old_date = existing.date_effective;
 
           if new_date && old_date && new_date > old_date
-            # Newer version found - mark old as deprecated
-            legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category }
+            legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category };
           else
-            # Same or older date - skip as duplicate
-            next
-          end
+            next;
+          end;
         else
-          # New legislation
           legislations_to_insert << {
             country_id: @country.id,
             category: Legislation.categories[category],
@@ -919,32 +757,27 @@ class LegislationCrawlerService
             crawled_at: Time.current,
             created_at: Time.current,
             updated_at: Time.current
-          }
-        end
-      end
-    end
+          };
+        end;
+      end;
+    end;
 
-    # Insert new legislations in batches with progress updates
     if legislations_to_insert.any?
-      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...")
-      Legislation.insert_all(legislations_to_insert)
+      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...");
+      Legislation.insert_all(legislations_to_insert);
 
-      # Query actual DB count and emit batch_saved update
-      current_count = @country.legislations.count
-      emit(:batch_saved, total_saved: current_count)
+      current_count = @country.legislations.count;
+      emit(:batch_saved, total_saved: current_count);
 
-      # Small delay to ensure DB write is flushed
-      sleep(0.5)
-    end
+      sleep(0.5);
+    end;
 
-    # Update existing with new versions
     if legislations_to_update.any?
-      emit(:phase, message: "Processing #{legislations_to_update.count} updates...")
+      emit(:phase, message: "Processing #{legislations_to_update.count} updates...");
 
       legislations_to_update.each do |update|
-        old_leg = Legislation.find(update[:existing_id])
+        old_leg = Legislation.find(update[:existing_id]);
 
-        # Create new version
         new_leg = Legislation.create!(
           country_id: @country.id,
           category: Legislation.categories[update[:new_category]],
@@ -955,18 +788,15 @@ class LegislationCrawlerService
           date_effective: update[:new_doc][:date_effective],
           is_deprecated: update[:new_doc][:is_deprecated],
           crawled_at: Time.current
-        )
+        );
 
-        # Mark old as deprecated
-        old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
-      end
+        old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id);
+      end;
 
-      # Query actual DB count and emit batch_saved update
-      current_count = @country.legislations.count
-      emit(:batch_saved, total_saved: current_count)
+      current_count = @country.legislations.count;
+      emit(:batch_saved, total_saved: current_count);
 
-      # Small delay to ensure DB write is flushed
-      sleep(0.5)
-    end
-  end
+      sleep(0.5);
+    end;
+  end;
 end

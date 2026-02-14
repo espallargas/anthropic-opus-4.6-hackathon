@@ -1,34 +1,34 @@
-const API_BASE = '/api/v1'
+const API_BASE = '/api/v1';
 
 export interface Country {
-  code: string
-  name: string
-  flag_emoji: string
-  status: 'red' | 'yellow' | 'green'
-  last_crawled_at: string | null
-  legislation_count: number
+  code: string;
+  name: string;
+  flag_emoji: string;
+  status: 'red' | 'yellow' | 'green';
+  last_crawled_at: string | null;
+  legislation_count: number;
 }
 
 export interface AdminCountriesResponse {
-  active: Country[]
-  pending: Country[]
+  active: Country[];
+  pending: Country[];
 }
 
 export interface Legislation {
-  id: number
-  title: string
-  category: string
-  content: string
-  summary?: string
-  source_url: string
-  date_effective?: string
-  is_deprecated: boolean
-  replaced_by_id?: number
-  crawled_at: string
+  id: number;
+  title: string;
+  category: string;
+  content: string;
+  summary?: string;
+  source_url: string;
+  date_effective?: string;
+  is_deprecated: boolean;
+  replaced_by_id?: number;
+  crawled_at: string;
 }
 
 export interface CountryDetailsResponse {
-  legislations: Record<string, Legislation[]>
+  legislations: Record<string, Legislation[]>;
 }
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -39,31 +39,16 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
       ...options?.headers,
     },
     ...options,
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`)
+    throw new Error(`API error: ${response.status}`);
   }
 
-  return response.json()
+  return response.json();
 }
 
 export async function healthCheck(): Promise<{ status: string; server_time?: string }> {
-  const startMs = Date.now()
-
-  try {
-    const response = await apiFetch<{ status: string; server_time?: string }>('/health')
-    const endMs = Date.now()
-    const rtt = endMs - startMs
-
-    console.log(
-      `[Health Check] Status: ${response.status}, RTT: ${rtt}ms, Server time: ${response.server_time}`,
-    )
-    return response
-  } catch (e) {
-    const endMs = Date.now()
-    const rtt = endMs - startMs
-    console.error(`[Health Check] Failed after ${rtt}ms`)
-    throw e
-  }
+  const response = await apiFetch<{ status: string; server_time?: string }>('/health');
+  return response;
 }

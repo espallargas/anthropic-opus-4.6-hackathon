@@ -1,15 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
-export type Locale = 'pt-BR' | 'en'
+export type Locale = 'pt-BR' | 'en';
 
 interface I18nContextValue {
-  locale: Locale
-  setLocale: (locale: Locale) => void
-  t: (key: string) => string
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  t: (key: string) => string;
 }
 
-const STORAGE_KEY = 'app_locale'
+const STORAGE_KEY = 'app_locale';
 
 const dictionaries: Record<Locale, Record<string, string>> = {
   'pt-BR': {
@@ -434,39 +434,39 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.ni': 'Nicaragua',
     'countries.fj': 'Fiji',
   },
-}
+};
 
 function loadLocale(): Locale {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === 'pt-BR' || stored === 'en') return stored
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'pt-BR' || stored === 'en') return stored;
   } catch {
     // ignore
   }
-  return 'pt-BR'
+  return 'pt-BR';
 }
 
-const I18nContext = createContext<I18nContextValue | null>(null)
+const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(loadLocale)
+  const [locale, setLocaleState] = useState<Locale>(loadLocale);
 
   const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale)
+    setLocaleState(newLocale);
     try {
-      localStorage.setItem(STORAGE_KEY, newLocale)
+      localStorage.setItem(STORAGE_KEY, newLocale);
     } catch {
       // ignore
     }
-  }, [])
+  }, []);
 
-  const t = useCallback((key: string) => dictionaries[locale][key] ?? key, [locale])
+  const t = useCallback((key: string) => dictionaries[locale][key] ?? key, [locale]);
 
-  return <I18nContext value={{ locale, setLocale, t }}>{children}</I18nContext>
+  return <I18nContext value={{ locale, setLocale, t }}>{children}</I18nContext>;
 }
 
 export function useI18n() {
-  const ctx = useContext(I18nContext)
-  if (!ctx) throw new Error('useI18n must be used within I18nProvider')
-  return ctx
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error('useI18n must be used within I18nProvider');
+  return ctx;
 }

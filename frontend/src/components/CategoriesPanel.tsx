@@ -1,34 +1,34 @@
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error'
+export type CategoryStatus = 'pending' | 'searching' | 'done' | 'error';
 
 interface WebSearchResult {
-  title: string
-  url: string
-  snippet: string
-  index: number
-  total: number
+  title: string;
+  url: string;
+  snippet: string;
+  index: number;
+  total: number;
 }
 
 interface Category {
-  id: string
-  name: string
-  description: string
-  status: CategoryStatus
-  resultCount: number
-  hasWebSearched?: boolean
-  searchQuery?: string
-  searchIndex?: number
-  searchTotal?: number
-  webSearchResults?: WebSearchResult[]
-  itemsBeingDocumented?: number // Items found while parsing JSON
-  webResultsCrawled?: boolean // True when web results have been crawled
-  legislationsParsed?: boolean // True when legislations have been fully parsed
+  id: string;
+  name: string;
+  description: string;
+  status: CategoryStatus;
+  resultCount: number;
+  hasWebSearched?: boolean;
+  searchQuery?: string;
+  searchIndex?: number;
+  searchTotal?: number;
+  webSearchResults?: WebSearchResult[];
+  itemsBeingDocumented?: number; // Items found while parsing JSON
+  webResultsCrawled?: boolean; // True when web results have been crawled
+  legislationsParsed?: boolean; // True when legislations have been fully parsed
 }
 
 interface CategoriesPanelProps {
-  categories: Category[]
+  categories: Category[];
 }
 
 const CATEGORY_COLORS = {
@@ -36,14 +36,14 @@ const CATEGORY_COLORS = {
   searching: 'text-blue-300 bg-blue-500/10 border border-blue-400/20',
   done: 'text-white/70',
   error: 'text-red-300 bg-red-500/10',
-}
+};
 
 const STATUS_ICONS = {
   pending: <div className="h-3 w-3 rounded-full border border-white/30" />,
   searching: <Loader2 className="h-3 w-3 animate-spin text-blue-400" />,
   done: <CheckCircle2 className="h-3 w-3" />,
   error: <AlertCircle className="h-3 w-3" />,
-}
+};
 
 // Get color based on parsing state
 function getParsingColors(
@@ -53,16 +53,11 @@ function getParsingColors(
 ): { icon: string; text: string; spinner: string } {
   // Parsing complete → vibrant green
   if (legislationsParsed) {
-    console.log(`[COLOR] legislationsParsed=true → GREEN`)
     return {
       icon: 'text-green-500',
       text: 'text-green-400',
       spinner: 'text-green-500',
-    }
-  }
-
-  if (itemsBeingDocumented || itemsBeingDocumented === 0) {
-    console.log(`[COLOR] itemsBeingDocumented=${itemsBeingDocumented}, legislationsParsed=${legislationsParsed}`)
+    };
   }
 
   // Parsing in progress → cyan
@@ -71,7 +66,7 @@ function getParsingColors(
       icon: 'text-cyan-500',
       text: 'text-cyan-300',
       spinner: 'text-cyan-500',
-    }
+    };
   }
 
   // Web crawled but not parsing yet → purple
@@ -80,7 +75,7 @@ function getParsingColors(
       icon: 'text-violet-400',
       text: 'text-violet-300',
       spinner: 'text-violet-400',
-    }
+    };
   }
 
   // Default (pending/searching) - neutral
@@ -88,12 +83,11 @@ function getParsingColors(
     icon: 'text-white/50',
     text: 'text-white/50',
     spinner: 'text-white/50',
-  }
+  };
 }
 
 export function CategoriesPanel({ categories }: CategoriesPanelProps) {
-  const { t } = useI18n()
-  console.log('[CATEGORIES_DEBUG]', categories.map(c => ({ name: c.name, legislationsParsed: c.legislationsParsed, itemsBeingDocumented: c.itemsBeingDocumented })))
+  const { t } = useI18n();
 
   return (
     <div className="flex h-full flex-col bg-black/30">
@@ -117,19 +111,23 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                     category.itemsBeingDocumented,
                     category.legislationsParsed,
                     category.webResultsCrawled,
-                  )
+                  );
 
-                  if (category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && !category.legislationsParsed) {
+                  if (
+                    category.itemsBeingDocumented &&
+                    category.itemsBeingDocumented > 0 &&
+                    !category.legislationsParsed
+                  ) {
                     // Loading while parsing - gradient yellow/amber
-                    return <Loader2 className={`h-3 w-3 animate-spin ${colors.spinner}`} />
+                    return <Loader2 className={`h-3 w-3 animate-spin ${colors.spinner}`} />;
                   } else if (category.legislationsParsed) {
                     // Green checkmark when legislations parsed
-                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />
+                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />;
                   } else if (category.webResultsCrawled) {
                     // Purple checkmark when web results crawled
-                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />
+                    return <CheckCircle2 className={`h-3 w-3 ${colors.icon}`} />;
                   } else {
-                    return STATUS_ICONS[category.status]
+                    return STATUS_ICONS[category.status];
                   }
                 })()}
               </div>
@@ -138,16 +136,14 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p
-                    className={`truncate text-xs font-medium ${
-                      (() => {
-                        const colors = getParsingColors(
-                          category.itemsBeingDocumented,
-                          category.legislationsParsed,
-                          category.webResultsCrawled,
-                        )
-                        return colors.text
-                      })()
-                    }`}
+                    className={`truncate text-xs font-medium ${(() => {
+                      const colors = getParsingColors(
+                        category.itemsBeingDocumented,
+                        category.legislationsParsed,
+                        category.webResultsCrawled,
+                      );
+                      return colors.text;
+                    })()}`}
                   >
                     {category.name}
                   </p>
@@ -189,7 +185,9 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
               {/* Status indicators - stacked right column */}
               <div className="flex flex-shrink-0 flex-col items-end gap-1">
                 {category.status === 'searching' && (
-                  <span className="text-xs font-medium text-blue-300">{t('admin.categories.searching')}</span>
+                  <span className="text-xs font-medium text-blue-300">
+                    {t('admin.categories.searching')}
+                  </span>
                 )}
 
                 {/* Web results from search - only show if not parsing legislations yet */}
@@ -207,16 +205,14 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
                 {/* Show legislations being parsed - hide web results when parsing starts */}
                 {category.itemsBeingDocumented && category.itemsBeingDocumented > 0 && (
                   <span
-                    className={`text-xs font-medium ${
-                      (() => {
-                        const colors = getParsingColors(
-                          category.itemsBeingDocumented,
-                          category.legislationsParsed,
-                          category.webResultsCrawled,
-                        )
-                        return colors.text
-                      })()
-                    }`}
+                    className={`text-xs font-medium ${(() => {
+                      const colors = getParsingColors(
+                        category.itemsBeingDocumented,
+                        category.legislationsParsed,
+                        category.webResultsCrawled,
+                      );
+                      return colors.text;
+                    })()}`}
                   >
                     {category.legislationsParsed
                       ? `${category.itemsBeingDocumented} ${t('admin.units.legislations')}`
@@ -229,5 +225,5 @@ export function CategoriesPanel({ categories }: CategoriesPanelProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }

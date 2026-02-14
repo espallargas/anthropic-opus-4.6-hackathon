@@ -248,26 +248,26 @@ export const countryCentroids: Record<string, { lat: number; lng: number; name: 
   ZA: { lat: -30.5, lng: 22.9, name: 'South Africa' },
   ZM: { lat: -13.1, lng: 27.8, name: 'Zambia' },
   ZW: { lat: -19.0, lng: 29.2, name: 'Zimbabwe' },
-}
+};
 
 export function getCountryName(code: string | undefined): string {
-  if (!code) return ''
-  return countryCentroids[code]?.name ?? code
+  if (!code) return '';
+  return countryCentroids[code]?.name ?? code;
 }
 
 export function getCountryNameLocalized(
   code: string | undefined,
   t: (key: string) => string,
 ): string {
-  if (!code) return ''
-  const key = `countries.${code.toLowerCase()}`
-  const translated = t(key)
+  if (!code) return '';
+  const key = `countries.${code.toLowerCase()}`;
+  const translated = t(key);
   // If translation not found, t() returns the key itself, so check if it's different
   if (translated !== key) {
-    return translated
+    return translated;
   }
   // Fallback to English name from centroids
-  return countryCentroids[code]?.name ?? code.toUpperCase()
+  return countryCentroids[code]?.name ?? code.toUpperCase();
 }
 
 export function countryCodeToFlag(code: string): string {
@@ -275,5 +275,5 @@ export function countryCodeToFlag(code: string): string {
     .toUpperCase()
     .split('')
     .map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397))
-    .join('')
+    .join('');
 }

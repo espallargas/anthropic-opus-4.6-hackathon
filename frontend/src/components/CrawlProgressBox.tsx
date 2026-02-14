@@ -1,45 +1,45 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, Pause } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
-import { getCountryNameLocalized } from '@/lib/countries'
-import { ThinkingPanel } from './ThinkingPanel'
-import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel'
-import { ClaudeOutputPanel } from './ClaudeOutputPanel'
-import '../styles/crawler.css'
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { X, Pause } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import { getCountryNameLocalized } from '@/lib/countries';
+import { ThinkingPanel } from './ThinkingPanel';
+import { CategoriesPanel, type CategoryStatus } from './CategoriesPanel';
+import { ClaudeOutputPanel } from './ClaudeOutputPanel';
+import '../styles/crawler.css';
 
 interface CrawlProgressBoxProps {
-  countryCode: string
-  countryName: string
-  onComplete: () => void
-  onDocCountUpdate?: (count: number) => void
+  countryCode: string;
+  countryName: string;
+  onComplete: () => void;
+  onDocCountUpdate?: (count: number) => void;
 }
 
 interface SSEMessage {
-  type: string
-  [key: string]: string | number | boolean | undefined
+  type: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface WebSearchResult {
-  title: string
-  url: string
-  snippet: string
-  index: number
-  total: number
+  title: string;
+  url: string;
+  snippet: string;
+  index: number;
+  total: number;
 }
 
 interface CategoryState {
-  id: string
-  name: string
-  description: string
-  status: CategoryStatus
-  resultCount: number
-  searchQuery?: string
-  searchIndex?: number
-  searchTotal?: number
-  webSearchResults?: WebSearchResult[]
-  itemsBeingDocumented?: number // Items found while parsing JSON in real-time
-  webResultsCrawled?: boolean // True when web results have been crawled
-  legislationsParsed?: boolean // True when legislations have been fully parsed
+  id: string;
+  name: string;
+  description: string;
+  status: CategoryStatus;
+  resultCount: number;
+  searchQuery?: string;
+  searchIndex?: number;
+  searchTotal?: number;
+  webSearchResults?: WebSearchResult[];
+  itemsBeingDocumented?: number; // Items found while parsing JSON in real-time
+  webResultsCrawled?: boolean; // True when web results have been crawled
+  legislationsParsed?: boolean; // True when legislations have been fully parsed
 }
 
 export function CrawlProgressBox({
@@ -49,11 +49,11 @@ export function CrawlProgressBox({
   onComplete,
   onDocCountUpdate,
 }: CrawlProgressBoxProps) {
-  const { t } = useI18n()
-  const localizedCountryName = getCountryNameLocalized(countryCode, t)
-  const [thinkingText, setThinkingText] = useState('')
-  const [thinkingType, setThinkingType] = useState<string | null>(null)
-  const [claudeOutputText, setClaudeOutputText] = useState('')
+  const { t } = useI18n();
+  const localizedCountryName = getCountryNameLocalized(countryCode, t);
+  const [thinkingText, setThinkingText] = useState('');
+  const [thinkingType, setThinkingType] = useState<string | null>(null);
+  const [claudeOutputText, setClaudeOutputText] = useState('');
   const [categories, setCategories] = useState<CategoryState[]>([
     {
       id: 'federal_laws',
@@ -97,18 +97,18 @@ export function CrawlProgressBox({
       status: 'pending',
       resultCount: 0,
     },
-  ])
-  const [isComplete, setIsComplete] = useState(false)
-  const [documentCount, setDocumentCount] = useState(0)
-  const [inputTokens, setInputTokens] = useState(0)
-  const [outputTokens, setOutputTokens] = useState(0)
-  const [showPauseConfirm, setShowPauseConfirm] = useState(false)
-  const [currentPhase, setCurrentPhase] = useState<string>('')
+  ]);
+  const [isComplete, setIsComplete] = useState(false);
+  const [documentCount, setDocumentCount] = useState(0);
+  const [inputTokens, setInputTokens] = useState(0);
+  const [outputTokens, setOutputTokens] = useState(0);
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState<string>('');
 
-  const crawlStartedRef = useRef(false)
-  const onCompleteRef = useRef(onComplete)
-  const processMessageRef = useRef<(data: SSEMessage) => void | null>(null)
-  const controllerRef = useRef<AbortController | null>(null)
+  const crawlStartedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  const processMessageRef = useRef<(data: SSEMessage) => void | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   // Helper function to count items in partial JSON by category
   const parsePartialJSONByCategory = useCallback((jsonText: string): Record<string, number> => {
@@ -119,31 +119,31 @@ export function CrawlProgressBox({
       jurisdictional: 0,
       complementary: 0,
       auxiliary: 0,
-    }
+    };
 
     try {
       // Try to find each category's array
       for (const key of Object.keys(categoryMap)) {
         // Match patterns like "federal_laws": [ ... items ... ]
-        const pattern = new RegExp(`"${key}"\\s*:\\s*\\[`, 'i')
+        const pattern = new RegExp(`"${key}"\\s*:\\s*\\[`, 'i');
         if (pattern.test(jsonText)) {
           // Find the opening bracket
-          const match = jsonText.match(pattern)
+          const match = jsonText.match(pattern);
           if (match) {
-            const startIdx = jsonText.indexOf(match[0]) + match[0].length
+            const startIdx = jsonText.indexOf(match[0]) + match[0].length;
             // Extract content until we hit a closing bracket (may be incomplete)
-            let bracketCount = 1
-            let endIdx = startIdx
+            let bracketCount = 1;
+            let endIdx = startIdx;
             for (let i = startIdx; i < jsonText.length && bracketCount > 0; i++) {
-              if (jsonText[i] === '[') bracketCount++
-              else if (jsonText[i] === ']') bracketCount--
-              endIdx = i
+              if (jsonText[i] === '[') bracketCount++;
+              else if (jsonText[i] === ']') bracketCount--;
+              endIdx = i;
             }
 
-            const arrayContent = jsonText.substring(startIdx, endIdx)
+            const arrayContent = jsonText.substring(startIdx, endIdx);
             // Count objects with "title" field
-            const itemCount = (arrayContent.match(/\{[^}]*"title"/g) || []).length
-            categoryMap[key] = itemCount
+            const itemCount = (arrayContent.match(/\{[^}]*"title"/g) || []).length;
+            categoryMap[key] = itemCount;
           }
         }
       }
@@ -151,8 +151,8 @@ export function CrawlProgressBox({
       // Silent fail
     }
 
-    return categoryMap
-  }, [])
+    return categoryMap;
+  }, []);
 
   // Update category names when language changes
   useEffect(() => {
@@ -162,35 +162,34 @@ export function CrawlProgressBox({
         name: t(`admin.category.${cat.id}`),
         description: t(`admin.category.${cat.id}.description`),
       })),
-    )
-  }, [t])
+    );
+  }, [t]);
 
   // Update refs whenever dependencies change
   useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   // Track doc count changes
   useEffect(() => {
     if (documentCount > 0 && onDocCountUpdate) {
-      onDocCountUpdate(documentCount)
+      onDocCountUpdate(documentCount);
     }
-  }, [documentCount, onDocCountUpdate])
+  }, [documentCount, onDocCountUpdate]);
 
   // Count items in real-time as Claude output (JSON) arrives
   // Mark categories as complete when they disappear from the JSON (next category appears)
   useEffect(() => {
-    if (!claudeOutputText) return
+    if (!claudeOutputText) return;
 
-    const categoryCounts = parsePartialJSONByCategory(claudeOutputText)
-    console.log('[JSON_COUNTS]', categoryCounts)
+    const categoryCounts = parsePartialJSONByCategory(claudeOutputText);
 
     setCategories((prev) => {
       // First pass: detect which categories just disappeared (count = 0 after having items)
-      const justCompletedCategories = new Set<string>()
+      const justCompletedCategories = new Set<string>();
       prev.forEach((cat) => {
-        const categoryKey = cat.id as keyof typeof categoryCounts
-        const count = categoryCounts[categoryKey] || 0
+        const categoryKey = cat.id as keyof typeof categoryCounts;
+        const count = categoryCounts[categoryKey] || 0;
         // If category had items before but doesn't anymore, mark as just completed
         if (
           cat.itemsBeingDocumented &&
@@ -198,22 +197,21 @@ export function CrawlProgressBox({
           count === 0 &&
           !cat.legislationsParsed
         ) {
-          justCompletedCategories.add(cat.id)
-          console.log(`[JSON_MONITOR] ${cat.name}: disappeared from JSON, marking as complete!`)
+          justCompletedCategories.add(cat.id);
         }
-      })
+      });
 
       // Second pass: update category states
       return prev.map((cat) => {
-        const categoryKey = cat.id as keyof typeof categoryCounts
-        const count = categoryCounts[categoryKey] || 0
+        const categoryKey = cat.id as keyof typeof categoryCounts;
+        const count = categoryCounts[categoryKey] || 0;
 
         // If this category just completed
         if (justCompletedCategories.has(cat.id)) {
           return {
             ...cat,
             legislationsParsed: true,
-          }
+          };
         }
 
         // If this category has items in the current JSON, update count
@@ -223,41 +221,36 @@ export function CrawlProgressBox({
               ...cat,
               itemsBeingDocumented: count,
               legislationsParsed: false, // Back to parsing if count changed
-            }
+            };
           }
         }
 
-        return cat
-      })
-    })
-  }, [claudeOutputText, parsePartialJSONByCategory])
+        return cat;
+      });
+    });
+  }, [claudeOutputText, parsePartialJSONByCategory]);
 
   // Process incoming SSE messages
   const processMessage = useCallback((data: SSEMessage) => {
     if (data.type === 'thinking') {
-      const text = (data.text as string) || ''
-      const type = (data.thinking_type as string) || null
+      const text = (data.text as string) || '';
+      const type = (data.thinking_type as string) || null;
       if (text) {
-        setThinkingText((prev) => prev + text)
+        setThinkingText((prev) => prev + text);
       }
       if (type && !thinkingType) {
-        setThinkingType(type)
+        setThinkingType(type);
       }
     } else if (data.type === 'claude_text') {
-      const text = (data.text as string) || ''
+      const text = (data.text as string) || '';
       if (text) {
-        setClaudeOutputText((prev) => prev + text)
+        setClaudeOutputText((prev) => prev + text);
       }
     } else if (data.type === 'search_started') {
-      const category = data.category as string
-      const query = (data.query as string) || ''
-      const searchIndex = (data.index as number) || 0
-      const searchTotal = (data.total as number) || 6
-
-      console.log(
-        `%c🔍 [SEARCH_STARTED] ${category} (${searchIndex}/${searchTotal})`,
-        'color: #3b82f6; font-weight: bold; font-size: 12px',
-      )
+      const category = data.category as string;
+      const query = (data.query as string) || '';
+      const searchIndex = (data.index as number) || 0;
+      const searchTotal = (data.total as number) || 6;
 
       setCategories((prev) =>
         prev.map((cat) => {
@@ -269,23 +262,23 @@ export function CrawlProgressBox({
               searchIndex,
               searchTotal,
               hasWebSearched: true,
-            }
+            };
           }
-          return cat
+          return cat;
         }),
-      )
+      );
     } else if (data.type === 'web_search_result') {
-      const category = (data.category as string) || ''
-      const title = (data.title as string) || ''
-      const url = (data.url as string) || ''
-      const snippet = (data.snippet as string) || ''
-      const index = (data.index as number) || 0
-      const total = (data.total as number) || 0
+      const category = (data.category as string) || '';
+      const title = (data.title as string) || '';
+      const url = (data.url as string) || '';
+      const snippet = (data.snippet as string) || '';
+      const index = (data.index as number) || 0;
+      const total = (data.total as number) || 0;
 
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.name === category) {
-            const results = cat.webSearchResults || []
+            const results = cat.webSearchResults || [];
             return {
               ...cat,
               webSearchResults: [
@@ -298,14 +291,14 @@ export function CrawlProgressBox({
                   total,
                 },
               ],
-            }
+            };
           }
-          return cat
+          return cat;
         }),
-      )
+      );
     } else if (data.type === 'search_result') {
-      const category = data.category as string
-      const resultCount = (data.result_count as number) || 0
+      const category = data.category as string;
+      const resultCount = (data.result_count as number) || 0;
 
       setCategories((prev) =>
         prev.map((cat) => {
@@ -316,144 +309,143 @@ export function CrawlProgressBox({
               resultCount,
               searchQuery: undefined,
               webResultsCrawled: true,
-            }
+            };
           }
-          return cat
+          return cat;
         }),
-      )
+      );
     } else if (data.type === 'phase') {
-      const message = data.message as string
+      const message = data.message as string;
       if (message) {
-        setCurrentPhase(message)
+        setCurrentPhase(message);
       }
     } else if (data.type === 'tokens') {
-      const inputTokens = (data.input_tokens as number) || 0
-      const outputTokens = (data.output_tokens as number) || 0
-      setInputTokens(inputTokens)
-      setOutputTokens(outputTokens)
+      const inputTokens = (data.input_tokens as number) || 0;
+      const outputTokens = (data.output_tokens as number) || 0;
+      setInputTokens(inputTokens);
+      setOutputTokens(outputTokens);
     } else if (data.type === 'complete') {
-      const count = (data.document_count as number) || 0
-      setDocumentCount(count)
-      setIsComplete(true)
+      const count = (data.document_count as number) || 0;
+      setDocumentCount(count);
+      setIsComplete(true);
       // Mark all legislations as fully parsed
       setCategories((prev) =>
         prev.map((cat) => ({
           ...cat,
           legislationsParsed: true,
         })),
-      )
-      setTimeout(() => onCompleteRef.current(), 1200)
+      );
+      setTimeout(() => onCompleteRef.current(), 1200);
     } else if (data.type === 'batch_saved') {
-      const count = (data.total_saved as number) || 0
-      setDocumentCount(count)
+      const count = (data.total_saved as number) || 0;
+      setDocumentCount(count);
     } else if (data.type === 'error') {
-      const msg = data.message as string
-      setCurrentPhase(`Error: ${msg}`)
+      const msg = data.message as string;
+      setCurrentPhase(`Error: ${msg}`);
       setCategories((prev) =>
         prev.map((cat) =>
           cat.status === 'searching' ? { ...cat, status: 'error' as CategoryStatus } : cat,
         ),
-      )
-      setIsComplete(true)
-      setTimeout(() => onCompleteRef.current(), 1500)
+      );
+      setIsComplete(true);
+      setTimeout(() => onCompleteRef.current(), 1500);
     }
-  }, [])
+  }, []);
 
   // Update processMessageRef after it's defined
   useEffect(() => {
-    processMessageRef.current = processMessage
-  }, [processMessage])
+    processMessageRef.current = processMessage;
+  }, [processMessage]);
 
   useEffect(() => {
     if (crawlStartedRef.current) {
-      return
+      return;
     }
-    crawlStartedRef.current = true
+    crawlStartedRef.current = true;
 
     const startCrawl = async () => {
       try {
-        const controller = new AbortController()
-        controllerRef.current = controller
-        const timeoutId = setTimeout(() => controller.abort(), 300000)
+        const controller = new AbortController();
+        controllerRef.current = controller;
+        const timeoutId = setTimeout(() => controller.abort(), 300000);
 
         const response = await fetch(`/api/v1/admin/crawl/${countryCode}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-        })
+        });
 
-        clearTimeout(timeoutId)
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
-          setCurrentPhase(`Error: ${response.statusText}`)
-          setIsComplete(true)
-          setTimeout(() => onCompleteRef.current(), 1200)
-          return
+          setCurrentPhase(`Error: ${response.statusText}`);
+          setIsComplete(true);
+          setTimeout(() => onCompleteRef.current(), 1200);
+          return;
         }
 
-        const reader = response.body?.getReader()
+        const reader = response.body?.getReader();
         if (!reader) {
-          setCurrentPhase('Error: No response stream')
-          setIsComplete(true)
-          setTimeout(() => onCompleteRef.current(), 1200)
-          return
+          setCurrentPhase('Error: No response stream');
+          setIsComplete(true);
+          setTimeout(() => onCompleteRef.current(), 1200);
+          return;
         }
 
-        const decoder = new TextDecoder()
-        let buffer = ''
+        const decoder = new TextDecoder();
+        let buffer = '';
 
         while (true) {
-          const { done, value } = await reader.read()
+          const { done, value } = await reader.read();
           if (done) {
-            break
+            break;
           }
 
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines[lines.length - 1]
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines[lines.length - 1];
 
           for (let i = 0; i < lines.length - 1; i++) {
-            const line = lines[i].trim()
+            const line = lines[i].trim();
             if (line.startsWith('data: ')) {
               try {
-                const jsonStr = line.slice(6)
-                const data = JSON.parse(jsonStr) as SSEMessage
+                const jsonStr = line.slice(6);
+                const data = JSON.parse(jsonStr) as SSEMessage;
                 if (processMessageRef.current) {
-                  processMessageRef.current(data)
+                  processMessageRef.current(data);
                 }
-              } catch (e) {
-                console.error('[SSE] Parse error:', (e as Error).message)
+              } catch {
+                // Silent fail - SSE parsing error
               }
             }
           }
         }
-      } catch (error) {
-        console.error('Crawl connection error:', error)
-        setCurrentPhase('Connection error')
-        setIsComplete(true)
-        setTimeout(() => onCompleteRef.current(), 1500)
+      } catch {
+        setCurrentPhase('Connection error');
+        setIsComplete(true);
+        setTimeout(() => onCompleteRef.current(), 1500);
       }
-    }
+    };
 
-    startCrawl()
-  }, [countryCode])
+    startCrawl();
+  }, [countryCode]);
 
   const handlePause = () => {
-    setShowPauseConfirm(true)
-  }
+    setShowPauseConfirm(true);
+  };
 
   const handleConfirmStop = () => {
     if (controllerRef.current) {
-      controllerRef.current.abort()
+      controllerRef.current.abort();
     }
-    setShowPauseConfirm(false)
-    setIsComplete(true)
-    setTimeout(() => onCompleteRef.current(), 800)
-  }
+    setShowPauseConfirm(false);
+    setIsComplete(true);
+    setTimeout(() => onCompleteRef.current(), 800);
+  };
 
   const handleCancelPause = () => {
-    setShowPauseConfirm(false)
-  }
+    setShowPauseConfirm(false);
+  };
 
   return (
     <div className="flex h-[700px] w-[1200px] flex-col overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-black/98 via-black/95 to-black/98 shadow-2xl">
@@ -559,5 +551,5 @@ export function CrawlProgressBox({
         </div>
       )}
     </div>
-  )
+  );
 }

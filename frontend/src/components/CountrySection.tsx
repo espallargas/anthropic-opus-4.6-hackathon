@@ -1,11 +1,11 @@
-import { CountryListItem } from './CountryListItem'
-import type { Country } from '@/lib/api'
+import { CountryListItem } from './CountryListItem';
+import type { Country } from '@/lib/api';
 
 interface CountrySectionProps {
-  title: string
-  countries: Country[]
-  onCrawlStart: (code: string, name: string) => void
-  liveDocCount?: Record<string, number>
+  title: string;
+  countries: Country[];
+  onCrawlStart: (code: string, name: string) => void;
+  liveDocCount?: Record<string, number>;
 }
 
 export function CountrySection({
@@ -15,7 +15,7 @@ export function CountrySection({
   liveDocCount = {},
 }: CountrySectionProps) {
   if (countries.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -32,5 +32,5 @@ export function CountrySection({
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   Globe,
   Activity,
@@ -9,36 +9,36 @@ import {
   Plus,
   Trash2,
   MessageSquare,
-} from 'lucide-react'
-import type { Locale } from '@/lib/i18n'
-import { useI18n } from '@/lib/i18n'
-import type { Chat } from '@/lib/chatStore'
+} from 'lucide-react';
+import type { Locale } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n';
+import type { Chat } from '@/lib/chatStore';
 
 interface SidebarProps {
-  chats: Chat[]
-  activeChatId: string | null
-  onSelectChat: (id: string) => void
-  onNewChat: () => void
-  onDeleteChat: (id: string) => void
+  chats: Chat[];
+  activeChatId: string | null;
+  onSelectChat: (id: string) => void;
+  onNewChat: () => void;
+  onDeleteChat: (id: string) => void;
   status: {
-    health: string | null
-    healthRtt: number | null
-    wsStatus: string
-    wsRoundTripMs: number | null
-  }
+    health: string | null;
+    healthRtt: number | null;
+    wsStatus: string;
+    wsRoundTripMs: number | null;
+  };
 }
 
 function statusDot(state: 'ok' | 'connected' | 'error' | 'disconnected' | string | null) {
-  if (state === 'ok' || state === 'connected') return 'bg-green-400'
-  if (state === 'error' || state === 'disconnected') return 'bg-red-400'
-  return 'animate-pulse bg-yellow-400'
+  if (state === 'ok' || state === 'connected') return 'bg-green-400';
+  if (state === 'error' || state === 'disconnected') return 'bg-red-400';
+  return 'animate-pulse bg-yellow-400';
 }
 
 function chatLabel(chat: Chat): string {
-  const dest = chat.systemVars.destination_country
-  const obj = chat.systemVars.objective
-  if (dest && obj) return `${dest} - ${obj}`
-  return dest || obj || chat.id.slice(0, 8)
+  const dest = chat.systemVars.destination_country;
+  const obj = chat.systemVars.objective;
+  if (dest && obj) return `${dest} - ${obj}`;
+  return dest || obj || chat.id.slice(0, 8);
 }
 
 export function Sidebar({
@@ -49,18 +49,18 @@ export function Sidebar({
   onDeleteChat,
   status,
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
-  const { locale, setLocale, t } = useI18n()
+  const [collapsed, setCollapsed] = useState(false);
+  const { locale, setLocale, t } = useI18n();
 
   const apiLabel =
     status.health && status.healthRtt !== null
       ? `${status.health} (${status.healthRtt}ms)`
-      : (status.health ?? 'connecting...')
+      : (status.health ?? 'connecting...');
 
   const wsLabel =
     status.wsStatus === 'connected' && status.wsRoundTripMs !== null
       ? `connected (${status.wsRoundTripMs}ms)`
-      : status.wsStatus
+      : status.wsStatus;
 
   return (
     <aside
@@ -114,8 +114,8 @@ export function Sidebar({
                 <span className="flex-1 truncate">{chatLabel(chat)}</span>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteChat(chat.id)
+                    e.stopPropagation();
+                    onDeleteChat(chat.id);
                   }}
                   className="shrink-0 text-white/0 transition-colors group-hover:text-white/40 hover:!text-red-400"
                   title={t('sidebar.deleteChat')}
@@ -177,7 +177,7 @@ export function Sidebar({
         )}
       </div>
     </aside>
-  )
+  );
 }
 
 function SidebarItem({
@@ -186,10 +186,10 @@ function SidebarItem({
   collapsed,
   badge,
 }: {
-  icon: React.ReactNode
-  label: string
-  collapsed: boolean
-  badge?: React.ReactNode
+  icon: React.ReactNode;
+  label: string;
+  collapsed: boolean;
+  badge?: React.ReactNode;
 }) {
   return (
     <div
@@ -205,5 +205,5 @@ function SidebarItem({
       )}
       {collapsed && badge && <span className="absolute top-1 right-1">{badge}</span>}
     </div>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
-import { apiFetch, type CountryDetailsResponse, type Legislation } from '@/lib/api'
-import { useI18n } from '@/lib/i18n'
-import { ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { apiFetch, type CountryDetailsResponse, type Legislation } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
+import { ChevronDown } from 'lucide-react';
 
 interface LegislationPanelProps {
-  countryCode: string
-  isOpen: boolean
-  onToggle: () => void
+  countryCode: string;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
 function getCategoryLabels(t: (key: string) => string): Record<string, string> {
@@ -17,35 +17,35 @@ function getCategoryLabels(t: (key: string) => string): Record<string, string> {
     jurisdictional: t('admin.category.jurisdictional'),
     complementary: t('admin.category.complementary'),
     auxiliary: t('admin.category.auxiliary'),
-  }
+  };
 }
 
 export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps) {
-  const { t } = useI18n()
-  const [legislations, setLegislations] = useState<Record<string, Legislation[]>>({})
-  const [loading, setLoading] = useState(false)
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
-  const categoryLabels = getCategoryLabels(t)
+  const { t } = useI18n();
+  const [legislations, setLegislations] = useState<Record<string, Legislation[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const categoryLabels = getCategoryLabels(t);
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
 
     const fetchLegislations = async () => {
       try {
-        setLoading(true)
-        const data = await apiFetch<CountryDetailsResponse>(`/admin/countries/${countryCode}`)
-        setLegislations(data.legislations)
+        setLoading(true);
+        const data = await apiFetch<CountryDetailsResponse>(`/admin/countries/${countryCode}`);
+        setLegislations(data.legislations);
       } catch (err) {
-        console.error('Failed to fetch legislations:', err)
+        console.error('Failed to fetch legislations:', err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchLegislations()
-  }, [isOpen, countryCode])
+    fetchLegislations();
+  }, [isOpen, countryCode]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="space-y-1 text-xs">
@@ -105,5 +105,5 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
         ))
       )}
     </div>
-  )
+  );
 }

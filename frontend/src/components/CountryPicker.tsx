@@ -1,21 +1,21 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { countryCentroids, countryCodeToFlag, getCountryNameLocalized } from '@/lib/countries'
-import { useI18n } from '@/lib/i18n'
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { countryCentroids, countryCodeToFlag, getCountryNameLocalized } from '@/lib/countries';
+import { useI18n } from '@/lib/i18n';
 
 interface CountryPickerProps {
-  value: string | string[]
-  onChange: (value: string | string[]) => void
-  multiple?: boolean
+  value: string | string[];
+  onChange: (value: string | string[]) => void;
+  multiple?: boolean;
 }
 
 export function CountryPicker({ value, onChange, multiple = false }: CountryPickerProps) {
-  const { t } = useI18n()
-  const [search, setSearch] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { t } = useI18n();
+  const [search, setSearch] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    inputRef.current?.focus();
+  }, []);
 
   const countries = useMemo(() => {
     return Object.entries(countryCentroids)
@@ -23,34 +23,34 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
         code,
         name: getCountryNameLocalized(code, t),
       }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [t])
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [t]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return countries
-    const q = search.toLowerCase()
-    return countries.filter((c) => c.name.toLowerCase().includes(q))
-  }, [search, countries])
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase();
+    return countries.filter((c) => c.name.toLowerCase().includes(q));
+  }, [search, countries]);
 
-  const selectedCodes = multiple ? (value as string[]) : value ? [value as string] : []
+  const selectedCodes = multiple ? (value as string[]) : value ? [value as string] : [];
 
   const handleSelect = (code: string) => {
     if (multiple) {
-      const current = [...(value as string[])]
+      const current = [...(value as string[])];
       if (current.includes(code)) {
-        onChange(current.filter((c) => c !== code))
+        onChange(current.filter((c) => c !== code));
       } else {
-        onChange([...current, code])
+        onChange([...current, code]);
       }
     } else {
-      onChange(code === value ? '' : code)
+      onChange(code === value ? '' : code);
     }
-  }
+  };
 
   const removeTag = (code: string) => {
-    if (!multiple) return
-    onChange((value as string[]).filter((c) => c !== code))
-  }
+    if (!multiple) return;
+    onChange((value as string[]).filter((c) => c !== code));
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -85,7 +85,7 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
       />
       <div className="scroll-fade grid max-h-[280px] grid-cols-3 gap-1.5 overflow-y-auto pr-1">
         {filtered.map((country) => {
-          const isSelected = selectedCodes.includes(country.code)
+          const isSelected = selectedCodes.includes(country.code);
           return (
             <button
               key={country.code}
@@ -105,9 +105,9 @@ export function CountryPicker({ value, onChange, multiple = false }: CountryPick
                 </span>
               )}
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

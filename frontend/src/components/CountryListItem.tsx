@@ -1,36 +1,36 @@
-import { useState } from 'react'
-import { RefreshCw, ChevronDown } from 'lucide-react'
-import type { Country } from '@/lib/api'
-import { useI18n } from '@/lib/i18n'
-import { getCountryNameLocalized } from '@/lib/countries'
-import { LegislationPanel } from './LegislationPanel'
-import { timeAgo } from '@/lib/time'
+import { useState } from 'react';
+import { RefreshCw, ChevronDown } from 'lucide-react';
+import type { Country } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
+import { getCountryNameLocalized } from '@/lib/countries';
+import { LegislationPanel } from './LegislationPanel';
+import { timeAgo } from '@/lib/time';
 
 interface CountryListItemProps {
-  country: Country
-  onCrawlStart: (code: string, name: string) => void
-  docCount?: number
+  country: Country;
+  onCrawlStart: (code: string, name: string) => void;
+  docCount?: number;
 }
 
 export function CountryListItem({ country, onCrawlStart, docCount }: CountryListItemProps) {
-  const { t } = useI18n()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const { t } = useI18n();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const statusColor =
     country.status === 'green'
       ? 'bg-green-500'
       : country.status === 'yellow'
         ? 'bg-yellow-500'
-        : 'bg-red-500'
+        : 'bg-red-500';
 
-  const currentDocCount = docCount ?? country.legislation_count
-  const localizedName = getCountryNameLocalized(country.code, t)
+  const currentDocCount = docCount ?? country.legislation_count;
+  const localizedName = getCountryNameLocalized(country.code, t);
 
   const handleRefresh = () => {
-    setIsLoading(true)
-    onCrawlStart(country.code, localizedName)
-  }
+    setIsLoading(true);
+    onCrawlStart(country.code, localizedName);
+  };
 
   return (
     <div className="space-y-0">
@@ -96,5 +96,5 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
         </div>
       )}
     </div>
-  )
+  );
 }

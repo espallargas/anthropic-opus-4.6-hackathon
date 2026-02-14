@@ -1,13 +1,13 @@
-import { ChevronUp, ChevronDown } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
-import { useI18n } from '@/lib/i18n'
+import { ChevronUp, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface ThinkingPanelProps {
-  thinkingText: string
-  thinkingType?: string | null
-  isExpanded?: boolean
-  inputTokens?: number
-  outputTokens?: number
+  thinkingText: string;
+  thinkingType?: string | null;
+  isExpanded?: boolean;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export function ThinkingPanel({
@@ -17,18 +17,18 @@ export function ThinkingPanel({
   inputTokens,
   outputTokens,
 }: ThinkingPanelProps) {
-  const { t } = useI18n()
-  const [collapsed, setCollapsed] = useState(!isExpanded)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const { t } = useI18n();
+  const [collapsed, setCollapsed] = useState(!isExpanded);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (contentRef.current && thinkingText) {
-      contentRef.current.scrollTop = contentRef.current.scrollHeight
+      contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
-  }, [thinkingText])
+  }, [thinkingText]);
 
-  const totalTokens = (inputTokens || 0) + (outputTokens || 0)
-  const maxTokens = 128000
+  const totalTokens = (inputTokens || 0) + (outputTokens || 0);
+  const maxTokens = 128000;
 
   // Map thinking effort levels to colors
   const thinkingTypeColors: Record<string, { bg: string; text: string }> = {
@@ -36,9 +36,9 @@ export function ThinkingPanel({
     medium: { bg: 'bg-cyan-500/10', text: 'text-cyan-300' },
     high: { bg: 'bg-violet-500/10', text: 'text-violet-300' },
     max: { bg: 'bg-purple-500/10', text: 'text-purple-300' },
-  }
+  };
 
-  const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null
+  const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null;
 
   return (
     <div className="flex h-full flex-col border-r border-white/10 bg-blue-500/5">
@@ -82,7 +82,8 @@ export function ThinkingPanel({
           {totalTokens > 0 && (
             <div className="border-t border-white/10 bg-white/[0.02] px-3 py-2">
               <p className="text-xs text-blue-200/60">
-                {t('admin.thinking.tokens')} {totalTokens.toLocaleString()} / {maxTokens.toLocaleString()}
+                {t('admin.thinking.tokens')} {totalTokens.toLocaleString()} /{' '}
+                {maxTokens.toLocaleString()}
               </p>
               {totalTokens > 0 && (
                 <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -97,5 +98,5 @@ export function ThinkingPanel({
         </div>
       )}
     </div>
-  )
+  );
 }
