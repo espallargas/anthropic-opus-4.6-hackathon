@@ -87,7 +87,7 @@ test:
 production:
   <<: *default
   url: <%= ENV["DATABASE_URL"] %>
-  prepared_statements: true
+  prepared_statements: false
   checkout_timeout: 5
   variables:
     statement_timeout: "30s"
