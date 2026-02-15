@@ -84,13 +84,15 @@ module LegislationCrawler
 
       stop = false
       heartbeat_thread = Thread.new do
-        while !stop
+        until stop
           sleep 15
           break if stop
 
-          emit(:heartbeat, timestamp: Time.current.iso8601)
-        rescue StandardError
-          break
+          begin
+            emit(:heartbeat, timestamp: Time.current.iso8601)
+          rescue StandardError
+            break
+          end
         end
       end
 
