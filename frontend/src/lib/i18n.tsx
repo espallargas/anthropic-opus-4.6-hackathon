@@ -177,7 +177,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.thinking.adaptive': 'Adaptativo',
     'admin.thinking.high_effort': 'Alto esforço',
     'admin.crawl.more': 'mais',
-    'admin.extraction.progress': 'extraído',
+    'admin.extraction.progress': 'extraídos',
     'admin.extraction.processing': 'extraindo...',
     'admin.extraction.failed': 'falhou',
     'legislation.source': 'Fonte',

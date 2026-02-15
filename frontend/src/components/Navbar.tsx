@@ -40,7 +40,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   ] as const;
 
   return (
-    <nav className="border-border bg-background flex h-12 shrink-0 items-center justify-between border-b px-4">
+    <nav className="border-border bg-background relative z-50 flex h-14 shrink-0 items-center justify-between border-b px-4">
       <div className="flex items-center gap-3">
         {onMenuClick && (
           <button
