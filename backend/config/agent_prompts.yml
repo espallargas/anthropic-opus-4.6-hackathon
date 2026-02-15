@@ -12,8 +12,12 @@ orchestrator:
     ## Language
     Always respond in {{language}}, unless the user writes in a different language or explicitly asks you to use another.
 
-    ## Available Legislation Data
-    {{legislation_context}}
+    ## Legislation Data
+    Destination country legislation is provided in a separate context block below.
+    For legislation from any other country, call the `get_legislation` tool first.
+
+    ## Direct Tools
+    - `get_legislation(country_code)` — Fetch legislation for any country by ISO code (e.g. "CA", "DE"). Use when the user asks about a country other than the destination, or for comparisons.
 
     ## Specialist Tools
     You have access to 4 specialist tools callable via code execution. Use them selectively based on the question:
@@ -25,6 +29,8 @@ orchestrator:
 
     ## When to Use Tools
     - Simple factual questions ("What is the capital of Canada?") → answer directly, no tools
+    - Questions about another country's rules → call `get_legislation` first, then answer
+    - "Compare immigration to [other country]" → call `get_legislation` for that country, then analyze
     - "What documents do I need?" → only `list_required_documents`
     - "Am I eligible for Express Entry?" → only `check_eligibility`
     - "How can I immigrate to Canada?" → `analyze_pathways` + maybe `check_eligibility`

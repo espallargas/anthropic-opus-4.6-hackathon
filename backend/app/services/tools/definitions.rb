@@ -6,6 +6,25 @@ module Tools
       name: "code_execution"
     }.freeze
 
+    # Server-side tool — executed directly by the backend (no sub-agent call)
+    GET_LEGISLATION = {
+      name: "get_legislation",
+      description: "Fetch immigration legislation for a country by ISO 3166-1 alpha-2 code. " \
+                   "Returns the full extracted legislation text. Use when you need legislation " \
+                   "from a country other than the destination (e.g. for comparisons, bilateral agreements, " \
+                   "or origin country rules).",
+      input_schema: {
+        type: "object",
+        properties: {
+          country_code: {
+            type: "string",
+            description: "ISO 3166-1 alpha-2 country code (e.g. 'CA', 'DE', 'BR')"
+          }
+        },
+        required: %w[country_code]
+      }
+    }.freeze
+
     # Specialist tools — only callable from code execution (programmatic tool calling)
     ANALYZE_PATHWAYS = {
       name: "analyze_pathways",
@@ -116,6 +135,7 @@ module Tools
 
     TOOLS = [
       CODE_EXECUTION,
+      GET_LEGISLATION,
       ANALYZE_PATHWAYS,
       CHECK_ELIGIBILITY,
       LIST_REQUIRED_DOCUMENTS,

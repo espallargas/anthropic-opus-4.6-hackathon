@@ -8,6 +8,7 @@ module Api
       MAX_TURNS = 10
       BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25 context-1m-2025-08-07].freeze
 
+      SERVER_TOOLS = %w[get_legislation].freeze
       LOCALE_TO_LANGUAGE = { "pt-BR" => "Portuguese", "en" => "English" }.freeze
       DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Be concise and direct.".freeze
 
@@ -26,6 +27,8 @@ module Api
 
         total_input_tokens = 0
         total_output_tokens = 0
+        total_cache_creation_tokens = 0
+        total_cache_read_tokens = 0
         container_id = nil
         agent_usage = {}
 
@@ -80,7 +83,10 @@ module Api
 
               case block_type
               when "thinking"
-                thinking_active = false
+                if thinking_active
+                  thinking_active = false
+                  sse.write({ type: "thinking_end", server_time: Time.current.iso8601(3) })
+                end
                 thinking_blocks << {
                   type: "thinking",
                   thinking: block.thinking,
@@ -116,6 +122,11 @@ module Api
               total_input_tokens += usage.input_tokens if usage.respond_to?(:input_tokens)
               total_output_tokens += usage.output_tokens if usage.respond_to?(:output_tokens)
 
+              total_cache_creation_tokens += (usage.cache_creation_input_tokens || 0)
+              total_cache_read_tokens += (usage.cache_read_input_tokens || 0)
+
+              Rails.logger.info("[CACHE] creation=#{total_cache_creation_tokens} read=#{total_cache_read_tokens}")
+
               # Track container ID for code execution reuse
               if event.message.respond_to?(:container) && event.message.container
                 ctr = event.message.container
@@ -132,7 +143,7 @@ module Api
           )
           messages << { role: "assistant", content: assistant_content }
 
-          # Execute programmatic tool calls via agent executor
+          # Execute tool calls (server tools + programmatic agent calls)
           tool_results = execute_tool_calls(tool_use_blocks, system_vars, sse, agent_usage)
           messages << { role: "user", content: tool_results }
         end
@@ -141,6 +152,8 @@ module Api
                     type: "usage_report",
                     total_input_tokens: total_input_tokens,
                     total_output_tokens: total_output_tokens,
+                    cache_creation_tokens: total_cache_creation_tokens,
+                    cache_read_tokens: total_cache_read_tokens,
                     agent_usage: agent_usage,
                     server_time: Time.current.iso8601(3)
                   })
@@ -214,25 +227,52 @@ module Api
         executor = Agents::Executor.new(system_vars: system_vars, sse: sse)
 
         tool_use_blocks.map do |tb|
-          if programmatic_call?(tb)
-            result = executor.execute(tb[:name], tb[:input])
+          tool_result = if SERVER_TOOLS.include?(tb[:name])
+                          handle_server_tool(tb)
+                        elsif programmatic_call?(tb)
+                          result = executor.execute(tb[:name], tb[:input])
 
-            # Track per-agent token usage
-            if result[:usage]
-              agent_usage[tb[:name]] = {
-                input_tokens: result.dig(:usage, :input_tokens) || 0,
-                output_tokens: result.dig(:usage, :output_tokens) || 0
-              }
-            end
+                          # Track per-agent token usage
+                          if result[:usage]
+                            agent_usage[tb[:name]] = {
+                              input_tokens: result.dig(:usage, :input_tokens) || 0,
+                              output_tokens: result.dig(:usage, :output_tokens) || 0
+                            }
+                          end
 
-            content = result[:success] ? result[:data].to_json : { error: result[:error] }.to_json
-            { type: "tool_result", tool_use_id: tb[:id], content: content }
-          else
-            # Non-programmatic tool call — return empty result (shouldn't happen with current setup)
-            { type: "tool_result", tool_use_id: tb[:id],
-              content: { error: "Tool not implemented: #{tb[:name]}" }.to_json }
-          end
+                          content = result[:success] ? result[:data].to_json : { error: result[:error] }.to_json
+                          { type: "tool_result", tool_use_id: tb[:id], content: content }
+                        else
+                          { type: "tool_result", tool_use_id: tb[:id],
+                            content: { error: "Tool not implemented: #{tb[:name]}" }.to_json }
+                        end
+
+          sse.write({
+                      type: "tool_use_result",
+                      tool_call_id: tb[:id],
+                      tool_name: tb[:name],
+                      result: {},
+                      server_time: Time.current.iso8601(3)
+                    })
+
+          tool_result
         end
+      end
+
+      def handle_server_tool(tool_block)
+        case tool_block[:name]
+        when "get_legislation"
+          handle_get_legislation(tool_block)
+        else
+          { type: "tool_result", tool_use_id: tool_block[:id],
+            content: { error: "Unknown server tool: #{tool_block[:name]}" }.to_json }
+        end
+      end
+
+      def handle_get_legislation(tool_block)
+        country_code = tool_block.dig(:input, "country_code") || tool_block.dig(:input, :country_code)
+        content = build_legislation_context(country_code)
+        { type: "tool_result", tool_use_id: tool_block[:id], content: content }
       end
 
       def programmatic_call?(tool_block)
@@ -281,11 +321,9 @@ module Api
 
         prompts = load_agent_prompts
         orchestrator_prompt = prompts.dig("orchestrator", "system_prompt")
-        return DEFAULT_SYSTEM_PROMPT if vars.blank? || orchestrator_prompt.blank?
+        return [{ type: "text", text: DEFAULT_SYSTEM_PROMPT }] if vars.blank? || orchestrator_prompt.blank?
 
         language = LOCALE_TO_LANGUAGE[vars[:locale].to_s] || "English"
-
-        legislation_context = build_legislation_context(vars[:destination_country])
 
         replacements = {
           "origin_country" => vars[:origin_country].to_s,
@@ -293,17 +331,32 @@ module Api
           "destination_country" => vars[:destination_country].to_s,
           "objective" => vars[:objective].to_s,
           "additional_info" => vars[:additional_info].to_s.presence || "None",
-          "language" => language,
-          "legislation_context" => legislation_context
+          "language" => language
         }
 
-        replacements.reduce(orchestrator_prompt) { |prompt, (key, val)| prompt.gsub("{{#{key}}}", val) }
+        instructions = replacements.reduce(orchestrator_prompt) { |prompt, (key, val)| prompt.gsub("{{#{key}}}", val) }
+        legislation_text = build_legislation_context(vars[:destination_country])
+        has_legislation = legislation_text != "No legislation data available yet."
+
+        Rails.logger.info("[SYSTEM_PROMPT] destination=#{vars[:destination_country]} " \
+                          "has_legislation=#{has_legislation} legislation_chars=#{legislation_text.length}")
+
+        if has_legislation
+          [
+            { type: "text", text: instructions },
+            { type: "text", text: legislation_text, cache_control: { type: "ephemeral" } }
+          ]
+        else
+          [
+            { type: "text", text: instructions, cache_control: { type: "ephemeral" } }
+          ]
+        end
       end
 
       def build_legislation_context(country_code)
         return "No legislation data available yet." if country_code.blank?
 
-        country = Country.find_by(code: country_code.to_s.upcase)
+        country = Country.find_by(code: country_code.to_s.downcase)
         return "No legislation data available yet." if country.nil? || !country.legislations.exists?
 
         legislations = country.legislations.where(is_deprecated: false)
