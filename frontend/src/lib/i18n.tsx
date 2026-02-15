@@ -925,6 +925,17 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
 const VALID_LOCALES: Locale[] = ['pt-BR', 'en', 'ar'];
 
+function detectSystemLocale(): Locale {
+  const languages = navigator.languages ?? [navigator.language];
+  for (const lang of languages) {
+    if (VALID_LOCALES.includes(lang as Locale)) return lang as Locale;
+    const prefix = lang.split('-')[0];
+    const match = VALID_LOCALES.find((l) => l.split('-')[0] === prefix);
+    if (match) return match;
+  }
+  return 'en';
+}
+
 function loadLocale(): Locale {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -932,7 +943,7 @@ function loadLocale(): Locale {
   } catch {
     // ignore
   }
-  return 'pt-BR';
+  return detectSystemLocale();
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
