@@ -114,12 +114,7 @@ export function Sidebar({
 
       <div className="border-border flex items-center justify-between border-b px-4 py-3">
         <h3 className="text-muted-foreground text-sm font-semibold">{t('sidebar.chats')}</h3>
-        <Button
-          onClick={onNewChat}
-          variant="ghost"
-          size="icon-sm"
-          title={t('sidebar.newChat')}
-        >
+        <Button onClick={onNewChat} variant="ghost" size="icon-sm" title={t('sidebar.newChat')}>
           <Plus className="size-4" />
         </Button>
       </div>
