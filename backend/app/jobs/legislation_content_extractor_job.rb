@@ -15,15 +15,15 @@ class LegislationContentExtractorJob
     broadcast_update(legislation, "processing")
 
     content = fetch_and_extract(legislation.source_url)
-    tokens = count_tokens(content)
 
     legislation.update!(
       content: content,
-      token_count: tokens,
       extraction_status: "completed",
       last_extracted_at: Time.current
     )
-    broadcast_update(legislation, "completed", tokens)
+    broadcast_update(legislation, "completed")
+
+    LegislationTokenCountJob.perform_async(legislation.id)
   rescue StandardError => e
     Rails.logger.error("Extraction failed for legislation #{legislation_id}: #{e.class} - #{e.message}")
     legislation&.update(extraction_status: "failed")
@@ -40,20 +40,6 @@ class LegislationContentExtractorJob
                                    extraction_status: status,
                                    token_count: token_count
                                  })
-  end
-
-  def count_tokens(content)
-    return nil if content.blank?
-
-    client = Rails.application.config.x.anthropic
-    result = client.messages.count_tokens(
-      model: "claude-sonnet-4-5-20250929",
-      messages: [{ role: "user", content: content }]
-    )
-    result.input_tokens
-  rescue StandardError => e
-    Rails.logger.warn("Token count failed: #{e.message}")
-    nil
   end
 
   def fetch_and_extract(url)
