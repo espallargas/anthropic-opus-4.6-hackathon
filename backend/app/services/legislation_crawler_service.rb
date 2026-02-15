@@ -15,7 +15,7 @@ class LegislationCrawlerService
   CATEGORY_LIST = ["Federal Laws", "Regulations", "Consular Rules", "Jurisdictional", "Health & Complementary",
                    "Auxiliary"].freeze
 
-  CATEGORY_IDS = ["federal_laws", "regulations", "consular", "jurisdictional", "complementary", "auxiliary"].freeze
+  CATEGORY_IDS = %w[federal_laws regulations consular jurisdictional complementary auxiliary].freeze
 
   attr_reader :country, :sse, :client, :thinking_effort
   attr_accessor :operation_id_counter, :current_operation_id, :thinking_type_emitted, :parse_complete_emitted
@@ -58,10 +58,12 @@ class LegislationCrawlerService
     emit(:phase, message: "Found #{existing_count} existing legislations")
 
     system_prompt = build_system_prompt(crawl_type, existing_count)
-    results = call_claude_crawler(system_prompt)
+    progressive_saver = ProgressiveCategorySaver.new(country, method(:emit), parse_complete_emitted)
+    results = call_claude_crawler(system_prompt, progressive_saver)
 
+    # Save any categories not already saved during streaming
     emit(:phase, message: "Saving results to database")
-    save_results(results)
+    save_results(results, already_saved: progressive_saver.saved_categories)
 
     country.update!(last_crawled_at: Time.current)
 
@@ -206,7 +208,141 @@ class LegislationCrawlerService
     end
   end
 
-  def build_response_from_stream(operation_id = nil, **)
+  # Parses streaming JSON text and saves each category as soon as its array closes.
+  # This allows Sidekiq extraction jobs to start while Claude is still outputting later categories.
+  class ProgressiveCategorySaver
+    attr_reader :saved_categories
+
+    def initialize(country, emit_proc, parse_complete_emitted)
+      @country = country
+      @emit_proc = emit_proc
+      @parse_complete_emitted = parse_complete_emitted
+      @text_buffer = ""
+      @saved_categories = Set.new
+      @saved_count = 0
+    end
+
+    def on_text_delta(text)
+      @text_buffer += text
+      try_save_completed_categories
+    end
+
+    private
+
+    def try_save_completed_categories
+      LegislationCrawlerService::CATEGORY_IDS.each do |category_id|
+        next if @saved_categories.include?(category_id)
+
+        items = extract_completed_category(category_id)
+        next unless items
+
+        @saved_categories.add(category_id)
+        save_category(category_id.to_sym, items)
+        Rails.logger.info("[PROGRESSIVE_SAVE] Saved category #{category_id} (#{items.length} items) during streaming")
+      end
+    end
+
+    def extract_completed_category(category_id)
+      pattern = /"#{Regexp.escape(category_id)}"\s*:\s*\[/
+      match = @text_buffer.match(pattern)
+      return nil unless match
+
+      start_idx = match.end(0)
+      end_idx = find_array_end(@text_buffer, start_idx)
+      return nil unless end_idx
+
+      array_json = "[#{@text_buffer[start_idx...(end_idx - 1)]}]"
+      JSON.parse(array_json)
+    rescue JSON::ParserError
+      nil
+    end
+
+    # Bracket-aware scanner that respects JSON strings
+    def find_array_end(text, start_idx)
+      bracket_count = 1
+      in_string = false
+      escape_next = false
+      idx = start_idx
+
+      while idx < text.length && bracket_count.positive?
+        char = text[idx]
+
+        if escape_next
+          escape_next = false
+        elsif in_string
+          escape_next = true if char == "\\"
+          in_string = false if char == '"'
+        else
+          case char
+          when '"' then in_string = true
+          when "[" then bracket_count += 1
+          when "]" then bracket_count -= 1
+          end
+        end
+
+        idx += 1
+      end
+
+      bracket_count.zero? ? idx : nil
+    end
+
+    def save_category(category_sym, items)
+      items.each do |item|
+        next unless item.is_a?(Hash) && item["title"].present?
+
+        existing = @country.legislations.find_by(title: item["title"])
+        parsed_date = parse_date(item["date_effective"])
+
+        if existing
+          next if !parsed_date || !existing.date_effective || parsed_date <= existing.date_effective
+
+          new_leg = create_legislation(category_sym, item, parsed_date)
+          LegislationContentExtractorJob.perform_async(new_leg.id)
+          existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+          @saved_count += 1
+          next
+        end
+
+        new_leg = create_legislation(category_sym, item, parsed_date)
+        LegislationContentExtractorJob.perform_async(new_leg.id)
+        @saved_count += 1
+      end
+
+      @emit_proc.call(:batch_saved, total_saved: @country.legislations.count) if @saved_count.positive?
+
+      # Mark category as parsed so frontend updates immediately
+      category_label = LegislationCrawlerService::CATEGORY_LABEL_MAP[category_sym.to_s]
+      return unless category_label && @parse_complete_emitted.exclude?(category_label)
+
+      @emit_proc.call(:category_parse_complete, category: category_label, item_count: items.length)
+      @parse_complete_emitted.add(category_label)
+    end
+
+    def create_legislation(category_sym, item, parsed_date)
+      Legislation.create!(
+        country_id: @country.id,
+        category: Legislation.categories[category_sym],
+        title: item["title"].to_s.strip,
+        content: item["summary"].to_s,
+        summary: item["summary"].to_s,
+        source_url: item["source_url"].to_s,
+        date_effective: parsed_date,
+        is_deprecated: false,
+        extraction_status: "pending",
+        crawled_at: Time.current
+      )
+    end
+
+    def parse_date(date_str)
+      return nil if date_str.blank?
+
+      Date.parse(date_str.to_s)
+    rescue StandardError
+      nil
+    end
+  end
+
+  def build_response_from_stream(operation_id = nil, progressive_saver: nil, **api_params)
     Rails.logger.info("[BUILD_RESPONSE] Starting stream response collection")
     collector = StreamResponseCollector.new
     event_count = 0
@@ -215,7 +351,7 @@ class LegislationCrawlerService
     server_tool_use_indices = Set.new
     search_started_indices = Set.new
 
-    stream_response = client.messages.stream(**)
+    stream_response = client.messages.stream(**api_params)
     stream_response.each do |event|
       event_count += 1
 
@@ -290,6 +426,8 @@ class LegislationCrawlerService
             text = event.delta.text
             # Emit Claude's text output in real-time
             emit(:claude_text, text: text)
+            # Feed to progressive saver for per-category saving during stream
+            progressive_saver&.on_text_delta(text)
           end
         rescue StandardError
           # Silent
@@ -382,7 +520,7 @@ class LegislationCrawlerService
     PROMPT
   end
 
-  def call_claude_crawler(system_prompt)
+  def call_claude_crawler(system_prompt, progressive_saver = nil)
     Rails.logger.info("[CALL_CLAUDE] Starting call_claude_crawler")
     emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
 
@@ -394,8 +532,6 @@ class LegislationCrawlerService
     ]
 
     current_operation_id = next_operation_id
-
-    response = nil
     response = nil
     begin
       Timeout.timeout(TIMEOUT_SECONDS) do
@@ -410,6 +546,7 @@ class LegislationCrawlerService
 
         response = build_response_from_stream(
           current_operation_id,
+          progressive_saver: progressive_saver,
           model: MODEL,
           max_tokens: MAX_TOKENS,
           thinking: {
@@ -767,24 +904,23 @@ class LegislationCrawlerService
     nil
   end
 
-  def save_results(results)
-    legislations_to_insert = []
-    legislations_to_update = []
+  def save_results(results, already_saved: Set.new)
+    saved_count = 0
 
     results.each do |category, documents|
+      next if already_saved.include?(category.to_s)
+
       documents.each do |doc|
         existing = country.legislations.find_by(title: doc[:title])
 
+        # Skip duplicates with same or older date
         if existing
           new_date = doc[:date_effective]
           old_date = existing.date_effective
+          next if !new_date || !old_date || new_date <= old_date
 
-          next unless new_date && old_date && new_date > old_date
-
-          legislations_to_update << { existing_id: existing.id, new_doc: doc, new_category: category }
-
-        else
-          legislations_to_insert << {
+          # Version update — deprecate old, create new
+          new_leg = Legislation.create!(
             country_id: country.id,
             category: Legislation.categories[category],
             title: doc[:title],
@@ -793,49 +929,34 @@ class LegislationCrawlerService
             source_url: doc[:source_url],
             date_effective: doc[:date_effective],
             is_deprecated: doc[:is_deprecated],
-            crawled_at: Time.current,
-            created_at: Time.current,
-            updated_at: Time.current
-          }
+            extraction_status: "pending",
+            crawled_at: Time.current
+          )
+          LegislationContentExtractorJob.perform_async(new_leg.id)
+          existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+          saved_count += 1
+          next
         end
+
+        # New legislation
+        new_leg = Legislation.create!(
+          country_id: country.id,
+          category: Legislation.categories[category],
+          title: doc[:title],
+          content: doc[:content],
+          summary: doc[:summary],
+          source_url: doc[:source_url],
+          date_effective: doc[:date_effective],
+          is_deprecated: doc[:is_deprecated],
+          extraction_status: "pending",
+          crawled_at: Time.current
+        )
+        LegislationContentExtractorJob.perform_async(new_leg.id)
+        saved_count += 1
       end
+
+      # Progress after each category
+      emit(:batch_saved, total_saved: country.legislations.count) if saved_count.positive?
     end
-
-    if legislations_to_insert.any?
-      emit(:phase, message: "Saving #{legislations_to_insert.count} new legislations...")
-      Legislation.insert_all(legislations_to_insert)
-
-      current_count = country.legislations.count
-      emit(:batch_saved, total_saved: current_count)
-
-      sleep(0.5)
-    end
-
-    return unless legislations_to_update.any?
-
-    emit(:phase, message: "Processing #{legislations_to_update.count} updates...")
-
-    legislations_to_update.each do |update|
-      old_leg = Legislation.find(update[:existing_id])
-
-      new_leg = Legislation.create!(
-        country_id: country.id,
-        category: Legislation.categories[update[:new_category]],
-        title: update[:new_doc][:title],
-        content: update[:new_doc][:content],
-        summary: update[:new_doc][:summary],
-        source_url: update[:new_doc][:source_url],
-        date_effective: update[:new_doc][:date_effective],
-        is_deprecated: update[:new_doc][:is_deprecated],
-        crawled_at: Time.current
-      )
-
-      old_leg.update!(is_deprecated: true, replaced_by_id: new_leg.id)
-    end
-
-    current_count = country.legislations.count
-    emit(:batch_saved, total_saved: current_count)
-
-    sleep(0.5)
   end
 end

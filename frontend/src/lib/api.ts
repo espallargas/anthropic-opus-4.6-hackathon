@@ -7,6 +7,10 @@ export interface Country {
   status: 'red' | 'yellow' | 'green';
   last_crawled_at: string | null;
   legislation_count: number;
+  extraction_completed?: number;
+  extraction_processing?: number;
+  content_size?: number;
+  token_count?: number;
 }
 
 export interface AdminCountriesResponse {
@@ -25,6 +29,7 @@ export interface Legislation {
   is_deprecated: boolean;
   replaced_by_id?: number;
   crawled_at: string;
+  extraction_status?: string;
 }
 
 export interface CountryDetailsResponse {

@@ -6,7 +6,7 @@ module Api
       MODEL = "claude-opus-4-6".freeze
       MAX_TOKENS = 128_000
       MAX_TURNS = 10
-      BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25].freeze
+      BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25 context-1m-2025-08-07].freeze
 
       LOCALE_TO_LANGUAGE = { "pt-BR" => "Portuguese", "en" => "English" }.freeze
       DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Be concise and direct.".freeze
@@ -304,16 +304,29 @@ module Api
         return "No legislation data available yet." if country_code.blank?
 
         country = Country.find_by(code: country_code.to_s.upcase)
-        return "No legislation data available yet." unless country&.legislations&.exists?
+        return "No legislation data available yet." if country.nil? || !country.legislations.exists?
 
-        country.legislations
-               .where(is_deprecated: false)
-               .group_by(&:category)
-               .map do |cat, laws|
-                 items = laws.map { |l| "- #{l.title}: #{l.summary || l.content.to_s.truncate(200)}" }.join("\n")
-                 "### #{cat.to_s.humanize.titleize}\n#{items}"
-               end
-               .join("\n\n")
+        legislations = country.legislations.where(is_deprecated: false)
+        extracted = legislations.where(extraction_status: "completed")
+        pending = legislations.where.not(extraction_status: "completed")
+
+        sections = extracted.group_by(&:category).map do |cat, laws|
+          items = laws.map do |l|
+            <<~ITEM
+              #### #{l.title}
+              **Source**: #{l.source_url}
+              **Effective**: #{l.date_effective || 'Unknown'}
+              **Summary**: #{l.summary}
+
+              #{l.content}
+            ITEM
+          end.join("\n---\n")
+          "### #{cat.to_s.humanize.titleize}\n#{items}"
+        end.join("\n\n")
+
+        sections += "\n\n_Note: #{pending.count} legislation(s) still being processed._" if pending.any?
+
+        sections
       end
 
       def load_agent_prompts

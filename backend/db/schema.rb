@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_013502) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_021100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -31,14 +31,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_013502) do
     t.datetime "crawled_at", null: false
     t.datetime "created_at", null: false
     t.date "date_effective"
+    t.string "extraction_status", default: "pending", null: false
     t.boolean "is_deprecated", default: false, null: false
+    t.datetime "last_extracted_at"
     t.bigint "replaced_by_id"
     t.string "source_url", null: false
     t.text "summary"
     t.string "title", null: false
+    t.integer "token_count"
     t.datetime "updated_at", null: false
     t.index ["country_id", "category"], name: "index_legislations_on_country_id_and_category"
     t.index ["country_id"], name: "index_legislations_on_country_id"
+    t.index ["extraction_status"], name: "index_legislations_on_extraction_status"
     t.index ["replaced_by_id"], name: "index_legislations_on_replaced_by_id"
   end
 

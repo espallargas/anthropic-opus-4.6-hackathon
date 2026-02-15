@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { ThinkingBlock } from '@/lib/chatStore';
@@ -11,6 +11,14 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
   const { t } = useI18n();
   const isThinking = thinking.status === 'thinking';
   const [expanded, setExpanded] = useState(true);
+  const contentRef = useRef<HTMLParagraphElement>(null);
+
+  // Auto-scroll to bottom as content streams in
+  useEffect(() => {
+    if (isThinking && expanded && contentRef.current) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight;
+    }
+  }, [thinking.content, isThinking, expanded]);
 
   // Auto-close when thinking completes
   useEffect(() => {
@@ -58,7 +66,10 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
 
       {expanded && thinking.content && (
         <div className="border-border/50 border-t px-3 py-2">
-          <p className="text-muted-foreground/50 max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap">
+          <p
+            ref={contentRef}
+            className="text-muted-foreground/50 max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap"
+          >
             {thinking.content}
           </p>
         </div>

@@ -58,7 +58,8 @@ module Api
                      end
 
             all_legs = country.legislations
-            extracted_count = all_legs.where(extraction_status: "completed").count
+            completed_legs = all_legs.where(extraction_status: "completed")
+            extracted_count = completed_legs.count
             total_count = all_legs.count
 
             {
@@ -69,7 +70,9 @@ module Api
               last_crawled_at: country.last_crawled_at,
               legislation_count: total_count,
               extraction_completed: extracted_count,
-              extraction_processing: all_legs.where(extraction_status: "processing").count
+              extraction_processing: all_legs.where(extraction_status: "processing").count,
+              content_size: completed_legs.sum("LENGTH(COALESCE(content, ''))"),
+              token_count: completed_legs.sum(:token_count)
             }
           end
         end

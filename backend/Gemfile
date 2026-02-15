@@ -25,6 +25,14 @@ gem "rack-cors"
 # Anthropic SDK for Claude API
 gem "anthropic", "~> 1.19.0"
 
+# Background job processing
+gem "sidekiq", "~> 7.3"
+gem "connection_pool", "~> 2.4"
+
+# Content extraction from HTML and PDF
+gem "ruby-readability", "~> 0.7"
+gem "pdf-reader", "~> 2.12"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "bundler-audit", require: false

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { X, Pause } from 'lucide-react';
+import { X, Pause, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { getCountryNameLocalized } from '@/lib/countries';
 import { CrawlAgentPanel } from './CrawlAgentPanel';
@@ -575,13 +575,14 @@ export function CrawlProgressBox({
 
       {/* Status Bar */}
       <div className="border-border bg-card/30 flex flex-none items-center justify-between border-t px-3 py-2.5">
-        <div className="text-muted-foreground text-xs">
-          {currentPhase ? (
-            <span>{currentPhase}</span>
-          ) : isComplete ? (
+        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          {isComplete ? (
             <span className="text-emerald-400/80">{t('admin.crawl.complete')}</span>
           ) : (
-            <span>{t('admin.crawl.starting')}</span>
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{currentPhase || t('admin.crawl.starting')}</span>
+            </>
           )}
         </div>
       </div>

@@ -32,6 +32,34 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
     onCrawlStart(country.code, localizedName);
   };
 
+  const extractedCount = country.extraction_completed ?? 0;
+  const processingCount = country.extraction_processing ?? 0;
+  const isFullyExtracted = currentDocCount > 0 && extractedCount === currentDocCount;
+  const isProcessing = processingCount > 0;
+
+  let extractionLabel: string | null = null;
+  let extractionColor = '';
+
+  if (currentDocCount > 0 && extractedCount > 0) {
+    if (isFullyExtracted) {
+      extractionLabel = `${extractedCount}/${currentDocCount} ${t('admin.extraction.progress')}`;
+      extractionColor = 'bg-green-400/15 text-green-400';
+    } else {
+      extractionLabel = `${extractedCount}/${currentDocCount} ${t('admin.extraction.progress')}`;
+      extractionColor = 'bg-amber-400/15 text-amber-400';
+    }
+  } else if (currentDocCount > 0 && isProcessing) {
+    extractionLabel = t('admin.extraction.processing');
+    extractionColor = 'bg-blue-400/15 text-blue-400';
+  }
+
+  const contentKB = country.content_size ? Math.round(country.content_size / 1024) : 0;
+  const tokenCount = country.token_count ?? 0;
+  const formatTokens = (count: number): string => {
+    if (count >= 1000) return `~${Math.round(count / 1000)}k`;
+    return String(count);
+  };
+
   return (
     <div className="space-y-0">
       <div className="hover:bg-accent/50 flex items-center gap-3 rounded px-2 py-2 transition-all">
@@ -51,13 +79,27 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
           )}
         </div>
 
-        {/* Document count */}
+        {/* Document count + size + tokens + extraction badge */}
         {currentDocCount > 0 && (
-          <div className="text-muted-foreground flex-shrink-0 text-xs">
-            {currentDocCount}
-            <span className="text-muted-foreground/70 ml-1">
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <div className="text-muted-foreground text-xs">
+              {currentDocCount}{' '}
               {currentDocCount === 1 ? t('admin.units.doc') : t('admin.units.docs')}
-            </span>
+              {contentKB > 0 && <span className="text-muted-foreground/60"> · {contentKB} KB</span>}
+              {tokenCount > 0 && (
+                <span className="text-muted-foreground/60">
+                  {' '}
+                  · {formatTokens(tokenCount)} {t('admin.units.tokens')}
+                </span>
+              )}
+            </div>
+            {extractionLabel && (
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium ${extractionColor}`}
+              >
+                {extractionLabel}
+              </span>
+            )}
           </div>
         )}
 

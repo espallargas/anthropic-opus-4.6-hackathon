@@ -1,0 +1,4 @@
+:queues:
+  - [default, 5]
+  - [extraction, 3]
+:concurrency: 5
