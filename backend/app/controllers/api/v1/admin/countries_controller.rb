@@ -3,24 +3,20 @@ module Api
     module Admin
       class CountriesController < ApplicationController
         def index
-          active = Country
-                   .where.not(last_crawled_at: nil)
-                   .order(:name)
+          stats = legislation_stats_by_country
 
-          pending = Country
-                    .where(last_crawled_at: nil)
-                    .order(:name)
+          active = Country.where.not(last_crawled_at: nil).order(:name)
+          pending = Country.where(last_crawled_at: nil).order(:name)
 
           render json: {
-            active: format_countries(active),
-            pending: format_countries(pending)
+            active: format_countries(active, stats),
+            pending: format_countries(pending, stats)
           }
         end
 
         def show
           country = Country.find_by!(code: params[:code])
 
-          # Fetch all legislations grouped by category using database
           legislations = country.legislations
                                 .select(:id, :category, :title, :content, :summary, :source_url,
                                         :date_effective, :is_deprecated, :replaced_by_id, :crawled_at,
@@ -37,7 +33,6 @@ module Api
             failed: all_legislations.count { |l| l.extraction_status == "failed" }
           }
 
-          # Format for JSON response - category comes as string from enum
           formatted_legislations = legislations.transform_values do |laws|
             laws.map { |law| format_legislation(law) }
           end
@@ -47,8 +42,31 @@ module Api
 
         private
 
-        def format_countries(countries)
+        def legislation_stats_by_country
+          rows = Legislation.group(:country_id).select(
+            :country_id,
+            "COUNT(*) AS total_count",
+            "COUNT(*) FILTER (WHERE extraction_status = 'completed') AS completed_count",
+            "COUNT(*) FILTER (WHERE extraction_status = 'processing') AS processing_count",
+            "SUM(CASE WHEN extraction_status = 'completed' THEN LENGTH(COALESCE(content, '')) ELSE 0 END) AS content_size",
+            "COALESCE(SUM(token_count), 0) AS total_tokens"
+          )
+
+          rows.each_with_object({}) do |row, hash|
+            hash[row.country_id] = {
+              total: row[:total_count].to_i,
+              completed: row[:completed_count].to_i,
+              processing: row[:processing_count].to_i,
+              content_size: row[:content_size].to_i,
+              tokens: row[:total_tokens].to_i
+            }
+          end
+        end
+
+        def format_countries(countries, stats)
           countries.map do |country|
+            s = stats[country.id] || { total: 0, completed: 0, processing: 0, content_size: 0, tokens: 0 }
+
             status = if country.last_crawled_at.nil?
                        "red"
                      elsif country.last_crawled_at < 1.week.ago
@@ -57,22 +75,17 @@ module Api
                        "green"
                      end
 
-            all_legs = country.legislations
-            completed_legs = all_legs.where(extraction_status: "completed")
-            extracted_count = completed_legs.count
-            total_count = all_legs.count
-
             {
               code: country.code,
               name: country.name,
               flag_emoji: country.flag_emoji,
               status: status,
               last_crawled_at: country.last_crawled_at,
-              legislation_count: total_count,
-              extraction_completed: extracted_count,
-              extraction_processing: all_legs.where(extraction_status: "processing").count,
-              content_size: completed_legs.sum("LENGTH(COALESCE(content, ''))"),
-              token_count: completed_legs.sum(:token_count)
+              legislation_count: s[:total],
+              extraction_completed: s[:completed],
+              extraction_processing: s[:processing],
+              content_size: s[:content_size],
+              token_count: s[:tokens]
             }
           end
         end
