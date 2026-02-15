@@ -114,12 +114,14 @@ export function CountryPicker({
           break;
         }
         case 'ArrowDown': {
-          const next = highlightIndex + GRID_COLS < len ? highlightIndex + GRID_COLS : highlightIndex;
+          const next =
+            highlightIndex + GRID_COLS < len ? highlightIndex + GRID_COLS : highlightIndex;
           navigate(next);
           break;
         }
         case 'ArrowUp': {
-          const prev = highlightIndex - GRID_COLS >= 0 ? highlightIndex - GRID_COLS : highlightIndex;
+          const prev =
+            highlightIndex - GRID_COLS >= 0 ? highlightIndex - GRID_COLS : highlightIndex;
           navigate(prev);
           break;
         }

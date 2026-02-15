@@ -32,6 +32,7 @@ interface SidebarProps {
   onSelectChat: (id: string) => void;
   onNewChat: () => void;
   onDeleteChat: (id: string) => void;
+  onClose?: () => void;
 }
 
 function chatLabel(chat: Chat, t: (key: string) => string): string {
@@ -57,12 +58,18 @@ export function Sidebar({
   onSelectChat,
   onNewChat,
   onDeleteChat,
+  onClose,
 }: SidebarProps) {
   const { t } = useI18n();
 
+  const handleSelectChat = (id: string) => {
+    onSelectChat(id);
+    onClose?.();
+  };
+
   return (
     <aside
-      className="border-border bg-background hidden flex-col border-e transition-[width] duration-300 ease-in-out md:flex"
+      className="border-border bg-background flex flex-col border-e transition-[width] duration-300 ease-in-out"
       style={{ width: '100%', height: '100%' }}
     >
       {/* Collapse toggle */}
@@ -99,7 +106,7 @@ export function Sidebar({
                   ? 'bg-muted/40 text-foreground'
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80'
               }`}
-              onClick={() => onSelectChat(chat.id)}
+              onClick={() => handleSelectChat(chat.id)}
               title={chatLabel(chat, t)}
             >
               <Icon className="h-4 w-4 shrink-0" />

@@ -89,7 +89,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="w-full max-w-3xl flex-1 overflow-y-auto px-4 pt-8 pb-4"
+        className="w-full max-w-3xl flex-1 overflow-y-auto px-2 pt-8 pb-4 md:px-4"
       >
         <div className="flex flex-col gap-4">
           {messages.length === 0 && (
@@ -102,7 +102,11 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               key={msg.id}
               className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={msg.role === 'user' ? 'max-w-[80%]' : 'w-[80%]'}>
+              <div
+                className={
+                  msg.role === 'user' ? 'max-w-[95%] md:max-w-[80%]' : 'w-[95%] md:w-[80%]'
+                }
+              >
                 <div className={msg.role === 'user' ? '' : 'w-full'}>
                   {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
                   {msg.toolCalls?.map((tc) => {
@@ -142,6 +146,12 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               </div>
             </div>
           ))}
+          {isStreaming && (
+            <div className="flex items-center gap-2 px-1 py-2">
+              <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />
+              <span className="text-muted-foreground text-xs">{t('chat.processing')}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -162,13 +172,6 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
       {error && (
         <div className="px-4 py-2">
           <p className="text-destructive text-sm">{error}</p>
-        </div>
-      )}
-
-      {isStreaming && (
-        <div className="flex w-full max-w-3xl items-center gap-2 px-4 py-2">
-          <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />
-          <span className="text-muted-foreground text-xs">{t('chat.processing')}</span>
         </div>
       )}
 

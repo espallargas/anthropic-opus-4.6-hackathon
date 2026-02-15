@@ -13,6 +13,7 @@ This document describes every i18n key used in the FreePath application, grouped
 | `nav.admin` | Admin | Navigation tab label that switches to the admin/legislation management view |
 | `nav.logo.alt` | FreePath Logo | Alt text for the application logo image (accessibility) |
 | `nav.design` | Design | Navigation tab label that switches to the design system reference page |
+| `nav.menu` | Menu | Accessibility label for the mobile hamburger menu button that opens the sidebar overlay |
 | `resize.tooltip` | Drag to resize | Tooltip shown when hovering over the sidebar resize handle |
 | `globe.loading` | Loading globe... | Placeholder text shown while the 3D globe component is loading on the chat page |
 

@@ -97,7 +97,7 @@ export function AdminPage() {
     <div className="bg-background text-foreground flex flex-1">
       {/* Main admin panel */}
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-4xl space-y-8 p-6">
+        <div className="mx-auto max-w-4xl space-y-8 p-3 md:p-6">
           {/* Header */}
           <div>
             <h1 className="text-xl font-semibold">{t('admin.header.title')}</h1>

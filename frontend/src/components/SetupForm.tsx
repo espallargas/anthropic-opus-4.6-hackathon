@@ -99,7 +99,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
   return (
     <div className="text-foreground flex min-h-0 flex-1">
       {/* Left: form content */}
-      <div className="flex min-w-0 flex-1 flex-col gap-6 px-12 py-10">
+      <div className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-12 md:py-10">
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (

@@ -1,4 +1,4 @@
-import { Languages, MessageSquare, Paintbrush, Palette, Settings } from 'lucide-react';
+import { Languages, Menu, MessageSquare, Paintbrush, Palette, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
@@ -20,7 +20,11 @@ function groupedThemes(t: (key: string) => string) {
   return groups;
 }
 
-export function Navbar() {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Navbar({ onMenuClick }: NavbarProps) {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
@@ -38,6 +42,15 @@ export function Navbar() {
   return (
     <nav className="border-border bg-background flex h-12 shrink-0 items-center justify-between border-b px-4">
       <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="text-muted-foreground hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors md:hidden"
+            title={t('nav.menu')}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
         <img
           src="/logo.png"
           alt={t('nav.logo.alt')}
@@ -54,11 +67,11 @@ export function Navbar() {
             className="border-border text-muted-foreground hover:border-input hover:text-foreground/80 flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors"
           >
             <btn.icon className="h-3.5 w-3.5" />
-            <span>{btn.label}</span>
+            <span className="hidden sm:inline">{btn.label}</span>
           </button>
         ))}
 
-        <Palette className="text-muted-foreground h-4 w-4" />
+        <Palette className="text-muted-foreground hidden h-4 w-4 sm:block" />
         <select
           value={theme}
           onChange={(e) => setTheme(e.target.value as ThemeId)}
@@ -75,7 +88,7 @@ export function Navbar() {
           ))}
         </select>
 
-        <Languages className="text-muted-foreground h-4 w-4" />
+        <Languages className="text-muted-foreground hidden h-4 w-4 sm:block" />
         <select
           value={locale}
           onChange={(e) => setLocale(e.target.value as Locale)}
