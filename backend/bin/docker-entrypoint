@@ -2,8 +2,11 @@
 
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-  ./bin/rails db:seed
+  echo "==> Running db:prepare..."
+  ./bin/rails db:prepare || echo "WARNING: db:prepare failed, continuing..."
+  echo "==> Running db:seed..."
+  ./bin/rails db:seed || echo "WARNING: db:seed failed, continuing..."
+  echo "==> Starting server..."
 fi
 
 exec "${@}"
