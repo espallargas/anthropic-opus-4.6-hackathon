@@ -48,7 +48,7 @@ module Api
             "COUNT(*) AS total_count",
             "COUNT(*) FILTER (WHERE extraction_status = 'completed') AS completed_count",
             "COUNT(*) FILTER (WHERE extraction_status = 'processing') AS processing_count",
-            "SUM(CASE WHEN extraction_status = 'completed' THEN LENGTH(COALESCE(content, '')) ELSE 0 END) AS content_size",
+            "COALESCE(SUM(token_count), 0) * 4 AS content_size",
             "COALESCE(SUM(token_count), 0) AS total_tokens"
           )
 

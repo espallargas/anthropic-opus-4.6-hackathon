@@ -86,6 +86,10 @@ test:
 #
 production:
   <<: *default
-  database: backend_production
-  username: backend
-  password: <%= ENV["BACKEND_DATABASE_PASSWORD"] %>
+  url: <%= ENV["DATABASE_URL"] %>
+  prepared_statements: true
+  checkout_timeout: 5
+  variables:
+    statement_timeout: "30s"
+    lock_timeout: "10s"
+  connect_timeout: 5
