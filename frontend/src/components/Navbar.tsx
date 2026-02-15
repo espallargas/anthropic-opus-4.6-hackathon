@@ -3,6 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { Locale } from '@/lib/i18n';
 import { useI18n } from '@/lib/i18n';
 import { useTheme, THEMES, type ThemeId, type ThemeMood } from '@/lib/theme';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const MOOD_ORDER: ThemeMood[] = ['clean', 'tech', 'warm', 'bold'];
 
@@ -20,6 +29,15 @@ function groupedThemes(t: (key: string) => string) {
   return groups;
 }
 
+const LOCALE_OPTIONS: { value: Locale; label: string }[] = [
+  { value: 'pt-BR', label: '🇧🇷 🇵🇹 Português' },
+  { value: 'en', label: '🇺🇸 🇬🇧 English' },
+  { value: 'ar', label: 'العربية' },
+];
+
+const COMPACT_TRIGGER =
+  'h-8 min-w-0 w-auto gap-1.5 rounded-md border-border bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground hover:border-input hover:text-foreground/90 focus:ring-0 focus:ring-offset-0 transition-colors';
+
 interface NavbarProps {
   onMenuClick?: () => void;
 }
@@ -32,6 +50,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const currentPath = location.pathname;
 
   const groups = groupedThemes(t);
+  const currentLocaleLabel = LOCALE_OPTIONS.find((o) => o.value === locale)?.label ?? locale;
 
   const NAV_BUTTONS = [
     { path: '/', label: t('nav.chat'), icon: MessageSquare },
@@ -72,38 +91,40 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         ))}
 
         <Palette className="text-muted-foreground hidden h-4 w-4 sm:block" />
-        <select
-          value={theme}
-          onChange={(e) => setTheme(e.target.value as ThemeId)}
-          className="border-border bg-muted/30 text-muted-foreground hover:border-input hover:text-foreground/90 cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors outline-none"
-        >
-          {groups.map((group) => (
-            <optgroup key={group.mood} label={`── ${group.label} ──`} className="bg-background">
-              {group.themes.map((th) => (
-                <option key={th.id} value={th.id} className="bg-background">
-                  {th.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <Select value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
+          <SelectTrigger className={COMPACT_TRIGGER}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((group, i) => (
+              <SelectGroup key={group.mood}>
+                {i > 0 && <div className="bg-border mx-1 my-1 h-px" />}
+                <SelectLabel className="ps-2 text-[10px] uppercase tracking-wider">
+                  {group.label}
+                </SelectLabel>
+                {group.themes.map((th) => (
+                  <SelectItem key={th.id} value={th.id} className="text-xs">
+                    {th.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Languages className="text-muted-foreground hidden h-4 w-4 sm:block" />
-        <select
-          value={locale}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-          className="border-border bg-muted/30 text-muted-foreground hover:border-input hover:text-foreground/90 cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors outline-none"
-        >
-          <option value="pt-BR" className="bg-background">
-            🇧🇷 🇵🇹 Português
-          </option>
-          <option value="en" className="bg-background">
-            🇺🇸 🇬🇧 English
-          </option>
-          <option value="ar" className="bg-background">
-            العربية
-          </option>
-        </select>
+        <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
+          <SelectTrigger className={COMPACT_TRIGGER}>
+            <SelectValue>{currentLocaleLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {LOCALE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </nav>
   );
