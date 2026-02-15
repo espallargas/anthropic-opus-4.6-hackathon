@@ -1,17 +1,56 @@
 import { AgentCard } from '@/components/AgentCard';
 import { ChatContextBar } from '@/components/ChatContextBar';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { ThinkingCard } from '@/components/ThinkingCard';
 import { ToolCallCard } from '@/components/ToolCallCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { UsageBadge } from '@/components/UsageBadge';
 import { useChat } from '@/hooks/useChat';
 import type { ChatMessage, Chat as ChatType } from '@/lib/chatStore';
 import { useI18n } from '@/lib/i18n';
-import { ArrowDown, Loader2, SendHorizonal, Square } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Pill } from '@/components/ui/Pill';
+import {
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  Compass,
+  FileCheck,
+  FileText,
+  Loader2,
+  Square,
+} from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react';
+
+const FAQ_PILLS = [
+  {
+    labelKey: 'chat.faq.visaOptions',
+    promptKey: 'chat.faq.visaOptions.prompt',
+    icon: <FileCheck className="h-3 w-3" />,
+  },
+  {
+    labelKey: 'chat.faq.requiredDocs',
+    promptKey: 'chat.faq.requiredDocs.prompt',
+    icon: <FileText className="h-3 w-3" />,
+  },
+  {
+    labelKey: 'chat.faq.timeline',
+    promptKey: 'chat.faq.timeline.prompt',
+    icon: <Clock className="h-3 w-3" />,
+  },
+  {
+    labelKey: 'chat.faq.gettingStarted',
+    promptKey: 'chat.faq.gettingStarted.prompt',
+    icon: <Compass className="h-3 w-3" />,
+  },
+];
 
 interface ChatProps {
   chat: ChatType;
@@ -24,7 +63,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
   const [input, setInput] = useState('');
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const userScrolledRef = useRef(false);
 
   const isStreaming = status === 'streaming';
@@ -61,12 +100,12 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
 
   useEffect(() => {
     if (!isStreaming) {
-      inputRef.current?.focus();
+      textareaRef.current?.focus();
     }
   }, [isStreaming]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape' && isStreaming) {
         stopStreaming();
       }
@@ -75,11 +114,22 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStreaming, stopStreaming]);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const doSend = useCallback(() => {
     if (!input.trim() || isStreaming) return;
     sendMessage(input);
     setInput('');
+  }, [input, isStreaming, sendMessage]);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    doSend();
+  };
+
+  const handleTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      doSend();
+    }
   };
 
   return (
@@ -128,14 +178,14 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                     className={`rounded-lg px-4 py-2 text-sm ${
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground whitespace-pre-wrap'
-                        : 'text-foreground prose prose-invert prose-sm max-w-none [&_li]:leading-[1.85] [&_p]:leading-[1.85]'
+                        : 'text-foreground prose prose-sm prose-themed max-w-none [&_li]:leading-[1.85] [&_p]:leading-[1.85]'
                     }`}
                   >
                     {msg.content ? (
                       msg.role === 'user' ? (
                         msg.content
                       ) : (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        <MarkdownRenderer content={msg.content} />
                       )
                     ) : (
                       <span className="text-muted-foreground animate-pulse">...</span>
@@ -175,31 +225,57 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
         </div>
       )}
 
-      <div className="w-full max-w-3xl p-4">
-        <form onSubmit={handleSubmit} className="flex w-full gap-2">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t('chat.placeholder')}
-            disabled={isStreaming}
-            autoFocus
-          />
-          {isStreaming ? (
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              onClick={stopStreaming}
-              title={t('chat.stop')}
-            >
-              <Square className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button type="submit" size="icon" disabled={!input.trim()} title={t('chat.send')}>
-              <SendHorizonal className="h-4 w-4 rtl:-scale-x-100" />
-            </Button>
-          )}
+      <div className="w-full max-w-3xl px-3 pt-2 pb-4">
+        <form onSubmit={handleSubmit}>
+          <div className="border-border bg-card rounded-2xl border p-3">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleTextareaKeyDown}
+              placeholder={t('chat.placeholder')}
+              disabled={isStreaming}
+              autoFocus
+              rows={1}
+              className="max-h-48 min-h-[2.5rem] w-full resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+            />
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <div className="flex flex-wrap gap-2">
+                {FAQ_PILLS.map((pill) => (
+                  <Pill
+                    key={pill.labelKey}
+                    icon={pill.icon}
+                    size="sm"
+                    onClick={() => sendMessage(t(pill.promptKey))}
+                  >
+                    {t(pill.labelKey)}
+                  </Pill>
+                ))}
+              </div>
+              {isStreaming ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-sm"
+                  className="shrink-0 rounded-xl transition-all duration-200"
+                  onClick={stopStreaming}
+                  title={t('chat.stop')}
+                >
+                  <Square className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="icon-sm"
+                  className="shrink-0 rounded-xl transition-all duration-200"
+                  disabled={!input.trim()}
+                  title={t('chat.send')}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
         </form>
       </div>
     </div>

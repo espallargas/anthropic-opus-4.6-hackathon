@@ -38,6 +38,8 @@ This document describes every i18n key used in the FreePath application, grouped
 | `chat.stop` | Stop (Esc) | Button label to interrupt/stop the AI response while it is streaming. Includes keyboard shortcut hint. |
 | `chat.send` | Send | Button label (and tooltip) for submitting a chat message |
 | `chat.processing` | Processing... | Status indicator shown while the backend is processing the user's message before streaming begins |
+| `chat.copy` | Copy | Tooltip/label on the copy button in the header of fenced code blocks in assistant messages |
+| `chat.copied` | Copied! | Temporary feedback label shown after the user clicks the copy button, confirming the code was copied to clipboard |
 | `chat.interrupted` | *[response interrupted]* | Inline text appended to a message when the user stopped the AI response mid-stream. Rendered as italic markdown. |
 
 ## Greeting
@@ -93,6 +95,19 @@ This document describes every i18n key used in the FreePath application, grouped
 | `setup.objective.permanent_residence` | Permanent residence | Selectable option for immigration objective -- long-term residency |
 | `setup.objective.other` | Other | Selectable option for immigration objective -- freeform/custom objective |
 | `setup.objective.other.placeholder` | Describe your objective... | Placeholder text in the freeform input shown when "Other" is selected |
+
+## Chat FAQ Pills
+
+| Key | English | Context |
+|-----|---------|---------|
+| `chat.faq.visaOptions` | Visa options | Short label on a quick-action pill in the chat input area; clicking sends the verbose prompt |
+| `chat.faq.visaOptions.prompt` | I'd like to know what visa options are available for my type of migration. | Verbose message sent to the AI when the "Visa options" FAQ pill is clicked |
+| `chat.faq.requiredDocs` | Required documents | Short label on a quick-action pill in the chat input area |
+| `chat.faq.requiredDocs.prompt` | What documents do I need to start the immigration process? | Verbose message sent to the AI when the "Required documents" FAQ pill is clicked |
+| `chat.faq.timeline` | Timeline & costs | Short label on a quick-action pill in the chat input area |
+| `chat.faq.timeline.prompt` | What are the estimated timelines and costs involved in the immigration process? | Verbose message sent to the AI when the "Timeline & costs" FAQ pill is clicked |
+| `chat.faq.gettingStarted` | Where to start? | Short label on a quick-action pill in the chat input area |
+| `chat.faq.gettingStarted.prompt` | Where do I start? What is the first step to begin my immigration process? | Verbose message sent to the AI when the "Where to start?" FAQ pill is clicked |
 
 ## Chat Context Bar
 
