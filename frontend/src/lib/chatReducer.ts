@@ -79,6 +79,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             agentName: action.agentName,
             agentLabel: action.agentLabel,
             task: action.task,
+            toolCallId: action.toolCallId,
             status: 'running',
             toolCalls: [],
           },
@@ -122,17 +123,22 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
         ),
       };
 
-    case 'AGENT_END':
+    case 'AGENT_END': {
+      const matchAgent = (ae: AgentExecution) => {
+        if (action.toolCallId && ae.toolCallId) return ae.toolCallId === action.toolCallId;
+        return ae.agentName === action.agentName && ae.status === 'running';
+      };
+      const matchToolCall = (tc: ToolCall) => {
+        if (action.toolCallId) return tc.id === action.toolCallId && tc.status === 'calling';
+        return tc.name === action.agentName && tc.status === 'calling';
+      };
       return {
         ...state,
-        // Mark the corresponding tool call as done (agent_name matches tool name)
         toolCalls: state.toolCalls.map((tc) =>
-          tc.name === action.agentName && tc.status === 'calling'
-            ? { ...tc, status: 'done' as const }
-            : tc,
+          matchToolCall(tc) ? { ...tc, status: 'done' as const } : tc,
         ),
         agentExecutions: state.agentExecutions.map((ae) =>
-          ae.agentName === action.agentName && ae.status === 'running'
+          matchAgent(ae)
             ? {
                 ...ae,
                 status: 'done' as const,
@@ -143,6 +149,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
             : ae,
         ),
       };
+    }
 
     case 'USAGE_REPORT':
       return { ...state, usageReport: action.report };

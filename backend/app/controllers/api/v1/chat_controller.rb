@@ -233,7 +233,7 @@ module Api
           tool_result = if SERVER_TOOLS.include?(tb[:name])
                           handle_server_tool(tb)
                         elsif programmatic_call?(tb)
-                          result = executor.execute(tb[:name], tb[:input])
+                          result = executor.execute(tb[:name], tb[:input], tool_call_id: tb[:id])
 
                           # Track per-agent token usage
                           if result[:usage]

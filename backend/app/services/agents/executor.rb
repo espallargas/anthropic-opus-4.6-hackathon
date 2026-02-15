@@ -35,7 +35,7 @@ module Agents
       @sse = sse
     end
 
-    def execute(tool_name, tool_input)
+    def execute(tool_name, tool_input, tool_call_id: nil)
       validate_tool_name!(tool_name)
 
       agent_class = AGENTS.fetch(tool_name)
@@ -43,7 +43,8 @@ module Agents
       task_description = describe_task(tool_name, tool_input)
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      emit(:agent_start, agent_name: tool_name, agent_label: agent_label, task: task_description)
+      emit(:agent_start, agent_name: tool_name, agent_label: agent_label, task: task_description,
+                         tool_call_id: tool_call_id)
 
       result = agent_class.new(tool_input: tool_input, system_vars: system_vars, sse: sse).call
 
@@ -52,6 +53,7 @@ module Agents
 
       emit(:agent_end,
            agent_name: tool_name,
+           tool_call_id: tool_call_id,
            result_summary: summary,
            usage: result[:usage] || {},
            duration_ms: duration_ms)
@@ -66,7 +68,8 @@ module Agents
                     else
                       0
                     end
-      emit(:agent_end, agent_name: tool_name, result_summary: "Error: #{e.message}", duration_ms: duration_ms)
+      emit(:agent_end, agent_name: tool_name, tool_call_id: tool_call_id,
+                       result_summary: "Error: #{e.message}", duration_ms: duration_ms)
 
       { success: false, error: e.message }
     end

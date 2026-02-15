@@ -23,6 +23,7 @@ export interface AgentExecution {
   agentName: string;
   agentLabel: string;
   task: string;
+  toolCallId?: string;
   status: 'running' | 'done' | 'error';
   toolCalls: AgentToolCall[];
   tokens?: string;

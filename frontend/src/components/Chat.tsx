@@ -172,7 +172,9 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                 <div className={msg.role === 'user' ? '' : 'w-full'}>
                   {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
                   {msg.toolCalls?.map((tc) => {
-                    const agent = msg.agentExecutions?.find((ae) => ae.agentName === tc.name);
+                    const agent = msg.agentExecutions?.find((ae) =>
+                      ae.toolCallId ? ae.toolCallId === tc.id : ae.agentName === tc.name,
+                    );
                     return (
                       <ToolCallCard key={tc.id} toolCall={tc} waiting={!agent}>
                         {agent && <AgentCard agent={agent} />}
@@ -180,9 +182,14 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                     );
                   })}
                   {msg.agentExecutions
-                    ?.filter((ae) => !msg.toolCalls?.some((tc) => tc.name === ae.agentName))
+                    ?.filter(
+                      (ae) =>
+                        !msg.toolCalls?.some((tc) =>
+                          ae.toolCallId ? ae.toolCallId === tc.id : tc.name === ae.agentName,
+                        ),
+                    )
                     .map((ae) => (
-                      <AgentCard key={`${ae.agentName}-${ae.task}`} agent={ae} />
+                      <AgentCard key={ae.toolCallId ?? `${ae.agentName}-${ae.task}`} agent={ae} />
                     ))}
                 </div>
                 {(msg.content || !msg.toolCalls?.length) && (

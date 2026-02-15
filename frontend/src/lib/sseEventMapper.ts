@@ -30,7 +30,13 @@ export type ChatAction =
   | { type: 'THINKING_START'; thinkingType?: string; thinkingEffort?: string }
   | { type: 'THINKING_TOKEN'; token: string }
   | { type: 'THINKING_END' }
-  | { type: 'AGENT_START'; agentName: string; agentLabel: string; task: string }
+  | {
+      type: 'AGENT_START';
+      agentName: string;
+      agentLabel: string;
+      task: string;
+      toolCallId?: string;
+    }
   | { type: 'AGENT_TOKEN'; agentName: string; token: string }
   | { type: 'AGENT_TOOL_START'; agentName: string; toolCall: AgentToolCall }
   | {
@@ -42,6 +48,7 @@ export type ChatAction =
   | {
       type: 'AGENT_END';
       agentName: string;
+      toolCallId?: string;
       resultSummary: string;
       usage?: TokenUsage;
       durationMs?: number;
@@ -97,6 +104,7 @@ export function mapSSEEvent(raw: RawSSEEvent): ChatAction | null {
             agentName: raw.agent_name,
             agentLabel: raw.agent_label ?? raw.agent_name,
             task: raw.task ?? '',
+            toolCallId: raw.tool_call_id,
           }
         : null;
 
@@ -134,6 +142,7 @@ export function mapSSEEvent(raw: RawSSEEvent): ChatAction | null {
         ? {
             type: 'AGENT_END',
             agentName: raw.agent_name,
+            toolCallId: raw.tool_call_id,
             resultSummary: raw.result_summary ?? '',
             usage: raw.usage,
             durationMs: raw.duration_ms,
