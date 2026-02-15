@@ -18,8 +18,32 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
   const isRunning = agent.status === 'running';
   const isDone = agent.status === 'done';
   const [expanded, setExpanded] = useState(isRunning);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const tokensRef = useRef<HTMLParagraphElement>(null);
   const hasAutoCollapsed = useRef(false);
+  const startTimeRef = useRef<number | null>(null);
+
+  // Track elapsed time while running
+  useEffect(() => {
+    if (isRunning && !startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      startTimeRef.current = null;
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (startTimeRef.current) {
+        setElapsedMs(Date.now() - startTimeRef.current);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
   // Auto-scroll to bottom as tokens stream in
   useEffect(() => {
@@ -59,10 +83,10 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
   const isError = agent.status === 'error';
 
   const timingBadge =
-    isDone && agent.durationMs != null
-      ? `${Math.round(agent.durationMs / 1000)}s`
-      : isRunning
-        ? t('agent.analyzing')
+    isRunning
+      ? `${Math.round(elapsedMs / 1000)}s`
+      : isDone && agent.durationMs != null
+        ? `${Math.round(agent.durationMs / 1000)}s`
         : isError
           ? t('agent.cancelled')
           : null;
@@ -81,11 +105,6 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
       >
         <StatusIcon className={statusIconClass} />
         <span className="text-foreground/80 flex-1 truncate font-medium">{label}</span>
-        {agent.task && (
-          <span className="text-muted-foreground/50 hidden max-w-[120px] truncate text-[10px] sm:inline">
-            {agent.task}
-          </span>
-        )}
         {timingBadge && (
           <span className="bg-muted/40 text-muted-foreground/70 rounded px-1.5 py-0.5 text-[10px]">
             {timingBadge}
