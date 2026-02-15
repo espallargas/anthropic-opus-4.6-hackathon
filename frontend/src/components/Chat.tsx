@@ -1,5 +1,5 @@
 import { AgentCard } from '@/components/AgentCard';
-import { ChatContextBar } from '@/components/ChatContextBar';
+import { SelectionSummary } from '@/components/SelectionSummary';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { ThinkingCard } from '@/components/ThinkingCard';
 import { ToolCallCard } from '@/components/ToolCallCard';
@@ -133,8 +133,20 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
   };
 
   return (
-    <div className="flex h-full w-full flex-col items-center backdrop-blur-md">
-      <ChatContextBar systemVars={chat.systemVars} />
+    <div className="relative flex h-full w-full flex-col items-center backdrop-blur-md">
+      <div className="absolute end-4 top-4 z-20 hidden w-64 md:block">
+        <SelectionSummary
+          nationalities={
+            chat.systemVars.nationality
+              ? chat.systemVars.nationality.split(', ').filter(Boolean)
+              : []
+          }
+          origin={chat.systemVars.origin_country}
+          destination={chat.systemVars.destination_country}
+          objective={chat.systemVars.objective}
+          t={t}
+        />
+      </div>
 
       <div
         ref={scrollRef}

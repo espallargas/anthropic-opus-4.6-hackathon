@@ -61,7 +61,7 @@ interface CodeBlockProps {
 function CodeBlock({ language, children }: CodeBlockProps) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(children).then(() => {

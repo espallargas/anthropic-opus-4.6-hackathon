@@ -4,6 +4,15 @@ This document describes every i18n key used in the FreePath application, grouped
 
 ---
 
+## Home
+
+| Key | English | Context |
+|-----|---------|---------|
+| `home.subtitle` | Your personal immigration assistant | Subtitle shown below the logo on the home page |
+| `home.cta` | Start a new chat | Primary call-to-action button label on the home page to begin a new chat session |
+| `home.or` | or | Divider text between the CTA button and the recent chats section, used for storytelling flow |
+| `home.resume` | Resume a recent conversation | Section heading on the home page inviting users to continue a previous chat |
+
 ## App & Navigation
 
 | Key | English | Context |
@@ -75,6 +84,7 @@ This document describes every i18n key used in the FreePath application, grouped
 | `setup.step.nationalities` | Nationalities | Step title in the multi-step wizard for the nationalities step |
 | `setup.step.nationalities.description` | List all your current nationalities | Helper text prompting the user to enter all nationalities they hold |
 | `setup.step.destination` | Destination country | Step title in the multi-step wizard for the destination selection step |
+| `setup.step.destination.description` | Which country do you want to go to? | Helper text below the destination step title, guiding the user on what to select |
 | `setup.step.objective` | Objective | Step title in the multi-step wizard for the objective selection step |
 | `setup.step.objective.description` | What is your reason for going to the destination country? | Helper text guiding the user to pick their immigration objective |
 | `setup.next` | Next | Button label to advance to the next step of the wizard |

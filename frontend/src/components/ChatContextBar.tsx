@@ -24,14 +24,16 @@ const OBJECTIVE_ICON_MAP: Record<string, React.ReactNode> = {
   'setup.objective.other': <MoreHorizontal className="h-3.5 w-3.5" />,
 };
 
-function getObjectiveIcon(objective: string): React.ReactNode {
-  // Direct key match (new format) or fallback for legacy translated values
-  return OBJECTIVE_ICON_MAP[objective] ?? OBJECTIVE_ICON_MAP['setup.objective.other'];
+function getFirstObjectiveIcon(objective: string): React.ReactNode {
+  const first = objective.split(', ')[0];
+  return OBJECTIVE_ICON_MAP[first] ?? OBJECTIVE_ICON_MAP['setup.objective.other'];
 }
 
 function resolveObjective(objective: string, t: (key: string) => string): string {
-  if (objective.startsWith('setup.objective.')) return t(objective);
-  return objective;
+  return objective
+    .split(', ')
+    .map((k) => (k.startsWith('setup.objective.') ? t(k) : k))
+    .join(', ');
 }
 
 interface ChatContextBarProps {
@@ -45,7 +47,7 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
   const destName = getCountryNameLocalized(systemVars.destination_country, t);
   const originFlag = countryCodeToFlag(systemVars.origin_country);
   const destFlag = countryCodeToFlag(systemVars.destination_country);
-  const objectiveIcon = getObjectiveIcon(systemVars.objective);
+  const objectiveIcon = getFirstObjectiveIcon(systemVars.objective);
   const nationalities = systemVars.nationality
     ? systemVars.nationality.split(', ').filter(Boolean)
     : [];

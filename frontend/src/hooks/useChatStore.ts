@@ -37,7 +37,7 @@ export interface UseChatStoreReturn {
   activeChatId: string | null;
   activeChat: Chat | null;
   createChat: (systemVars: SystemVars, initialMessages?: ChatMessage[]) => string;
-  selectChat: (id: string) => void;
+  selectChat: (id: string | null) => void;
   deleteChat: (id: string) => void;
   updateMessages: (id: string, messages: ChatMessage[]) => void;
 }
@@ -71,7 +71,7 @@ export function useChatStore(): UseChatStoreReturn {
     [],
   );
 
-  const selectChat = useCallback((id: string) => {
+  const selectChat = useCallback((id: string | null) => {
     setActiveChatId(id);
   }, []);
 

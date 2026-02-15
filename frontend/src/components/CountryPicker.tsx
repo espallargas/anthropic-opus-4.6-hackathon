@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { countryCentroids, countryCodeToFlag, getCountryNameLocalized } from '@/lib/countries';
 import { useI18n } from '@/lib/i18n';
 
@@ -7,6 +7,7 @@ interface CountryPickerProps {
   onChange: (value: string | string[]) => void;
   multiple?: boolean;
   exclude?: string[];
+  navSlot?: ReactNode;
 }
 
 export function CountryPicker({
@@ -14,6 +15,7 @@ export function CountryPicker({
   onChange,
   multiple = false,
   exclude = [],
+  navSlot,
 }: CountryPickerProps) {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
@@ -45,7 +47,6 @@ export function CountryPicker({
     return list.filter((c) => c.name.toLowerCase().includes(q));
   }, [search, countries, exclude]);
 
-  // Reset highlight when filtered list changes
   useEffect(() => {
     setHighlightIndex(-1);
   }, [filtered.length]);
@@ -71,8 +72,11 @@ export function CountryPicker({
   );
 
   const removeTag = (code: string) => {
-    if (!multiple) return;
-    onChange((value as string[]).filter((c) => c !== code));
+    if (multiple) {
+      onChange((value as string[]).filter((c) => c !== code));
+    } else {
+      onChange('');
+    }
   };
 
   const scrollHighlightedIntoView = useCallback((index: number) => {
@@ -94,7 +98,6 @@ export function CountryPicker({
         scrollHighlightedIntoView(next);
       };
 
-      // When nothing is highlighted yet, any arrow enters the grid at index 0
       if (highlightIndex < 0) {
         if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) {
           navigate(0);
@@ -137,28 +140,54 @@ export function CountryPicker({
     [filtered, highlightIndex, handleSelect, scrollHighlightedIntoView],
   );
 
+  const showChip = !multiple && value;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {/* Selected tags for multi-select */}
-      {multiple && selectedCodes.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selectedCodes.map((code) => (
-            <span
-              key={code}
-              className="bg-muted/50 text-foreground flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
-            >
-              {countryCodeToFlag(code)} {getCountryNameLocalized(code, t)}
-              <button
-                type="button"
-                onClick={() => removeTag(code)}
-                className="text-muted-foreground hover:text-foreground ms-0.5 cursor-pointer"
+      {/* Pills + nav buttons row */}
+      <div className="flex items-center gap-3">
+        {/* Multi-select tags */}
+        {multiple && selectedCodes.length > 0 && (
+          <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+            {selectedCodes.map((code) => (
+              <span
+                key={code}
+                className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm"
               >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+                <span className="text-base">{countryCodeToFlag(code)}</span>
+                {getCountryNameLocalized(code, t)}
+                <button
+                  type="button"
+                  onClick={() => removeTag(code)}
+                  className="text-muted-foreground hover:text-foreground ms-0.5 cursor-pointer"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Single-select chip */}
+        {showChip && (
+          <span className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm">
+            <span className="text-base">{countryCodeToFlag(value as string)}</span>
+            {getCountryNameLocalized(value as string, t)}
+            <button
+              type="button"
+              onClick={() => removeTag(value as string)}
+              className="text-muted-foreground hover:text-foreground ms-0.5 cursor-pointer"
+            >
+              ×
+            </button>
+          </span>
+        )}
+
+        {/* Spacer when no pills */}
+        {!multiple && !showChip && <div className="flex-1" />}
+
+        {navSlot && <div className="ms-auto shrink-0">{navSlot}</div>}
+      </div>
 
       <input
         ref={inputRef}
@@ -169,6 +198,7 @@ export function CountryPicker({
         placeholder={t('setup.search.placeholder')}
         className="border-border bg-muted/30 text-foreground placeholder-muted-foreground/70 focus:border-input w-full rounded-lg border px-4 py-2.5 text-sm transition-colors outline-none"
       />
+
       <div
         ref={listRef}
         className="grid min-h-0 flex-1 grid-cols-3 content-start gap-1.5 overflow-y-auto p-1"

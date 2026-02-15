@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { CountryPicker } from '@/components/CountryPicker';
 import { ObjectivePicker } from '@/components/ObjectivePicker';
+import { SelectionSummary } from '@/components/SelectionSummary';
 import { Globe } from '@/components/Globe';
 import type { SystemVars } from '@/lib/chatStore';
 
@@ -35,7 +36,6 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
   const [destination, setDestination] = useState(defaultValues?.destination_country ?? '');
   const [objective, setObjective] = useState(defaultValues?.objective ?? '');
 
-  // Order: Nationality > Origin > Destination > Objective
   const steps = [
     {
       title: t('setup.step.nationalities'),
@@ -47,7 +47,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
     },
     {
       title: t('setup.step.destination'),
-      description: undefined,
+      description: t('setup.step.destination.description'),
     },
     {
       title: t('setup.step.objective'),
@@ -63,8 +63,11 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
         return origin !== '';
       case 2:
         return destination !== '';
-      case 3:
-        return objective !== '' && objective !== 'setup.objective.other';
+      case 3: {
+        if (!objective) return false;
+        const parts = objective.split(', ').filter(Boolean);
+        return parts.length > 0 && parts.some((p) => p !== 'setup.objective.other');
+      }
       default:
         return false;
     }
@@ -93,8 +96,40 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
     setStep((s) => s - 1);
   };
 
-  const showGlobe = step === 1 || step === 2;
+  const showGlobe = step === 1 || step === 2 || step === 3;
   const currentStep = steps[step];
+  const hasSummary =
+    nationalities.length > 0 || origin !== '' || destination !== '' || objective !== '';
+
+  const navButtons = (
+    <div className="flex items-center gap-2">
+      {step > 0 ? (
+        <button
+          type="button"
+          onClick={goBack}
+          className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
+        >
+          {t('setup.back')}
+        </button>
+      ) : onCancel ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
+        >
+          {t('setup.cancel')}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={goNext}
+        disabled={!isStepValid()}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer rounded-lg px-6 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        {step === TOTAL_STEPS - 1 ? t('setup.start') : t('setup.next')}
+      </button>
+    </div>
+  );
 
   return (
     <div className="text-foreground flex min-h-0 flex-1">
@@ -128,73 +163,68 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
             )}
           </div>
 
-          {/* Input area — order: Nationality, Origin, Destination, Objective */}
+          {/* Input area */}
           {step === 0 && (
             <CountryPicker
               value={nationalities}
               onChange={(v) => setNationalities(v as string[])}
               multiple
+              navSlot={navButtons}
             />
           )}
-          {step === 1 && <CountryPicker value={origin} onChange={(v) => setOrigin(v as string)} />}
+          {step === 1 && (
+            <CountryPicker
+              value={origin}
+              onChange={(v) => setOrigin(v as string)}
+              navSlot={navButtons}
+            />
+          )}
           {step === 2 && (
             <CountryPicker
               value={destination}
               onChange={(v) => setDestination(v as string)}
               exclude={origin ? [origin] : []}
+              navSlot={navButtons}
             />
           )}
-          {step === 3 && <ObjectivePicker value={objective} onChange={setObjective} />}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={goBack}
-              className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
-            >
-              {t('setup.back')}
-            </button>
-          ) : onCancel ? (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors"
-            >
-              {t('setup.cancel')}
-            </button>
-          ) : (
-            <div />
+          {step === 3 && (
+            <>
+              <ObjectivePicker value={objective} onChange={setObjective} />
+              <div className="flex justify-end">{navButtons}</div>
+            </>
           )}
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!isStepValid()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer rounded-lg px-6 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            {step === TOTAL_STEPS - 1 ? t('setup.start') : t('setup.next')}
-          </button>
         </div>
       </div>
 
-      {/* Right: Globe (steps 1-2, with fade animation) */}
-      {step < 3 && (
+      {/* Right: Globe + Summary card */}
+      <div
+        className={`relative hidden flex-1 transition-all duration-700 ease-in-out md:block ${
+          showGlobe ? 'max-w-[50%] opacity-100' : 'max-w-0 opacity-0'
+        }`}
+      >
         <div
-          className={`relative hidden flex-1 transition-all duration-700 ease-in-out md:block ${
-            showGlobe ? 'max-w-[50%] opacity-100' : 'max-w-0 opacity-0'
+          className={`absolute inset-0 transition-transform duration-700 ease-in-out ${
+            showGlobe ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
           }`}
         >
-          <div
-            className={`absolute inset-0 transition-transform duration-700 ease-in-out ${
-              showGlobe ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
-            }`}
-          >
-            <Globe origin={origin} destination={destination} />
-          </div>
+          <Globe origin={origin} destination={destination} />
         </div>
-      )}
+        {/* Blur edge to blend globe into form area */}
+        <div className="from-background pointer-events-none absolute inset-y-0 start-0 z-10 w-24 bg-gradient-to-r to-transparent rtl:bg-gradient-to-l" />
+
+        {/* Selection summary card — top of globe area */}
+        {hasSummary && (
+          <div className="animate-fade-in absolute end-4 top-4 z-20 w-64">
+            <SelectionSummary
+              nationalities={nationalities}
+              origin={origin}
+              destination={destination}
+              objective={objective}
+              t={t}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

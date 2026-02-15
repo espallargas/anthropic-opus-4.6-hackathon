@@ -1,11 +1,12 @@
 import { AdminPage } from '@/components/AdminPage';
 import { Chat } from '@/components/Chat';
 import { DesignPage } from '@/components/DesignPage';
+import { HomePage } from '@/components/HomePage';
 import { Navbar } from '@/components/Navbar';
 import { SetupForm } from '@/components/SetupForm';
 import { Sidebar } from '@/components/Sidebar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChatStore } from './hooks/useChatStore';
 import type { ChatMessage, SystemVars } from './lib/chatStore';
 import { getCountryNameLocalized } from './lib/countries';
@@ -13,8 +14,10 @@ import { useI18n } from './lib/i18n';
 
 function App() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showSetup, setShowSetup] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(320); // pixels
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,10 +26,30 @@ function App() {
   const isAdmin = location.pathname === '/admin';
   const isDesign = location.pathname === '/design';
 
+  // Sync chat selection with URL
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && store.chats.some((c) => c.id === id)) {
+      store.selectChat(id);
+      setShowSetup(false);
+    } else if (location.pathname === '/' || location.pathname === '/chat') {
+      if (!id) {
+        store.selectChat(null);
+        setShowSetup(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, searchParams]);
+
   const handleSetup = (vars: SystemVars) => {
     const natNames = vars.nationality
       .split(', ')
       .map((code) => getCountryNameLocalized(code, t))
+      .join(', ');
+
+    const objectiveLabel = vars.objective
+      .split(', ')
+      .map((k) => t(k))
       .join(', ');
 
     const greeting = [
@@ -35,7 +58,7 @@ function App() {
       `- **${t('greeting.nationalities')}**: ${natNames}`,
       `- **${t('greeting.origin')}**: ${getCountryNameLocalized(vars.origin_country, t)}`,
       `- **${t('greeting.destination')}**: ${getCountryNameLocalized(vars.destination_country, t)}`,
-      `- **${t('greeting.objective')}**: ${t(vars.objective)}`,
+      `- **${t('greeting.objective')}**: ${objectiveLabel}`,
       '',
       t('greeting.closing'),
     ].join('\n');
@@ -46,8 +69,9 @@ function App() {
       content: greeting,
     };
 
-    store.createChat(vars, [initialMessage]);
+    const chatId = store.createChat(vars, [initialMessage]);
     setShowSetup(false);
+    navigate(`/chat?id=${chatId}`);
   };
 
   const handleNewChat = () => {
@@ -57,6 +81,13 @@ function App() {
   const handleSelectChat = (id: string) => {
     store.selectChat(id);
     setShowSetup(false);
+    navigate(`/chat?id=${id}`);
+  };
+
+  const handleGoHome = () => {
+    store.selectChat(null);
+    setShowSetup(false);
+    navigate('/');
   };
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -78,7 +109,6 @@ function App() {
       const isRtl = document.documentElement.dir === 'rtl';
       const newWidth = isRtl ? rect.right - e.clientX : e.clientX - rect.left;
 
-      // Constrain between 200px and 500px
       if (newWidth >= 200 && newWidth <= 500) {
         setSidebarWidth(newWidth);
       }
@@ -93,7 +123,7 @@ function App() {
     };
   }, [isResizing]);
 
-  const showingSetup = showSetup || !store.activeChat;
+  const view = showSetup ? 'setup' : store.activeChat ? 'chat' : 'home';
 
   return (
     <div className="bg-background text-foreground flex h-screen w-full flex-col">
@@ -167,13 +197,21 @@ function App() {
 
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-                {showingSetup ? (
+                {view === 'setup' && (
                   <SetupForm
                     onSubmit={handleSetup}
-                    onCancel={store.activeChat ? () => setShowSetup(false) : undefined}
+                    onCancel={store.activeChat ? () => setShowSetup(false) : handleGoHome}
                   />
-                ) : (
+                )}
+                {view === 'chat' && (
                   <Chat chat={store.activeChat!} onUpdateMessages={store.updateMessages} />
+                )}
+                {view === 'home' && (
+                  <HomePage
+                    chats={store.chats}
+                    onSelectChat={handleSelectChat}
+                    onNewChat={handleNewChat}
+                  />
                 )}
               </div>
             </div>
