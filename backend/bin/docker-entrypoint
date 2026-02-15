@@ -1,11 +1,22 @@
 #!/bin/bash -e
 
+# Retry a command up to N times with delay
+run_with_retry() {
+  local cmd="$1" retries=3 delay=5
+  for i in $(seq 1 $retries); do
+    echo "==> $cmd (attempt $i/$retries)..."
+    if eval "$cmd"; then
+      return 0
+    fi
+    [ "$i" -lt "$retries" ] && echo "    Retrying in ${delay}s..." && sleep "$delay"
+  done
+  echo "WARNING: $cmd failed after $retries attempts, continuing..."
+}
+
 # If running the rails server then create or migrate existing database
 if [ "$1" == "./bin/rails" ] && [ "$2" == "server" ]; then
-  echo "==> Running db:prepare..."
-  ./bin/rails db:prepare || echo "WARNING: db:prepare failed, continuing..."
-  echo "==> Running db:seed..."
-  ./bin/rails db:seed || echo "WARNING: db:seed failed, continuing..."
+  run_with_retry "./bin/rails db:prepare"
+  run_with_retry "./bin/rails db:seed"
   echo "==> Starting server..."
 fi
 
