@@ -1,8 +1,8 @@
 module LegislationCrawler
   # Parses streaming JSON text and saves each category as soon as its array closes.
-  # This allows Sidekiq extraction jobs to start while Claude is still outputting later categories.
+  # Extraction job IDs are collected in pending_extraction_ids and enqueued after the stream ends.
   class ProgressiveSaver
-    attr_reader :saved_categories
+    attr_reader :saved_categories, :pending_extraction_ids
 
     def initialize(country, emit_proc, parse_complete_emitted)
       @country = country
@@ -11,6 +11,7 @@ module LegislationCrawler
       @text_buffer = ""
       @saved_categories = Set.new
       @saved_count = 0
+      @pending_extraction_ids = []
     end
 
     def on_text_delta(text)
@@ -96,14 +97,14 @@ module LegislationCrawler
           next if !parsed_date || !existing.date_effective || parsed_date <= existing.date_effective
 
           new_leg = create_legislation(category_sym, item, parsed_date)
-          LegislationContentExtractorJob.perform_async(new_leg.id)
+          @pending_extraction_ids << new_leg.id
           existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
           @saved_count += 1
           next
         end
 
         new_leg = create_legislation(category_sym, item, parsed_date)
-        LegislationContentExtractorJob.perform_async(new_leg.id)
+        @pending_extraction_ids << new_leg.id
         @saved_count += 1
       end
 

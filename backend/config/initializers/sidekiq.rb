@@ -4,7 +4,7 @@ Sidekiq.configure_server do |config|
   config.redis = { url: redis_url }
 
   config.capsule("long_io") do |cap|
-    cap.concurrency = 3
+    cap.concurrency = 1
     cap.queues = %w[long_io]
   end
 end

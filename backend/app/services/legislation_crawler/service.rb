@@ -46,12 +46,17 @@ module LegislationCrawler
 
       # Save any categories not already saved during streaming
       emit(:phase, message: "Saving results to database")
-      save_results(results, already_saved: progressive_saver.saved_categories)
+      save_results_ids = save_results(results, already_saved: progressive_saver.saved_categories)
 
       country.update!(last_crawled_at: Time.current)
 
       total_docs = country.legislations.count
       emit(:complete, message: "Crawl complete", document_count: total_docs)
+
+      # Enqueue extraction jobs AFTER the stream is done to avoid CPU contention
+      all_extraction_ids = progressive_saver.pending_extraction_ids + save_results_ids
+      all_extraction_ids.each { |id| LegislationContentExtractorJob.perform_async(id) }
+      Rails.logger.info("[CRAWL] Enqueued #{all_extraction_ids.size} extraction jobs after stream completed")
 
       Rails.logger.info("Crawl complete: #{country.name} - #{total_docs} legislations")
     end
@@ -319,6 +324,7 @@ module LegislationCrawler
 
     def save_results(results, already_saved: Set.new)
       saved_count = 0
+      extraction_ids = []
 
       results.each do |category, documents|
         next if already_saved.include?(category.to_s)
@@ -344,7 +350,7 @@ module LegislationCrawler
               extraction_status: "pending",
               crawled_at: Time.current
             )
-            LegislationContentExtractorJob.perform_async(new_leg.id)
+            extraction_ids << new_leg.id
             existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
             saved_count += 1
             next
@@ -363,12 +369,14 @@ module LegislationCrawler
             extraction_status: "pending",
             crawled_at: Time.current
           )
-          LegislationContentExtractorJob.perform_async(new_leg.id)
+          extraction_ids << new_leg.id
           saved_count += 1
         end
 
         emit(:batch_saved, total_saved: country.legislations.count) if saved_count.positive?
       end
+
+      extraction_ids
     end
 
     def parse_date(date_str)
