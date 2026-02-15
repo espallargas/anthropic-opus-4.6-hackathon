@@ -17,7 +17,6 @@ export function UsageBadge({ report }: UsageBadgeProps) {
   if (total === 0) return null;
 
   const agentEntries = Object.entries(report.agentUsage);
-  const hasCacheInfo = report.cacheCreationTokens > 0 || report.cacheReadTokens > 0;
 
   return (
     <div className="mt-1">
