@@ -549,7 +549,7 @@ export function CrawlProgressBox({
             </button>
           )}
           <button
-            onClick={onComplete}
+            onClick={() => onComplete(documentCountRef.current)}
             className="text-muted-foreground/70 hover:text-foreground/80 transition-colors"
             title={t('admin.crawl.close')}
           >
