@@ -21,16 +21,24 @@ module LegislationCrawler
     private
 
     def try_save_completed_categories
+      max_end_idx = 0
+
       PromptBuilder.category_ids.each do |category_id|
         next if @saved_categories.include?(category_id)
 
-        items = extract_completed_category(category_id)
+        items, end_idx = extract_completed_category(category_id)
         next unless items
 
         @saved_categories.add(category_id)
         save_category(category_id.to_sym, items)
+        max_end_idx = [max_end_idx, end_idx].max
         Rails.logger.info("[PROGRESSIVE_SAVE] Saved category #{category_id} (#{items.length} items) during streaming")
       end
+
+      # Trim processed portion of buffer to reduce memory
+      return unless max_end_idx.positive?
+
+      @text_buffer = @text_buffer[max_end_idx..]
     end
 
     def extract_completed_category(category_id)
@@ -43,7 +51,7 @@ module LegislationCrawler
       return nil unless end_idx
 
       array_json = "[#{@text_buffer[start_idx...(end_idx - 1)]}]"
-      JSON.parse(array_json)
+      [JSON.parse(array_json), end_idx]
     rescue JSON::ParserError
       nil
     end

@@ -29,7 +29,20 @@ module LegislationCrawler
       prompt_builder = PromptBuilder.new(country)
       system_prompt = prompt_builder.system_prompt(crawl_type, existing_count)
       progressive_saver = ProgressiveSaver.new(country, method(:emit), parse_complete_emitted)
-      results = call_claude_crawler(system_prompt, prompt_builder, progressive_saver)
+
+      begin
+        results = call_claude_crawler(system_prompt, prompt_builder, progressive_saver)
+      rescue Anthropic::Errors::APIConnectionError, Timeout::Error => e
+        Rails.logger.warn("Crawl interrupted: #{e.class} - #{e.message}")
+
+        if progressive_saver.saved_categories.any?
+          Rails.logger.info("Partial crawl: #{progressive_saver.saved_categories.size} categories saved before interruption")
+          emit(:phase, message: "Crawl partially completed (#{progressive_saver.saved_categories.size} categories saved)")
+          results = {}
+        else
+          raise
+        end
+      end
 
       # Save any categories not already saved during streaming
       emit(:phase, message: "Saving results to database")
