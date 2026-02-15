@@ -297,7 +297,7 @@ export function DesignPage() {
               title="With icon and badge"
               icon={<Settings className="text-muted-foreground h-3 w-3" />}
               badge={
-                <StatusBadge status="running" className="ml-auto">
+                <StatusBadge status="running" className="ms-auto">
                   3
                 </StatusBadge>
               }

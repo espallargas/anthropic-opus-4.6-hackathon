@@ -129,7 +129,7 @@ export function CountryListItem({ country, onCrawlStart, docCount }: CountryList
 
       {/* Legislation panel - more compact */}
       {isPanelOpen && currentDocCount > 0 && (
-        <div className="pr-2 pb-2 pl-8">
+        <div className="ps-8 pe-2 pb-2">
           <LegislationPanel
             countryCode={country.code}
             isOpen={isPanelOpen}

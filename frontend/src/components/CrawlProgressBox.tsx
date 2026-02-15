@@ -561,7 +561,7 @@ export function CrawlProgressBox({
       {/* Main content - Left/Right sections */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Left panel: Categories (50%) */}
-        <div className="border-border bg-card/20 flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-r">
+        <div className="border-border bg-card/20 flex min-h-0 w-1/2 flex-none flex-col gap-0 overflow-hidden border-e">
           <div className="min-h-0 flex-1 overflow-hidden">
             <CrawlAgentPanel categories={categories} />
           </div>

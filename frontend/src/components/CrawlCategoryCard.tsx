@@ -74,7 +74,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
+        className="flex w-full items-center gap-2 px-3 py-2 text-start text-xs"
       >
         {StatusIcon && <StatusIcon className={statusIconClass} />}
         <div className="flex-1">
@@ -98,7 +98,7 @@ export function CrawlCategoryCard({ category }: CrawlCategoryCardProps) {
         {expanded ? (
           <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
         ) : (
-          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3 rtl:-scale-x-100" />
         )}
       </button>
 

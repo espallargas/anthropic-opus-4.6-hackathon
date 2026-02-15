@@ -7,7 +7,7 @@ interface AgentActivityPanelProps {
 
 export function AgentActivityPanel({ agents }: AgentActivityPanelProps) {
   return (
-    <div className="border-border my-2 space-y-2 border-l-2 pl-3">
+    <div className="border-border my-2 space-y-2 border-s-2 ps-3">
       {agents.map((agent) => (
         <AgentCard key={`${agent.agentName}-${agent.task}`} agent={agent} />
       ))}

@@ -188,7 +188,7 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
         >
           <div
             className={`absolute inset-0 transition-transform duration-700 ease-in-out ${
-              showGlobe ? 'translate-x-0' : 'translate-x-full'
+              showGlobe ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
             }`}
           >
             <Globe origin={origin} destination={destination} />

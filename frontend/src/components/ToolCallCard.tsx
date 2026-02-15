@@ -65,7 +65,7 @@ export const ToolCallCard = memo(function ToolCallCard({
         <StatusIcon className={iconClass} />
         <span className={`text-muted-foreground ${compact ? 'text-[10px]' : ''}`}>
           {label}
-          {detail && <span className="ml-1 opacity-60">— {detail}</span>}
+          {detail && <span className="ms-1 opacity-60">— {detail}</span>}
         </span>
       </div>
       {children && <div className="mt-2">{children}</div>}

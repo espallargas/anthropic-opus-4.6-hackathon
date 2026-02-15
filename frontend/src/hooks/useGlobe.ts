@@ -163,7 +163,13 @@ export function useGlobe(origin?: string, destination?: string) {
 
     // Pulsing rings at both endpoints
     setRingsData([
-      { lat: originData.lat, lng: originData.lng, maxR: 3, propagationSpeed: 2, repeatPeriod: 1200 },
+      {
+        lat: originData.lat,
+        lng: originData.lng,
+        maxR: 3,
+        propagationSpeed: 2,
+        repeatPeriod: 1200,
+      },
       { lat: destData.lat, lng: destData.lng, maxR: 3, propagationSpeed: 2, repeatPeriod: 1200 },
     ]);
 

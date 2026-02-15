@@ -151,7 +151,7 @@ export function AgentMockControls() {
   if (import.meta.env.PROD) return null;
 
   return (
-    <div className="fixed right-4 bottom-4 z-50">
+    <div className="fixed end-4 bottom-4 z-50">
       <Button
         type="button"
         size="icon"
@@ -164,7 +164,7 @@ export function AgentMockControls() {
       </Button>
 
       {panelOpen && (
-        <div className="absolute right-0 bottom-10 w-80 space-y-3 rounded-lg border border-white/10 bg-black/80 p-3 backdrop-blur-md">
+        <div className="absolute end-0 bottom-10 w-80 space-y-3 rounded-lg border border-white/10 bg-black/80 p-3 backdrop-blur-md">
           <p className="text-[10px] font-medium tracking-wider text-white/40 uppercase">
             Agent Mock Controls
           </p>

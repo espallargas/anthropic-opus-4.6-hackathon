@@ -87,6 +87,9 @@ export function Navbar() {
           <option value="en" className="bg-background">
             English
           </option>
+          <option value="ar" className="bg-background">
+            العربية
+          </option>
         </select>
       </div>
     </nav>

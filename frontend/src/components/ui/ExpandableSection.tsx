@@ -39,7 +39,7 @@ export function ExpandableSection({
       <button
         type="button"
         onClick={toggle}
-        className={cn('flex w-full items-center gap-2 text-left text-xs', headerClassName)}
+        className={cn('flex w-full items-center gap-2 text-start text-xs', headerClassName)}
       >
         {icon}
         <div className="flex-1">{title}</div>
@@ -47,7 +47,7 @@ export function ExpandableSection({
         {isOpen ? (
           <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
         ) : (
-          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3 rtl:-scale-x-100" />
         )}
       </button>
       {isOpen && children}

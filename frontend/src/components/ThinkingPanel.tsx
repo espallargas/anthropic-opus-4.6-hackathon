@@ -59,7 +59,7 @@ export function ThinkingPanel({
   const thinkingTypeColor = thinkingType ? thinkingTypeColors[thinkingType] : null;
 
   return (
-    <div className="flex h-full flex-col border-r border-white/10 bg-blue-500/5">
+    <div className="flex h-full flex-col border-e border-white/10 bg-blue-500/5">
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}

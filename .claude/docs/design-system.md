@@ -77,11 +77,29 @@ Some themes support glassmorphism. Use `GlassPanel` for elevated containers (mod
 - Status indicators: use existing `animate-agent-active`, `animate-agent-complete`, `animate-thinking-pulse`
 - Respect `prefers-reduced-motion` — no forced animations
 
+## RTL / Bidirectional Layout
+
+The app supports RTL languages (Arabic). **Always use logical CSS properties**:
+
+| Physical (never use) | Logical (always use) |
+|---------------------|---------------------|
+| `ml-*`, `mr-*` | `ms-*`, `me-*` |
+| `pl-*`, `pr-*` | `ps-*`, `pe-*` |
+| `left-*`, `right-*` | `start-*`, `end-*` |
+| `text-left`, `text-right` | `text-start`, `text-end` |
+| `border-l-*`, `border-r-*` | `border-s-*`, `border-e-*` |
+
+For directional icons (arrows, chevrons pointing left/right), add `rtl:-scale-x-100` to flip them.
+
+Physical properties like `top-*`, `bottom-*`, `gap-*`, `px-*`, `py-*` are fine — they're not directional.
+
 ## New Component Checklist
 
 When creating a new component:
 1. Check if a shared primitive in `src/components/ui/` already covers the need
 2. Use only semantic color tokens — never raw color values
 3. Follow the spacing scale above
-4. Add i18n keys for any user-facing text (both `pt-BR` and `en` dictionaries)
-5. Use `cn()` from `src/lib/utils.ts` for conditional class merging
+4. Add i18n keys for any user-facing text (all dictionaries: pt-BR, en, ar)
+5. Update `src/lib/i18n-glossary.md` with context for new keys
+6. Use `cn()` from `src/lib/utils.ts` for conditional class merging
+7. Use logical CSS properties for horizontal spacing/positioning (RTL support)

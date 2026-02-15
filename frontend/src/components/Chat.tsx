@@ -152,7 +152,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
             variant="outline"
             size="icon-xs"
             onClick={scrollToBottom}
-            className="pointer-events-auto absolute -top-8 right-6 z-10 rounded-full opacity-70 shadow-md transition-opacity hover:opacity-100"
+            className="pointer-events-auto absolute end-6 -top-8 z-10 rounded-full opacity-70 shadow-md transition-opacity hover:opacity-100"
           >
             <ArrowDown className="h-3 w-3" />
           </Button>
@@ -194,7 +194,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
             </Button>
           ) : (
             <Button type="submit" size="icon" disabled={!input.trim()} title={t('chat.send')}>
-              <SendHorizonal className="h-4 w-4" />
+              <SendHorizonal className="h-4 w-4 rtl:-scale-x-100" />
             </Button>
           )}
         </form>

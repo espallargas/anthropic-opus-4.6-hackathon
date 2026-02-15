@@ -69,7 +69,7 @@ export function LegislationPanel({ countryCode, isOpen }: LegislationPanelProps)
             </button>
 
             {expandedCategory === category && (
-              <div className="space-y-1 py-1 pl-4">
+              <div className="space-y-1 py-1 ps-4">
                 {laws.map((law) => (
                   <div
                     key={law.id}

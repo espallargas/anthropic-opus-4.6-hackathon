@@ -75,7 +75,8 @@ function App() {
       if (!containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
-      const newWidth = e.clientX - rect.left;
+      const isRtl = document.documentElement.dir === 'rtl';
+      const newWidth = isRtl ? rect.right - e.clientX : e.clientX - rect.left;
 
       // Constrain between 200px and 500px
       if (newWidth >= 200 && newWidth <= 500) {
@@ -114,12 +115,12 @@ function App() {
               />
               {/* Resize handle - invisible hit area with visual line */}
               <div
-                className="absolute top-0 right-0 h-full cursor-col-resize transition-all select-none"
+                className="absolute end-0 top-0 h-full cursor-col-resize transition-all select-none"
                 onMouseDown={handleMouseDown}
                 style={{
                   userSelect: 'none',
                   width: '4px',
-                  marginRight: '-2px',
+                  marginInlineEnd: '-2px',
                   background: 'transparent',
                 }}
                 title={t('resize.tooltip')}
@@ -128,7 +129,7 @@ function App() {
                 <div
                   style={{
                     position: 'absolute',
-                    right: '1.5px',
+                    insetInlineEnd: '1.5px',
                     top: 0,
                     height: '100%',
                     width: isResizing ? '1px' : '0.5px',

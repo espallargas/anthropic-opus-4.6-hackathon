@@ -144,10 +144,7 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
 
   if (loading) {
     return (
-      <div
-        ref={containerRef}
-        className={`flex items-center justify-center ${className}`}
-      >
+      <div ref={containerRef} className={`flex items-center justify-center ${className}`}>
         <div className="text-muted-foreground text-xs">{t('globe.loading')}</div>
       </div>
     );

@@ -29,16 +29,16 @@ export function UsageBadge({ report }: UsageBadgeProps) {
       </button>
 
       {expanded && (
-        <div className="mt-1 space-y-0.5 pl-2">
+        <div className="mt-1 space-y-0.5 ps-2">
           <div className="text-muted-foreground/40 text-[10px]">
             {t('usage.input')}: {totalInput.toLocaleString()}
             {report.cacheReadTokens > 0 && (
-              <span className="ml-1">
+              <span className="ms-1">
                 ({report.cacheReadTokens.toLocaleString()} {t('usage.cached')})
               </span>
             )}
             {report.cacheReadTokens === 0 && report.cacheCreationTokens > 0 && (
-              <span className="ml-1">({t('usage.cache_miss')})</span>
+              <span className="ms-1">({t('usage.cache_miss')})</span>
             )}
           </div>
           <div className="text-muted-foreground/40 text-[10px]">

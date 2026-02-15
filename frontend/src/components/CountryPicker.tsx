@@ -54,18 +54,18 @@ export function CountryPicker({
 
   const handleSelect = useCallback(
     (code: string) => {
+      setSearch('');
       if (multiple) {
         const current = [...(value as string[])];
         if (current.includes(code)) {
           onChange(current.filter((c) => c !== code));
         } else {
           onChange([...current, code]);
-          setSearch('');
-          inputRef.current?.focus();
         }
       } else {
         onChange(code === value ? '' : code);
       }
+      inputRef.current?.focus();
     },
     [multiple, value, onChange],
   );
@@ -81,24 +81,46 @@ export function CountryPicker({
     items[index]?.scrollIntoView({ block: 'nearest' });
   }, []);
 
+  const GRID_COLS = 3;
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const len = filtered.length;
       if (len === 0) return;
 
+      const navigate = (next: number) => {
+        e.preventDefault();
+        setHighlightIndex(next);
+        scrollHighlightedIntoView(next);
+      };
+
+      // When nothing is highlighted yet, any arrow enters the grid at index 0
+      if (highlightIndex < 0) {
+        if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) {
+          navigate(0);
+        }
+        return;
+      }
+
       switch (e.key) {
-        case 'ArrowDown': {
-          e.preventDefault();
+        case 'ArrowRight': {
           const next = highlightIndex < len - 1 ? highlightIndex + 1 : 0;
-          setHighlightIndex(next);
-          scrollHighlightedIntoView(next);
+          navigate(next);
+          break;
+        }
+        case 'ArrowLeft': {
+          const prev = highlightIndex > 0 ? highlightIndex - 1 : len - 1;
+          navigate(prev);
+          break;
+        }
+        case 'ArrowDown': {
+          const next = highlightIndex + GRID_COLS < len ? highlightIndex + GRID_COLS : highlightIndex;
+          navigate(next);
           break;
         }
         case 'ArrowUp': {
-          e.preventDefault();
-          const prev = highlightIndex > 0 ? highlightIndex - 1 : len - 1;
-          setHighlightIndex(prev);
-          scrollHighlightedIntoView(prev);
+          const prev = highlightIndex - GRID_COLS >= 0 ? highlightIndex - GRID_COLS : highlightIndex;
+          navigate(prev);
           break;
         }
         case 'Enter': {
@@ -127,7 +149,7 @@ export function CountryPicker({
               <button
                 type="button"
                 onClick={() => removeTag(code)}
-                className="text-muted-foreground hover:text-foreground ml-0.5 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground ms-0.5 cursor-pointer"
               >
                 ×
               </button>
@@ -158,7 +180,7 @@ export function CountryPicker({
               type="button"
               data-country-item
               onClick={() => handleSelect(country.code)}
-              className={`relative flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-left text-sm transition-all ${
+              className={`relative flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-start text-sm transition-all ${
                 isSelected
                   ? 'bg-muted/50 ring-ring/30 scale-[1.02] ring-1'
                   : isHighlighted
@@ -169,7 +191,7 @@ export function CountryPicker({
               <span className="shrink-0 text-base">{countryCodeToFlag(country.code)}</span>
               <span className="text-foreground/90 truncate">{country.name}</span>
               {multiple && isSelected && (
-                <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
+                <span className="bg-primary text-primary-foreground absolute -end-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
                   ✓
                 </span>
               )}

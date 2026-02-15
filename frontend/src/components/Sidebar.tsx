@@ -62,7 +62,7 @@ export function Sidebar({
 
   return (
     <aside
-      className="border-border bg-background hidden flex-col border-r transition-[width] duration-300 ease-in-out md:flex"
+      className="border-border bg-background hidden flex-col border-e transition-[width] duration-300 ease-in-out md:flex"
       style={{ width: '100%', height: '100%' }}
     >
       {/* Collapse toggle */}
