@@ -13,7 +13,7 @@ module Api
           country = Country.find_by!(code: params[:code])
 
           Rails.logger.info("Starting crawl for #{country.name}")
-          LegislationCrawlerService.new(country, sse).crawl
+          LegislationCrawler::Service.new(country, sse).crawl
           Rails.logger.info("Crawl finished for #{country.name}")
         rescue ActionController::Live::ClientDisconnected
           Rails.logger.info("Crawl stopped: client disconnected for #{country&.name}")
