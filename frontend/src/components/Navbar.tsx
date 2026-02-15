@@ -95,10 +95,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           className="border-border bg-muted/30 text-muted-foreground hover:border-input hover:text-foreground/90 cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors outline-none"
         >
           <option value="pt-BR" className="bg-background">
-            Portugues (BR)
+            🇧🇷 🇵🇹 Português
           </option>
           <option value="en" className="bg-background">
-            English
+            🇺🇸 🇬🇧 English
           </option>
           <option value="ar" className="bg-background">
             العربية
