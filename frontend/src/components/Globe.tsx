@@ -186,7 +186,7 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
           if (d.isBase) return `rgba(${r},${g},${b},0.15)`;
           return `rgba(${r},${g},${b},0.8)`;
         }}
-        arcDashLength={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.5)}
+        arcDashLength={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.25)}
         arcDashGap={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.5)}
         arcDashAnimateTime={(d: { isBase?: boolean }) => (d.isBase ? 0 : 3000)}
         arcStroke={(d: { isBase?: boolean }) => (d.isBase ? 0.6 : 1.5)}

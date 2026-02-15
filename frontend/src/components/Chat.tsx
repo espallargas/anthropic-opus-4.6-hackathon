@@ -102,8 +102,8 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               key={msg.id}
               className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="max-w-[80%]">
-                <div className="w-[80%]">
+              <div className={msg.role === 'user' ? 'max-w-[80%]' : 'w-[80%]'}>
+                <div className={msg.role === 'user' ? '' : 'w-full'}>
                   {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
                   {msg.toolCalls?.map((tc) => {
                     const agent = msg.agentExecutions?.find((ae) => ae.agentName === tc.name);
