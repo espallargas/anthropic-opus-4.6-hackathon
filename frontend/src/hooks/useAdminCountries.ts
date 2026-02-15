@@ -29,7 +29,14 @@ export function useAdminCountries() {
     const now = new Date().toISOString();
     const updateCountry = (c: Country): Country =>
       c.code === code
-        ? { ...c, status: 'green', last_crawled_at: now, legislation_count: documentCount }
+        ? {
+            ...c,
+            status: 'green',
+            last_crawled_at: now,
+            legislation_count: documentCount,
+            extraction_completed: 0,
+            extraction_processing: 0,
+          }
         : c;
 
     const insertSorted = (list: Country[], item: Country): Country[] => {
