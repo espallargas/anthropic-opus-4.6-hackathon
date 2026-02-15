@@ -1,5 +1,5 @@
 class FallbackController < ApplicationController
   def index
-    render file: Rails.public_path.join("index.html"), layout: false
+    send_file Rails.public_path.join("index.html"), type: "text/html", disposition: "inline"
   end
 end
