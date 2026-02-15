@@ -88,10 +88,7 @@ export function Sidebar({
 }: SidebarProps) {
   const { t, locale } = useI18n();
 
-  const sortedChats = useMemo(
-    () => [...chats].sort((a, b) => b.updatedAt - a.updatedAt),
-    [chats],
-  );
+  const sortedChats = useMemo(() => [...chats].sort((a, b) => b.updatedAt - a.updatedAt), [chats]);
 
   const handleSelectChat = (id: string) => {
     onSelectChat(id);

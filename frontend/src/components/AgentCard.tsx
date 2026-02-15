@@ -4,6 +4,11 @@ import { useI18n } from '@/lib/i18n';
 import { ToolCallCard } from '@/components/ToolCallCard';
 import type { AgentExecution } from '@/lib/chatStore';
 
+function formatTokenCount(count: number): string {
+  if (count < 1000) return String(count);
+  return `${(count / 1000).toFixed(1)}k`;
+}
+
 interface AgentCardProps {
   agent: AgentExecution;
 }
@@ -55,7 +60,7 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
 
   const timingBadge =
     isDone && agent.durationMs != null
-      ? `${(agent.durationMs / 1000).toFixed(1)}s`
+      ? `${Math.round(agent.durationMs / 1000)}s`
       : isRunning
         ? t('agent.analyzing')
         : isError
@@ -64,7 +69,7 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
 
   const tokenBadge =
     isDone && agent.usage
-      ? `${agent.usage.input_tokens + agent.usage.output_tokens} ${t('usage.tokens_short')}`
+      ? `${formatTokenCount(agent.usage.input_tokens + agent.usage.output_tokens)} ${t('usage.tokens_short')}`
       : null;
 
   return (

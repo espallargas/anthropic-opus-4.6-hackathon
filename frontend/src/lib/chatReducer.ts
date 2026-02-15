@@ -7,10 +7,18 @@ export interface StreamState {
   agentExecutions: AgentExecution[];
   usageReport: UsageReport | null;
   thinking: ThinkingBlock | null;
+  thinkingStartedAt: number | null;
 }
 
 export function createStreamState(): StreamState {
-  return { content: '', toolCalls: [], agentExecutions: [], usageReport: null, thinking: null };
+  return {
+    content: '',
+    toolCalls: [],
+    agentExecutions: [],
+    usageReport: null,
+    thinking: null,
+    thinkingStartedAt: null,
+  };
 }
 
 export function chatStreamReducer(state: StreamState, action: ChatAction): StreamState {
@@ -18,6 +26,7 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
     case 'THINKING_START':
       return {
         ...state,
+        thinkingStartedAt: Date.now(),
         thinking: {
           content: '',
           status: 'thinking',
@@ -36,11 +45,14 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
         },
       };
 
-    case 'THINKING_END':
+    case 'THINKING_END': {
+      const durationMs = state.thinkingStartedAt ? Date.now() - state.thinkingStartedAt : undefined;
       return {
         ...state,
-        thinking: state.thinking ? { ...state.thinking, status: 'done' } : null,
+        thinkingStartedAt: null,
+        thinking: state.thinking ? { ...state.thinking, status: 'done', durationMs } : null,
       };
+    }
 
     case 'APPEND_TOKEN':
       return { ...state, content: state.content + action.token };

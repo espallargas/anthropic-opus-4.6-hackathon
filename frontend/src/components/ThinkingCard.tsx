@@ -3,6 +3,15 @@ import { Brain, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { ThinkingBlock } from '@/lib/chatStore';
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 1) return '<1s';
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
 interface ThinkingCardProps {
   thinking: ThinkingBlock;
 }
@@ -11,8 +20,18 @@ export const ThinkingCard = memo(function ThinkingCard({ thinking }: ThinkingCar
   const { t } = useI18n();
   const isThinking = thinking.status === 'thinking';
   const [expanded, setExpanded] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
   const contentRef = useRef<HTMLParagraphElement>(null);
   const hasAutoCollapsed = useRef(false);
+
+  // Live timer while thinking
+  const timerStart = useRef(0);
+  useEffect(() => {
+    if (!isThinking) return;
+    timerStart.current = Date.now();
+    const interval = setInterval(() => setElapsed(Date.now() - timerStart.current), 1000);
+    return () => clearInterval(interval);
+  }, [isThinking]);
 
   // Auto-scroll to bottom as content streams in
   useEffect(() => {
@@ -29,6 +48,14 @@ export const ThinkingCard = memo(function ThinkingCard({ thinking }: ThinkingCar
       return () => clearTimeout(timer);
     }
   }, [isThinking]);
+
+  const durationBadge = isThinking
+    ? elapsed > 0
+      ? formatDuration(elapsed)
+      : null
+    : thinking.durationMs != null
+      ? formatDuration(thinking.durationMs)
+      : null;
 
   return (
     <div
@@ -51,58 +78,11 @@ export const ThinkingCard = memo(function ThinkingCard({ thinking }: ThinkingCar
             {isThinking ? t('thinking.active') : t('thinking.done')}
           </span>
         </div>
-        {thinking.effort &&
-          (() => {
-            const levels: Record<
-              string,
-              { bg: string; text: string; border: string; bars: number }
-            > = {
-              low: {
-                bg: 'bg-blue-500/10',
-                text: 'text-blue-300',
-                border: 'border-blue-400/30',
-                bars: 1,
-              },
-              medium: {
-                bg: 'bg-cyan-500/10',
-                text: 'text-cyan-300',
-                border: 'border-cyan-400/30',
-                bars: 2,
-              },
-              high: {
-                bg: 'bg-violet-500/10',
-                text: 'text-violet-300',
-                border: 'border-violet-400/30',
-                bars: 3,
-              },
-              max: {
-                bg: 'bg-purple-500/10',
-                text: 'text-purple-300',
-                border: 'border-purple-400/30',
-                bars: 4,
-              },
-            };
-            const level = levels[thinking.effort!];
-            if (!level) return null;
-            return (
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${level.bg} ${level.text} ${level.border}`}
-                >
-                  {thinking.effort}
-                </span>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={`h-1.5 w-1 rounded-full ${level.bars >= i ? level.text : 'bg-white/10'}`}
-                      style={{ backgroundColor: level.bars >= i ? 'currentColor' : undefined }}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+        {durationBadge && (
+          <span className="bg-muted/40 text-muted-foreground/70 rounded px-1.5 py-0.5 text-[10px]">
+            {durationBadge}
+          </span>
+        )}
         {expanded ? (
           <ChevronDown className="text-muted-foreground/50 h-3 w-3 shrink-0" />
         ) : (

@@ -13,7 +13,7 @@ module LegislationCrawler
       @client = Rails.application.config.x.anthropic
       @operation_id_counter = 0
       @current_operation_id = nil
-      @thinking_effort = "high"
+      @thinking_effort = "medium"
       @thinking_type_emitted = false
       @parse_complete_emitted = Set.new
     end

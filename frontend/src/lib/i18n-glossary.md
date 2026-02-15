@@ -124,7 +124,7 @@ This document describes every i18n key used in the FreePath application, grouped
 | `usage.cached` | cached | Suffix annotation indicating that tokens were served from prompt cache |
 | `usage.cache_miss` | cache miss | Suffix annotation indicating that tokens were not found in prompt cache |
 | `usage.label` | Tokens used | Header label for the expandable token usage section at the bottom of a message |
-| `usage.tokens_short` | tok | Abbreviated unit for tokens, used in compact displays (e.g., agent cards) |
+| `usage.tokens_short` | tokens | Unit label for token counts, used in compact displays (e.g., agent cards, thinking cards) |
 
 ## Agents
 

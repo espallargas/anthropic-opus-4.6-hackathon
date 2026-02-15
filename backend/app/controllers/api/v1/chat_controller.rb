@@ -6,7 +6,7 @@ module Api
       MODEL = "claude-opus-4-6".freeze
       MAX_TOKENS = 128_000
       MAX_TURNS = 10
-      THINKING_EFFORT = "high".freeze
+      THINKING_EFFORT = "medium".freeze
       BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25 context-1m-2025-08-07].freeze
 
       SERVER_TOOLS = %w[get_legislation].freeze
