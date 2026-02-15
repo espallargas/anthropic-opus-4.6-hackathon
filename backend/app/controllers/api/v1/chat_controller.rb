@@ -6,6 +6,7 @@ module Api
       MODEL = "claude-opus-4-6".freeze
       MAX_TOKENS = 128_000
       MAX_TURNS = 10
+      THINKING_EFFORT = "high".freeze
       BETAS = %w[advanced-tool-use-2025-11-20 code-execution-2025-08-25 context-1m-2025-08-07].freeze
 
       SERVER_TOOLS = %w[get_legislation].freeze
@@ -48,6 +49,7 @@ module Api
             messages: messages,
             tools: Tools::Definitions::TOOLS,
             thinking: { type: "adaptive" },
+            output_config: { effort: THINKING_EFFORT },
             betas: BETAS
           }
           stream_params[:container] = container_id if container_id
@@ -59,7 +61,8 @@ module Api
             when :thinking
               unless thinking_active
                 thinking_active = true
-                sse.write({ type: "thinking_start", server_time: Time.current.iso8601(3) })
+                sse.write({ type: "thinking_start", thinking_type: "adaptive",
+                            thinking_effort: THINKING_EFFORT, server_time: Time.current.iso8601(3) })
               end
               sse.write({ type: "thinking_token", token: event.thinking, server_time: Time.current.iso8601(3) })
 

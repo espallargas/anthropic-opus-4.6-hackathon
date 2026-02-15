@@ -80,9 +80,13 @@ export function useChat(
       abortRef.current = new AbortController();
 
       try {
+        const resolvedObjective = chat.systemVars.objective.startsWith('setup.objective.')
+          ? t(chat.systemVars.objective)
+          : chat.systemVars.objective;
+
         const body: Record<string, unknown> = {
           messages: history,
-          system_vars: chat.systemVars,
+          system_vars: { ...chat.systemVars, objective: resolvedObjective },
         };
 
         const res = await fetch('/api/v1/chat', {
@@ -143,14 +147,21 @@ export function useChat(
             if (last?.id === assistantId && !last.content && !last.toolCalls?.length) {
               return prev.slice(0, -1);
             }
-            if (last?.id === assistantId && last.content) {
-              return prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, content: m.content + '\n\n' + t('chat.interrupted') }
-                  : m,
+            return prev.map((m) => {
+              if (m.id !== assistantId) return m;
+              const toolCalls = m.toolCalls?.map((tc) =>
+                tc.status === 'calling' ? { ...tc, status: 'error' as const } : tc,
               );
-            }
-            return prev;
+              const agentExecutions = m.agentExecutions?.map((ae) =>
+                ae.status === 'running' ? { ...ae, status: 'error' as const } : ae,
+              );
+              return {
+                ...m,
+                content: m.content ? m.content + '\n\n' + t('chat.interrupted') : m.content,
+                toolCalls,
+                agentExecutions,
+              };
+            });
           });
           setStatus('idle');
           return;

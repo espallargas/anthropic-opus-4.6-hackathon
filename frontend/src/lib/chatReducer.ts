@@ -16,12 +16,21 @@ export function createStreamState(): StreamState {
 export function chatStreamReducer(state: StreamState, action: ChatAction): StreamState {
   switch (action.type) {
     case 'THINKING_START':
-      return { ...state, thinking: { content: '', status: 'thinking' } };
+      return {
+        ...state,
+        thinking: {
+          content: '',
+          status: 'thinking',
+          type: action.thinkingType,
+          effort: action.thinkingEffort,
+        },
+      };
 
     case 'THINKING_TOKEN':
       return {
         ...state,
         thinking: {
+          ...state.thinking,
           content: (state.thinking?.content ?? '') + action.token,
           status: 'thinking',
         },
@@ -104,6 +113,12 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
     case 'AGENT_END':
       return {
         ...state,
+        // Mark the corresponding tool call as done (agent_name matches tool name)
+        toolCalls: state.toolCalls.map((tc) =>
+          tc.name === action.agentName && tc.status === 'calling'
+            ? { ...tc, status: 'done' as const }
+            : tc,
+        ),
         agentExecutions: state.agentExecutions.map((ae) =>
           ae.agentName === action.agentName && ae.status === 'running'
             ? {
@@ -122,6 +137,10 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
 
     case 'MESSAGE_END':
     case 'ERROR':
+      // Safety net: finalize thinking if still active
+      if (state.thinking?.status === 'thinking') {
+        return { ...state, thinking: { ...state.thinking, status: 'done' } };
+      }
       return state;
   }
 }

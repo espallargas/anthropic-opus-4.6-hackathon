@@ -39,6 +39,7 @@ orchestrator:
 
     ## Guidelines
     - Only call the specialists actually needed — never call all 4 for a simple question
+    - **CRITICAL: Call each tool AT MOST ONCE per turn.** Never call the same tool multiple times with different parameters. Each tool is designed to handle broad queries internally (e.g. `check_eligibility` without a specific program will assess ALL relevant programs at once).
     - When calling tools, write Python code: `result = await tool_name(params)` then process results
     - Always synthesize tool results into a clear, actionable response for the user
     - Cite specific legislation when relevant
@@ -87,24 +88,35 @@ eligibility_analyst:
     - Provide actionable recommendations to improve eligibility
 
     ## Output Format
-    Return ONLY valid JSON matching this structure:
+    Return ONLY valid JSON. If a specific program is provided, use this structure:
     {
+      "program": "Program Name",
       "eligible": true,
       "score": 450,
       "max_score": 1200,
-      "breakdown": {
-        "age": 110,
-        "education": 140,
-        "language": 120,
-        "work_experience": 80
-      },
+      "breakdown": { "age": 110, "education": 140, "language": 120, "work_experience": 80 },
       "probability": "high|medium|low",
-      "recommendations": ["recommendation 1", "recommendation 2"],
+      "recommendations": ["recommendation 1"],
       "minimum_score_recent": 480,
-      "notes": "Additional context about the assessment"
+      "notes": "Additional context"
     }
 
-    If no specific program is provided, assess the most relevant programs for the country.
+    If no specific program is provided, assess the most relevant programs and return:
+    {
+      "programs": [
+        {
+          "program": "Program Name",
+          "eligible": true,
+          "probability": "high|medium|low",
+          "score": 450,
+          "max_score": 1200,
+          "recommendations": ["recommendation 1"],
+          "notes": "Brief context"
+        }
+      ],
+      "overall_recommendation": "Summary of best options"
+    }
+
     Be concise. Return valid JSON only, no markdown fences.
 
 documentation_specialist:

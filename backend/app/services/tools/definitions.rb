@@ -56,9 +56,10 @@ module Tools
 
     CHECK_ELIGIBILITY = {
       name: "check_eligibility",
-      description: "Check eligibility for a specific immigration program. Calculates point-based scores " \
+      description: "Check eligibility for immigration programs. Calculates point-based scores " \
                    "(CRS for Canada, SkillSelect for Australia, etc.) and returns eligibility assessment. " \
-                   "Use when the user asks if they qualify, their score, or eligibility for a specific program. " \
+                   "When called without a specific program, assesses ALL relevant programs at once — " \
+                   "do NOT call this tool multiple times for different programs. " \
                    "Returns JSON with eligible, score, breakdown, probability, and recommendations.",
       input_schema: {
         type: "object",

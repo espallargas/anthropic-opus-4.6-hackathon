@@ -63,11 +63,8 @@ export function SetupForm({ onSubmit, onCancel, defaultValues }: SetupFormProps)
         return origin !== '';
       case 2:
         return destination !== '';
-      case 3: {
-        const otherLabel = t('setup.objective.other');
-        if (objective === otherLabel || objective === '') return false;
-        return true;
-      }
+      case 3:
+        return objective !== '' && objective !== 'setup.objective.other';
       default:
         return false;
     }

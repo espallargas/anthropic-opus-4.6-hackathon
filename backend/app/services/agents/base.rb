@@ -32,7 +32,7 @@ module Agents
         max_tokens: MAX_TOKENS,
         system: system_prompt,
         messages: [{ role: "user", content: user_content }],
-        thinking: { type: "enabled", budget_tokens: 4096 }
+        thinking: { type: "adaptive" }
       )
 
       stream.each do |event|

@@ -44,6 +44,7 @@ export interface ThinkingBlock {
   content: string;
   status: 'thinking' | 'done';
   type?: string;
+  effort?: string;
   budgetTokens?: number;
   operationId?: string;
 }

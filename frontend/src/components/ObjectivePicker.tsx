@@ -38,30 +38,29 @@ const OBJECTIVE_ICONS: Record<string, React.ReactNode> = {
   'setup.objective.other': <MoreHorizontal className="h-4 w-4" />,
 };
 
+const PREDEFINED_KEYS = new Set(OBJECTIVE_KEYS.slice(0, -1));
+
 export function ObjectivePicker({ value, onChange }: ObjectivePickerProps) {
   const { t } = useI18n();
   const [customText, setCustomText] = useState('');
 
-  const otherLabel = t('setup.objective.other');
-  const isOtherSelected = value === otherLabel || (value !== '' && !options().includes(value));
+  const isOtherSelected =
+    value === 'setup.objective.other' ||
+    (value !== '' && !PREDEFINED_KEYS.has(value as (typeof OBJECTIVE_KEYS)[number]));
 
-  function options() {
-    return OBJECTIVE_KEYS.slice(0, -1).map((key) => t(key));
-  }
-
-  const handlePillClick = (label: string) => {
-    if (label === otherLabel) {
-      onChange(otherLabel);
+  const handlePillClick = (key: string) => {
+    if (key === 'setup.objective.other') {
+      onChange('setup.objective.other');
       setCustomText('');
     } else {
-      onChange(label === value ? '' : label);
+      onChange(key === value ? '' : key);
       setCustomText('');
     }
   };
 
   const handleCustomChange = (text: string) => {
     setCustomText(text);
-    onChange(text || otherLabel);
+    onChange(text || 'setup.objective.other');
   };
 
   return (
@@ -69,12 +68,12 @@ export function ObjectivePicker({ value, onChange }: ObjectivePickerProps) {
       <div className="flex flex-wrap gap-2">
         {OBJECTIVE_KEYS.map((key) => {
           const label = t(key);
-          const isSelected = label === otherLabel ? isOtherSelected : value === label;
+          const isSelected = key === 'setup.objective.other' ? isOtherSelected : value === key;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => handlePillClick(label)}
+              onClick={() => handlePillClick(key)}
               className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm transition-all ${
                 isSelected
                   ? 'bg-muted/50 text-foreground ring-ring/30 ring-1'

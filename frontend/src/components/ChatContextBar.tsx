@@ -24,22 +24,14 @@ const OBJECTIVE_ICON_MAP: Record<string, React.ReactNode> = {
   'setup.objective.other': <MoreHorizontal className="h-3.5 w-3.5" />,
 };
 
-const OBJECTIVE_KEYS = [
-  'setup.objective.temporary_visit',
-  'setup.objective.education',
-  'setup.objective.work',
-  'setup.objective.family_reunion',
-  'setup.objective.seek_protection',
-  'setup.objective.investments',
-  'setup.objective.permanent_residence',
-  'setup.objective.other',
-] as const;
+function getObjectiveIcon(objective: string): React.ReactNode {
+  // Direct key match (new format) or fallback for legacy translated values
+  return OBJECTIVE_ICON_MAP[objective] ?? OBJECTIVE_ICON_MAP['setup.objective.other'];
+}
 
-function getObjectiveIcon(objective: string, t: (key: string) => string): React.ReactNode {
-  for (const key of OBJECTIVE_KEYS) {
-    if (t(key) === objective) return OBJECTIVE_ICON_MAP[key];
-  }
-  return OBJECTIVE_ICON_MAP['setup.objective.other'];
+function resolveObjective(objective: string, t: (key: string) => string): string {
+  if (objective.startsWith('setup.objective.')) return t(objective);
+  return objective;
 }
 
 interface ChatContextBarProps {
@@ -53,7 +45,7 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
   const destName = getCountryNameLocalized(systemVars.destination_country, t);
   const originFlag = countryCodeToFlag(systemVars.origin_country);
   const destFlag = countryCodeToFlag(systemVars.destination_country);
-  const objectiveIcon = getObjectiveIcon(systemVars.objective, t);
+  const objectiveIcon = getObjectiveIcon(systemVars.objective);
   const nationalities = systemVars.nationality
     ? systemVars.nationality.split(', ').filter(Boolean)
     : [];
@@ -66,7 +58,11 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
           <span className="flex items-center gap-1.5">
             <span className="text-muted-foreground/50">{t('chat.context.nationalities')}</span>
             {nationalities.map((code) => (
-              <span key={code} className="text-sm" title={getCountryNameLocalized(code, t)}>
+              <span
+                key={code}
+                className="text-sm brightness-125"
+                title={getCountryNameLocalized(code, t)}
+              >
                 {countryCodeToFlag(code)}
               </span>
             ))}
@@ -78,7 +74,7 @@ export function ChatContextBar({ systemVars }: ChatContextBarProps) {
       {/* Objective */}
       <span className="flex items-center gap-1.5">
         {objectiveIcon}
-        <span>{systemVars.objective}</span>
+        {resolveObjective(systemVars.objective, t)}
       </span>
 
       <span className="bg-border h-3 w-px" />

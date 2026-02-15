@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Brain, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { ThinkingBlock } from '@/lib/chatStore';
@@ -7,7 +7,7 @@ interface ThinkingCardProps {
   thinking: ThinkingBlock;
 }
 
-export function ThinkingCard({ thinking }: ThinkingCardProps) {
+export const ThinkingCard = memo(function ThinkingCard({ thinking }: ThinkingCardProps) {
   const { t } = useI18n();
   const isThinking = thinking.status === 'thinking';
   const [expanded, setExpanded] = useState(true);
@@ -32,7 +32,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
 
   return (
     <div
-      className={`bg-muted/30 my-1 rounded-lg border backdrop-blur-sm ${
+      className={`bg-muted/30 my-1 min-w-64 rounded-lg border backdrop-blur-sm ${
         isThinking ? 'animate-thinking-pulse border-purple-400/30' : 'border-green-400/15'
       }`}
     >
@@ -51,17 +51,62 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
             {isThinking ? t('thinking.active') : t('thinking.done')}
           </span>
         </div>
-        {thinking.type && (
-          <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300/80">
-            {thinking.type === 'high'
-              ? t('admin.thinking.high_effort')
-              : t('admin.thinking.adaptive')}
-          </span>
-        )}
+        {thinking.effort &&
+          (() => {
+            const levels: Record<
+              string,
+              { bg: string; text: string; border: string; bars: number }
+            > = {
+              low: {
+                bg: 'bg-blue-500/10',
+                text: 'text-blue-300',
+                border: 'border-blue-400/30',
+                bars: 1,
+              },
+              medium: {
+                bg: 'bg-cyan-500/10',
+                text: 'text-cyan-300',
+                border: 'border-cyan-400/30',
+                bars: 2,
+              },
+              high: {
+                bg: 'bg-violet-500/10',
+                text: 'text-violet-300',
+                border: 'border-violet-400/30',
+                bars: 3,
+              },
+              max: {
+                bg: 'bg-purple-500/10',
+                text: 'text-purple-300',
+                border: 'border-purple-400/30',
+                bars: 4,
+              },
+            };
+            const level = levels[thinking.effort!];
+            if (!level) return null;
+            return (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${level.bg} ${level.text} ${level.border}`}
+                >
+                  {thinking.effort}
+                </span>
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1.5 w-1 rounded-full ${level.bars >= i ? level.text : 'bg-white/10'}`}
+                      style={{ backgroundColor: level.bars >= i ? 'currentColor' : undefined }}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         {expanded ? (
-          <ChevronDown className="text-muted-foreground/50 h-3 w-3" />
+          <ChevronDown className="text-muted-foreground/50 h-3 w-3 shrink-0" />
         ) : (
-          <ChevronRight className="text-muted-foreground/50 h-3 w-3" />
+          <ChevronRight className="text-muted-foreground/50 h-3 w-3 shrink-0" />
         )}
       </button>
 
@@ -77,4 +122,4 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
       )}
     </div>
   );
-}
+});

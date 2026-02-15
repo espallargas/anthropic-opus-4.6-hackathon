@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ToolCallCard } from '@/components/ToolCallCard';
@@ -8,7 +8,7 @@ interface AgentCardProps {
   agent: AgentExecution;
 }
 
-export function AgentCard({ agent }: AgentCardProps) {
+export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
   const { t } = useI18n();
   const isRunning = agent.status === 'running';
   const isDone = agent.status === 'done';
@@ -51,12 +51,16 @@ export function AgentCard({ agent }: AgentCardProps) {
       ? 'h-4 w-4 text-green-400'
       : 'h-4 w-4 text-red-400';
 
+  const isError = agent.status === 'error';
+
   const timingBadge =
     isDone && agent.durationMs != null
       ? `${(agent.durationMs / 1000).toFixed(1)}s`
       : isRunning
         ? t('agent.analyzing')
-        : null;
+        : isError
+          ? t('agent.cancelled')
+          : null;
 
   const tokenBadge =
     isDone && agent.usage
@@ -112,15 +116,15 @@ export function AgentCard({ agent }: AgentCardProps) {
             </p>
           )}
           {isDone && agent.resultSummary && (
-            <p className="text-muted-foreground text-[10px] leading-relaxed">
+            <p className="text-muted-foreground line-clamp-4 text-[10px] leading-relaxed">
               {agent.resultSummary}
             </p>
           )}
-          {!agent.toolCalls.length && !agent.tokens && isRunning && (
+          {isRunning && (
             <p className="text-muted-foreground/50 text-[10px]">{t('agent.analyzing')}</p>
           )}
         </div>
       )}
     </div>
   );
-}
+});

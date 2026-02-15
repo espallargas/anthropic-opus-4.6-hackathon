@@ -1,4 +1,4 @@
-import { AgentActivityPanel } from '@/components/AgentActivityPanel';
+import { AgentCard } from '@/components/AgentCard';
 import { ChatContextBar } from '@/components/ChatContextBar';
 import { ThinkingCard } from '@/components/ThinkingCard';
 import { ToolCallCard } from '@/components/ToolCallCard';
@@ -8,7 +8,7 @@ import { UsageBadge } from '@/components/UsageBadge';
 import { useChat } from '@/hooks/useChat';
 import type { ChatMessage, Chat as ChatType } from '@/lib/chatStore';
 import { useI18n } from '@/lib/i18n';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowDown, Loader2, SendHorizonal, Square } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -22,6 +22,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
   const { messages, status, error, sendMessage, stopStreaming } = useChat(chat, onUpdateMessages);
   const { t } = useI18n();
   const [input, setInput] = useState('');
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userScrolledRef = useRef(false);
@@ -35,13 +36,18 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
     }
   }, [isStreaming]);
 
-  // Detect user scroll: if user scrolls up, stop auto-scrolling
+  // Detect user scroll: track position for auto-scroll + floating button
   const handleScroll = useCallback(() => {
-    if (!scrollRef.current || !isStreaming) return;
+    if (!scrollRef.current) return;
     const el = scrollRef.current;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    userScrolledRef.current = !atBottom;
+    if (isStreaming) userScrolledRef.current = !atBottom;
+    setShowScrollBtn(!atBottom);
   }, [isStreaming]);
+
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, []);
 
   // Auto-scroll while streaming unless user scrolled up
   useEffect(() => {
@@ -88,7 +94,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
         <div className="flex flex-col gap-4">
           {messages.length === 0 && (
             <div className="flex flex-1 items-center justify-center py-20">
-              <p className="text-muted-foreground text-sm">{t('chat.empty')}</p>
+              <p className="text-sm text-white/40">{t('chat.empty')}</p>
             </div>
           )}
           {messages.map((msg) => (
@@ -97,13 +103,22 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div className="max-w-[80%]">
-                {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
-                {msg.toolCalls?.map((tc) => (
-                  <ToolCallCard key={tc.id} toolCall={tc} />
-                ))}
-                {msg.agentExecutions && msg.agentExecutions.length > 0 && (
-                  <AgentActivityPanel agents={msg.agentExecutions} />
-                )}
+                <div className="w-[80%]">
+                  {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
+                  {msg.toolCalls?.map((tc) => {
+                    const agent = msg.agentExecutions?.find((ae) => ae.agentName === tc.name);
+                    return (
+                      <ToolCallCard key={tc.id} toolCall={tc} waiting={!agent}>
+                        {agent && <AgentCard agent={agent} />}
+                      </ToolCallCard>
+                    );
+                  })}
+                  {msg.agentExecutions
+                    ?.filter((ae) => !msg.toolCalls?.some((tc) => tc.name === ae.agentName))
+                    .map((ae) => (
+                      <AgentCard key={`${ae.agentName}-${ae.task}`} agent={ae} />
+                    ))}
+                </div>
                 {(msg.content || !msg.toolCalls?.length) && (
                   <div
                     className={`rounded-lg px-4 py-2 text-sm ${
@@ -130,9 +145,30 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
         </div>
       </div>
 
+      {showScrollBtn && (
+        <div className="pointer-events-none relative w-full max-w-3xl">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            onClick={scrollToBottom}
+            className="pointer-events-auto absolute -top-8 right-6 z-10 rounded-full opacity-70 shadow-md transition-opacity hover:opacity-100"
+          >
+            <ArrowDown className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
       {error && (
         <div className="px-4 py-2">
           <p className="text-destructive text-sm">{error}</p>
+        </div>
+      )}
+
+      {isStreaming && (
+        <div className="flex w-full max-w-3xl items-center gap-2 px-4 py-2">
+          <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />
+          <span className="text-muted-foreground text-xs">{t('chat.processing')}</span>
         </div>
       )}
 
@@ -158,7 +194,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
             </Button>
           ) : (
             <Button type="submit" size="icon" disabled={!input.trim()} title={t('chat.send')}>
-              <ArrowUp className="h-4 w-4" />
+              <SendHorizonal className="h-4 w-4" />
             </Button>
           )}
         </form>

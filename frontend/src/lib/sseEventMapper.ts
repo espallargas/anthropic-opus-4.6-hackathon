@@ -4,6 +4,8 @@ export interface RawSSEEvent {
   type: string;
   token?: string;
   error?: string;
+  thinking_type?: string;
+  thinking_effort?: string;
   tool_call_id?: string;
   tool_name?: string;
   tool_input?: Record<string, unknown>;
@@ -25,7 +27,7 @@ export type ChatAction =
   | { type: 'APPEND_TOKEN'; token: string }
   | { type: 'TOOL_START'; toolCall: ToolCall }
   | { type: 'TOOL_DONE'; toolCallId: string; result: Record<string, unknown> }
-  | { type: 'THINKING_START' }
+  | { type: 'THINKING_START'; thinkingType?: string; thinkingEffort?: string }
   | { type: 'THINKING_TOKEN'; token: string }
   | { type: 'THINKING_END' }
   | { type: 'AGENT_START'; agentName: string; agentLabel: string; task: string }
@@ -54,7 +56,11 @@ export function mapSSEEvent(raw: RawSSEEvent): ChatAction | null {
       return raw.token ? { type: 'APPEND_TOKEN', token: raw.token } : null;
 
     case 'thinking_start':
-      return { type: 'THINKING_START' };
+      return {
+        type: 'THINKING_START',
+        thinkingType: raw.thinking_type,
+        thinkingEffort: raw.thinking_effort,
+      };
 
     case 'thinking_token':
       return raw.token ? { type: 'THINKING_TOKEN', token: raw.token } : null;
