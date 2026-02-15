@@ -538,6 +538,88 @@
   }
 }
 
+/* ── Theme-aware prose overrides ── */
+.prose-themed {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-kbd: var(--foreground);
+  --tw-prose-kbd-shadows: 0 0 0;
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+/* ── Inline code in prose ── */
+.prose-themed :not(pre) > code {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.35em;
+  font-size: 0.875em;
+}
+.prose-themed :not(pre) > code::before,
+.prose-themed :not(pre) > code::after {
+  content: none;
+}
+
+/* ── Syntax highlighting (theme-aware) ── */
+.hljs {
+  background: transparent !important;
+  color: var(--foreground);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: var(--primary);
+}
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type {
+  color: oklch(0.78 0.14 135);
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: var(--muted-foreground);
+}
+.hljs-number,
+.hljs-regexp,
+.hljs-addition,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: oklch(0.78 0.15 60);
+}
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: oklch(0.7 0.18 300);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: bold;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
