@@ -34,6 +34,8 @@ export interface AgentExecution {
 export interface UsageReport {
   totalInputTokens: number;
   totalOutputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
   agentUsage: Record<string, TokenUsage>;
 }
 

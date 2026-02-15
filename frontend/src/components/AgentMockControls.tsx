@@ -117,6 +117,8 @@ const MOCK_AGENTS: Record<string, AgentExecution[]> = {
 const MOCK_USAGE: UsageReport = {
   totalInputTokens: 3300,
   totalOutputTokens: 1060,
+  cacheCreationTokens: 0,
+  cacheReadTokens: 0,
   agentUsage: {
     discovery_coordinator: { input_tokens: 800, output_tokens: 200 },
     regulatory_researcher: { input_tokens: 1250, output_tokens: 430 },

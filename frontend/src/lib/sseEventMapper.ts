@@ -16,6 +16,8 @@ export interface RawSSEEvent {
   duration_ms?: number;
   total_input_tokens?: number;
   total_output_tokens?: number;
+  cache_creation_tokens?: number;
+  cache_read_tokens?: number;
   agent_usage?: Record<string, TokenUsage>;
 }
 
@@ -138,6 +140,8 @@ export function mapSSEEvent(raw: RawSSEEvent): ChatAction | null {
         report: {
           totalInputTokens: raw.total_input_tokens ?? 0,
           totalOutputTokens: raw.total_output_tokens ?? 0,
+          cacheCreationTokens: raw.cache_creation_tokens ?? 0,
+          cacheReadTokens: raw.cache_read_tokens ?? 0,
           agentUsage: raw.agent_usage ?? {},
         },
       };

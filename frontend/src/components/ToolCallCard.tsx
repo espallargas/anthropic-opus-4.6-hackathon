@@ -7,12 +7,24 @@ interface ToolCallCardProps {
   compact?: boolean;
 }
 
+function getToolDetail(toolCall: ToolCall): string | null {
+  const input = toolCall.input;
+  if (toolCall.name === 'get_legislation' && input.country_code) {
+    return String(input.country_code).toUpperCase();
+  }
+  if (input.destination_country) {
+    return String(input.destination_country);
+  }
+  return null;
+}
+
 export function ToolCallCard({ toolCall, compact }: ToolCallCardProps) {
   const { t } = useI18n();
   const label =
     t(`tool.${toolCall.name}`) !== `tool.${toolCall.name}`
       ? t(`tool.${toolCall.name}`)
       : toolCall.name;
+  const detail = getToolDetail(toolCall);
   const isCalling = toolCall.status === 'calling';
 
   return (
@@ -28,7 +40,10 @@ export function ToolCallCard({ toolCall, compact }: ToolCallCardProps) {
       ) : (
         <CheckCircle2 className={`text-green-500 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
       )}
-      <span className={`text-muted-foreground ${compact ? 'text-[10px]' : ''}`}>{label}</span>
+      <span className={`text-muted-foreground ${compact ? 'text-[10px]' : ''}`}>
+        {label}
+        {detail && <span className="ml-1 opacity-60">— {detail}</span>}
+      </span>
     </div>
   );
 }

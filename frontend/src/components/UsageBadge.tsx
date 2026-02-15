@@ -9,11 +9,15 @@ interface UsageBadgeProps {
 export function UsageBadge({ report }: UsageBadgeProps) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
-  const total = report.totalInputTokens + report.totalOutputTokens;
+
+  // API input_tokens excludes cached tokens — add them for the real total
+  const totalInput = report.totalInputTokens + report.cacheCreationTokens + report.cacheReadTokens;
+  const total = totalInput + report.totalOutputTokens;
 
   if (total === 0) return null;
 
   const agentEntries = Object.entries(report.agentUsage);
+  const hasCacheInfo = report.cacheCreationTokens > 0 || report.cacheReadTokens > 0;
 
   return (
     <div className="mt-1">
@@ -25,8 +29,22 @@ export function UsageBadge({ report }: UsageBadgeProps) {
         {t('usage.label')}: {total.toLocaleString()}
       </button>
 
-      {expanded && agentEntries.length > 0 && (
+      {expanded && (
         <div className="mt-1 space-y-0.5 pl-2">
+          <div className="text-muted-foreground/40 text-[10px]">
+            {t('usage.input')}: {totalInput.toLocaleString()}
+            {report.cacheReadTokens > 0 && (
+              <span className="ml-1">
+                ({report.cacheReadTokens.toLocaleString()} {t('usage.cached')})
+              </span>
+            )}
+            {report.cacheReadTokens === 0 && report.cacheCreationTokens > 0 && (
+              <span className="ml-1">({t('usage.cache_miss')})</span>
+            )}
+          </div>
+          <div className="text-muted-foreground/40 text-[10px]">
+            {t('usage.output')}: {report.totalOutputTokens.toLocaleString()}
+          </div>
           {agentEntries.map(([name, usage]) => {
             const label = t(`agent.${name}`) !== `agent.${name}` ? t(`agent.${name}`) : name;
             return (

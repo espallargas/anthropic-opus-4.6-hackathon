@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { ToolCallCard } from '@/components/ToolCallCard';
@@ -13,6 +13,24 @@ export function AgentCard({ agent }: AgentCardProps) {
   const isRunning = agent.status === 'running';
   const isDone = agent.status === 'done';
   const [expanded, setExpanded] = useState(isRunning);
+  const tokensRef = useRef<HTMLParagraphElement>(null);
+  const hasAutoCollapsed = useRef(false);
+
+  // Auto-scroll to bottom as tokens stream in
+  useEffect(() => {
+    if (isRunning && expanded && tokensRef.current) {
+      tokensRef.current.scrollTop = tokensRef.current.scrollHeight;
+    }
+  }, [agent.tokens, isRunning, expanded]);
+
+  // Auto-collapse once when agent completes
+  useEffect(() => {
+    if (isDone && !hasAutoCollapsed.current) {
+      hasAutoCollapsed.current = true;
+      const timer = setTimeout(() => setExpanded(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isDone]);
 
   const label =
     t(`agent.${agent.agentName}`) !== `agent.${agent.agentName}`
@@ -86,7 +104,10 @@ export function AgentCard({ agent }: AgentCardProps) {
             </div>
           )}
           {agent.tokens && (
-            <p className="text-muted-foreground/70 line-clamp-3 text-[10px] leading-relaxed">
+            <p
+              ref={tokensRef}
+              className="text-muted-foreground/70 h-32 overflow-y-auto text-[10px] leading-relaxed whitespace-pre-wrap"
+            >
               {agent.tokens}
             </p>
           )}

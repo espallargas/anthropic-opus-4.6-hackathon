@@ -104,6 +104,8 @@ const MOCK_TOOL_CALLS: ToolCall[] = [
 const MOCK_USAGE: UsageReport = {
   totalInputTokens: 12500,
   totalOutputTokens: 4200,
+  cacheCreationTokens: 0,
+  cacheReadTokens: 8500,
   agentUsage: {
     analyze_pathways: { input_tokens: 5000, output_tokens: 1800 },
     list_required_documents: { input_tokens: 4000, output_tokens: 1200 },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
+import { Brain, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { ThinkingBlock } from '@/lib/chatStore';
 
@@ -12,6 +12,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
   const isThinking = thinking.status === 'thinking';
   const [expanded, setExpanded] = useState(true);
   const contentRef = useRef<HTMLParagraphElement>(null);
+  const hasAutoCollapsed = useRef(false);
 
   // Auto-scroll to bottom as content streams in
   useEffect(() => {
@@ -20,21 +21,19 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
     }
   }, [thinking.content, isThinking, expanded]);
 
-  // Auto-close when thinking completes
+  // Auto-collapse once when thinking completes
   useEffect(() => {
-    if (!isThinking && expanded) {
-      // Close after a short delay for visual feedback
-      const timer = setTimeout(() => {
-        setExpanded(false);
-      }, 800);
+    if (!isThinking && !hasAutoCollapsed.current) {
+      hasAutoCollapsed.current = true;
+      const timer = setTimeout(() => setExpanded(false), 800);
       return () => clearTimeout(timer);
     }
-  }, [isThinking, expanded]);
+  }, [isThinking]);
 
   return (
     <div
       className={`bg-muted/30 my-1 rounded-lg border backdrop-blur-sm ${
-        isThinking ? 'animate-thinking-pulse border-purple-400/30' : 'border-purple-400/10'
+        isThinking ? 'animate-thinking-pulse border-purple-400/30' : 'border-green-400/15'
       }`}
     >
       <button
@@ -42,9 +41,11 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
       >
-        <Brain
-          className={`h-4 w-4 text-purple-400 ${isThinking ? 'animate-pulse' : 'opacity-50'}`}
-        />
+        {isThinking ? (
+          <Brain className="h-4 w-4 animate-pulse text-purple-400" />
+        ) : (
+          <CheckCircle2 className="h-4 w-4 text-green-400" />
+        )}
         <div className="flex-1">
           <span className="text-muted-foreground font-medium">
             {isThinking ? t('thinking.active') : t('thinking.done')}
@@ -68,7 +69,7 @@ export function ThinkingCard({ thinking }: ThinkingCardProps) {
         <div className="border-border/50 border-t px-3 py-2">
           <p
             ref={contentRef}
-            className="text-muted-foreground/50 max-h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap"
+            className="text-muted-foreground/50 h-20 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap"
           >
             {thinking.content}
           </p>
