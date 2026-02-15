@@ -1,7 +1,18 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import ReactGlobe from 'react-globe.gl';
+import {
+  MeshBasicMaterial,
+  AmbientLight,
+  ColorManagement,
+  LinearSRGBColorSpace,
+  NoToneMapping,
+} from 'three';
 import { useGlobe } from '@/hooks/useGlobe';
 import { useI18n } from '@/lib/i18n';
+import { useTheme } from '@/lib/theme';
+
+// Disable Three.js automatic sRGB conversions so colors render as specified
+ColorManagement.enabled = false;
 
 interface GlobeProps {
   origin?: string;
@@ -12,13 +23,94 @@ interface GlobeProps {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GlobeInstance = any;
 
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => Math.max(0, Math.min(255, c)).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Resolve any CSS color expression (var, color-mix, oklch…) to a hex string for Three.js */
+function resolveCssColor(cssExpr: string): string {
+  const el = document.createElement('div');
+  el.style.color = cssExpr;
+  document.body.appendChild(el);
+  const computed = getComputedStyle(el).color;
+  el.remove();
+
+  const rgbComma = computed.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (rgbComma) {
+    return rgbToHex(parseInt(rgbComma[1]), parseInt(rgbComma[2]), parseInt(rgbComma[3]));
+  }
+
+  const rgbSpace = computed.match(/rgba?\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  if (rgbSpace) {
+    return rgbToHex(
+      Math.round(parseFloat(rgbSpace[1])),
+      Math.round(parseFloat(rgbSpace[2])),
+      Math.round(parseFloat(rgbSpace[3])),
+    );
+  }
+
+  const srgb = computed.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  if (srgb) {
+    return rgbToHex(
+      Math.round(parseFloat(srgb[1]) * 255),
+      Math.round(parseFloat(srgb[2]) * 255),
+      Math.round(parseFloat(srgb[3]) * 255),
+    );
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (ctx) {
+    ctx.fillStyle = computed;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return rgbToHex(r, g, b);
+  }
+
+  return '#888888';
+}
+
+function cssVarToHex(varName: string): string {
+  return resolveCssColor(`var(${varName})`);
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const n = parseInt(hex.slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
 export function Globe({ origin, destination, className = '' }: GlobeProps) {
   const { t } = useI18n();
+  const { theme } = useTheme();
   const globeRef = useRef<GlobeInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
   const [size, setSize] = useState({ width: 400, height: 500 });
 
-  const { loading, polygonsData, arcsData, pointOfView, style } = useGlobe(origin, destination);
+  const { loading, polygonsData, arcsData, ringsData, pointOfView } = useGlobe(origin, destination);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const foregroundColor = useMemo(() => cssVarToHex('--foreground'), [theme]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const countryColor = useMemo(() => cssVarToHex('--muted-foreground'), [theme]);
+  // Harmonious pair: both derived from --primary, one darker (origin) one lighter (destination)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const originColor = useMemo(
+    () => resolveCssColor('color-mix(in oklch, var(--primary) 85%, var(--background))'),
+    [theme],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const destinationColor = useMemo(
+    () => resolveCssColor('color-mix(in oklch, var(--primary) 55%, white)'),
+    [theme],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const globeMaterial = useMemo(
+    () => new MeshBasicMaterial({ color: cssVarToHex('--card') }),
+    [theme],
+  );
 
   useEffect(() => {
     if (loading || !containerRef.current) return;
@@ -38,60 +130,23 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
     return () => ro.disconnect();
   }, [loading]);
 
-  // Smooth rotation to POV on origin change
+  // Smooth rotation to POV on origin/destination change
   useEffect(() => {
     if (!globeRef.current || !pointOfView) return;
 
-    // Use 0 duration on first set to avoid animation, 1000ms on updates
-    const duration = globeRef.current._pov ? 1000 : 0;
+    const duration = hasInitialized.current ? 1500 : 0;
     globeRef.current.pointOfView(
       { lat: pointOfView.lat, lng: pointOfView.lng, altitude: pointOfView.altitude },
       duration,
     );
+    hasInitialized.current = true;
   }, [pointOfView]);
-
-  // Memoized color accessors
-  const polygonCapColor = useCallback(
-    (feature: { properties?: { ISO_A2: string }; countryCode?: string }) => {
-      const code = feature.properties?.ISO_A2 || feature.countryCode;
-      if (code === origin) return 'rgba(0,200,255,0.45)';
-      if (code === destination) return 'rgba(255,100,200,0.45)';
-      return 'rgba(0,20,40,0.3)';
-    },
-    [origin, destination],
-  );
-
-  // Gradient color interpolation from origin (cyan) to destination (magenta)
-  const arcDashColor = useCallback((arc: { isBase?: boolean }) => {
-    if (arc.isBase) {
-      // Base arc: gradient from cyan (origin) to magenta (destination)
-      return (t: number) => {
-        // Origin color: rgba(0,200,255,0.45) - cyan
-        // Destination color: rgba(255,100,200,0.45) - magenta
-        const startR = 0,
-          startG = 200,
-          startB = 255;
-        const endR = 255,
-          endG = 100,
-          endB = 200;
-
-        const r = Math.round(startR + (endR - startR) * t);
-        const g = Math.round(startG + (endG - startG) * t);
-        const b = Math.round(startB + (endB - startB) * t);
-
-        return `rgba(${r},${g},${b},0.5)`;
-      };
-    } else {
-      // Animated arc: amber/orange
-      return 'rgba(255,160,40,0.8)';
-    }
-  }, []);
 
   if (loading) {
     return (
       <div
         ref={containerRef}
-        className={`flex items-center justify-center bg-[#000008] ${className}`}
+        className={`flex items-center justify-center ${className}`}
       >
         <div className="text-muted-foreground text-xs">{t('globe.loading')}</div>
       </div>
@@ -102,52 +157,68 @@ export function Globe({ origin, destination, className = '' }: GlobeProps) {
     <div
       ref={containerRef}
       className={`absolute inset-0 overflow-hidden ${className}`}
-      style={{
-        width: '100%',
-        height: '100%',
-      }}
+      style={{ width: '100%', height: '100%' }}
     >
-      <style>
-        {`
-          [data-globe-container] > div {
-            left: 50% !important;
-            top: 50% !important;
-            transform: translate(-50%, -50%) !important;
-          }
-        `}
-      </style>
       <ReactGlobe
         ref={globeRef}
         width={size.width || 400}
         height={size.height || 500}
+        globeMaterial={globeMaterial}
         backgroundColor="rgba(0,0,0,0)"
-        showAtmosphere={true}
-        atmosphereColor={style.atmosphereColor}
-        atmosphereAltitude={style.atmosphereAltitude}
         polygonsData={polygonsData}
-        polygonCapColor={polygonCapColor}
-        polygonStrokeColor={() => style.countryStrokeColor}
+        polygonCapColor={(d: { isOrigin?: boolean; isDestination?: boolean }) => {
+          if (d.isOrigin) return originColor;
+          if (d.isDestination) return destinationColor;
+          return countryColor;
+        }}
+        polygonSideColor={() => 'rgba(0,0,0,0)'}
+        polygonStrokeColor={() => 'rgba(0,0,0,0)'}
         polygonAltitude={(d: { isOrigin?: boolean; isDestination?: boolean }) =>
           d.isOrigin || d.isDestination ? 0.02 : 0.005
         }
         polygonsTransitionDuration={300}
+        showAtmosphere={true}
+        atmosphereColor="#ffffff"
+        atmosphereAltitude={0.15}
         arcsData={arcsData}
-        arcColor={arcDashColor}
-        arcDashLength={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.9)}
-        arcDashGap={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.3)}
+        arcColor={(d: { isBase?: boolean }) => {
+          const { r, g, b } = hexToRgb(foregroundColor);
+          if (d.isBase) return `rgba(${r},${g},${b},0.15)`;
+          return `rgba(${r},${g},${b},0.8)`;
+        }}
+        arcDashLength={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.5)}
+        arcDashGap={(d: { isBase?: boolean }) => (d.isBase ? 0 : 0.5)}
         arcDashAnimateTime={(d: { isBase?: boolean }) => (d.isBase ? 0 : 3000)}
+        arcStroke={(d: { isBase?: boolean }) => (d.isBase ? 0.6 : 1.5)}
         arcAltitude={(d: { altitude?: number }) => d.altitude ?? 0.3}
-        arcStroke={(d: { isBase?: boolean }) => (d.isBase ? 1.0 : 1.8)}
         arcCurveResolution={32}
-        polygonCapCurvatureResolution={10}
-        rendererConfig={{ antialias: true }}
+        ringsData={ringsData}
+        ringColor={() => (t: number) => {
+          const { r, g, b } = hexToRgb(foregroundColor);
+          return `rgba(${r},${g},${b},${Math.max(0, 0.7 - t * 0.7).toFixed(2)})`;
+        }}
+        ringMaxRadius="maxR"
+        ringPropagationSpeed="propagationSpeed"
+        ringRepeatPeriod="repeatPeriod"
+        ringAltitude={0.015}
         onGlobeReady={() => {
-          // Force POV on globe ready
-          if (globeRef.current && pointOfView) {
+          if (globeRef.current) {
+            const initial = pointOfView ?? { lat: 20, lng: 0, altitude: 2.5 };
             globeRef.current.pointOfView(
-              { lat: pointOfView.lat, lng: pointOfView.lng, altitude: pointOfView.altitude },
+              { lat: initial.lat, lng: initial.lng, altitude: initial.altitude },
               0,
             );
+            hasInitialized.current = true;
+
+            // Exact color output — no gamma/tonemap shifts
+            const renderer = globeRef.current.renderer();
+            if (renderer) {
+              renderer.outputColorSpace = LinearSRGBColorSpace;
+              renderer.toneMapping = NoToneMapping;
+            }
+
+            // Single white ambient light — uniform illumination, no yellow edge glow
+            globeRef.current.lights([new AmbientLight(0xffffff, 1.0)]);
           }
         }}
       />

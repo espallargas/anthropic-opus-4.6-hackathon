@@ -30,30 +30,24 @@ export interface ArcData {
   startLng: number;
   endLat: number;
   endLng: number;
-  strokeColor: string;
   altitude: number;
   isBase: boolean;
 }
 
-export interface GlobeStyle {
-  backgroundColor: string;
-  atmosphereColor: string;
-  atmosphereAltitude: number;
-  countryStrokeColor: string;
+export interface RingData {
+  lat: number;
+  lng: number;
+  maxR: number;
+  propagationSpeed: number;
+  repeatPeriod: number;
 }
-
-const style: GlobeStyle = {
-  backgroundColor: 'rgba(0,0,0,0)',
-  atmosphereColor: '#0ef',
-  atmosphereAltitude: 0.18,
-  countryStrokeColor: 'rgba(220,230,240,0.6)',
-};
 
 export function useGlobe(origin?: string, destination?: string) {
   const [loading, setLoading] = useState(true);
   const [geoJSON, setGeoJSON] = useState<GeoJSON | null>(null);
   const [polygonsData, setPolygonsData] = useState<PolygonData[]>([]);
   const [arcsData, setArcsData] = useState<ArcData[]>([]);
+  const [ringsData, setRingsData] = useState<RingData[]>([]);
   const [pointOfView, setPointOfView] = useState<{
     lat: number;
     lng: number;
@@ -101,6 +95,7 @@ export function useGlobe(origin?: string, destination?: string) {
   useEffect(() => {
     if (!origin || !destination) {
       setArcsData([]);
+      setRingsData([]);
       if (origin) {
         const originData = countryCentroids[origin];
         if (originData) {
@@ -119,10 +114,10 @@ export function useGlobe(origin?: string, destination?: string) {
 
     if (!originData || !destData) {
       setArcsData([]);
+      setRingsData([]);
       return;
     }
 
-    // Calculate great circle midpoint
     const toRad = (d: number) => (d * Math.PI) / 180;
     const toDeg = (r: number) => (r * 180) / Math.PI;
 
@@ -141,53 +136,63 @@ export function useGlobe(origin?: string, destination?: string) {
     );
     const midLng = lng1 + Math.atan2(y, Math.cos(lat1) + x);
 
-    // Calculate angular distance for dynamic altitude
-    const centralAngle = Math.acos(
-      Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng),
+    const cosAngle = Math.min(
+      1,
+      Math.max(
+        -1,
+        Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng),
+      ),
     );
+    const centralAngle = Math.acos(cosAngle);
     const arcAltitude = Math.max(0.2, Math.min(0.8, centralAngle / Math.PI));
 
-    // Two arcs: base continuous gradient + animated dash overlay
+    const shared = {
+      startLat: originData.lat,
+      startLng: originData.lng,
+      endLat: destData.lat,
+      endLng: destData.lng,
+      altitude: arcAltitude,
+    };
+
     const arcs: ArcData[] = [
-      {
-        startLat: originData.lat,
-        startLng: originData.lng,
-        endLat: destData.lat,
-        endLng: destData.lng,
-        strokeColor: 'gradient', // Will use gradient function in Globe component
-        altitude: arcAltitude,
-        isBase: true,
-      },
-      {
-        startLat: originData.lat,
-        startLng: originData.lng,
-        endLat: destData.lat,
-        endLng: destData.lng,
-        strokeColor: 'rgba(255,160,40,0.8)',
-        altitude: arcAltitude,
-        isBase: false,
-      },
+      { ...shared, isBase: true },
+      { ...shared, isBase: false },
     ];
 
     setArcsData(arcs);
 
-    // POV at midpoint with zoom based on distance
+    // Pulsing rings at both endpoints
+    setRingsData([
+      { lat: originData.lat, lng: originData.lng, maxR: 3, propagationSpeed: 2, repeatPeriod: 1200 },
+      { lat: destData.lat, lng: destData.lng, maxR: 3, propagationSpeed: 2, repeatPeriod: 1200 },
+    ]);
+
+    // Camera: tilted midpoint so the arc curvature is visible
+    const bearing = Math.atan2(
+      Math.sin(dLng) * Math.cos(lat2),
+      Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng),
+    );
+    const perpBearing = bearing + Math.PI / 2;
+    const offsetAngle = Math.min(0.26, centralAngle * 0.3);
+
+    const midLatDeg = toDeg(midLat);
+    const midLngDeg = toDeg(midLng);
+
+    let tiltLat = midLatDeg + toDeg(offsetAngle) * Math.cos(perpBearing);
+    let tiltLng = midLngDeg + (toDeg(offsetAngle) * Math.sin(perpBearing)) / Math.cos(midLat);
+
+    // Bias toward equator: flip if tilt moves away from it
+    if (Math.abs(tiltLat) > Math.abs(midLatDeg)) {
+      tiltLat = midLatDeg - toDeg(offsetAngle) * Math.cos(perpBearing);
+      tiltLng = midLngDeg - (toDeg(offsetAngle) * Math.sin(perpBearing)) / Math.cos(midLat);
+    }
+
     const minAltitude = 2.5;
     const maxAltitude = 4.0;
     const altitude = minAltitude + (maxAltitude - minAltitude) * (centralAngle / Math.PI);
 
-    setPointOfView({
-      lat: toDeg(midLat),
-      lng: toDeg(midLng),
-      altitude,
-    });
+    setPointOfView({ lat: tiltLat, lng: tiltLng, altitude });
   }, [origin, destination]);
 
-  return {
-    loading,
-    polygonsData,
-    arcsData,
-    pointOfView,
-    style,
-  };
+  return { loading, polygonsData, arcsData, ringsData, pointOfView };
 }
