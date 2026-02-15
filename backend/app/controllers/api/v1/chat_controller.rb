@@ -228,28 +228,46 @@ module Api
 
       def execute_tool_calls(tool_use_blocks, system_vars, sse, agent_usage)
         executor = Agents::Executor.new(system_vars: system_vars, sse: sse)
+        threads = []
+        results = Array.new(tool_use_blocks.length)
+        results_mutex = Mutex.new
 
-        tool_use_blocks.map do |tb|
-          tool_result = if SERVER_TOOLS.include?(tb[:name])
-                          handle_server_tool(tb)
-                        elsif programmatic_call?(tb)
-                          result = executor.execute(tb[:name], tb[:input], tool_call_id: tb[:id])
+        # Start all tool executions in parallel (without writing to SSE yet)
+        tool_use_blocks.each_with_index do |tb, index|
+          thread = Thread.new do
+            tool_result = if SERVER_TOOLS.include?(tb[:name])
+                            handle_server_tool(tb)
+                          elsif programmatic_call?(tb)
+                            result = executor.execute(tb[:name], tb[:input], tool_call_id: tb[:id])
 
-                          # Track per-agent token usage
-                          if result[:usage]
-                            agent_usage[tb[:name]] = {
-                              input_tokens: result.dig(:usage, :input_tokens) || 0,
-                              output_tokens: result.dig(:usage, :output_tokens) || 0
-                            }
+                            # Track per-agent token usage
+                            if result[:usage]
+                              results_mutex.synchronize do
+                                agent_usage[tb[:name]] = {
+                                  input_tokens: result.dig(:usage, :input_tokens) || 0,
+                                  output_tokens: result.dig(:usage, :output_tokens) || 0
+                                }
+                              end
+                            end
+
+                            content = result[:success] ? result[:data].to_json : { error: result[:error] }.to_json
+                            { type: "tool_result", tool_use_id: tb[:id], content: content }
+                          else
+                            { type: "tool_result", tool_use_id: tb[:id],
+                              content: { error: "Tool not implemented: #{tb[:name]}" }.to_json }
                           end
 
-                          content = result[:success] ? result[:data].to_json : { error: result[:error] }.to_json
-                          { type: "tool_result", tool_use_id: tb[:id], content: content }
-                        else
-                          { type: "tool_result", tool_use_id: tb[:id],
-                            content: { error: "Tool not implemented: #{tb[:name]}" }.to_json }
-                        end
+            results_mutex.synchronize { results[index] = tool_result }
+          end
 
+          threads << thread
+        end
+
+        # Wait for all threads to complete before writing results to SSE
+        threads.each(&:join)
+
+        # Now write all results to SSE together
+        tool_use_blocks.each_with_index do |tb, index|
           sse.write({
                       type: "tool_use_result",
                       tool_call_id: tb[:id],
@@ -257,9 +275,9 @@ module Api
                       result: {},
                       server_time: Time.current.iso8601(3)
                     })
-
-          tool_result
         end
+
+        results
       end
 
       def handle_server_tool(tool_block)
