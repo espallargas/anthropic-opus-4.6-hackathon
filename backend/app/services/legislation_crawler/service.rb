@@ -79,6 +79,27 @@ module LegislationCrawler
       "op_#{operation_id_counter}"
     end
 
+    def with_heartbeat
+      return yield unless sse
+
+      stop = false
+      heartbeat_thread = Thread.new do
+        while !stop
+          sleep 15
+          break if stop
+
+          emit(:heartbeat, timestamp: Time.current.iso8601)
+        rescue StandardError
+          break
+        end
+      end
+
+      yield
+    ensure
+      stop = true
+      heartbeat_thread&.join(2)
+    end
+
     def call_claude_crawler(system_prompt, prompt_builder, progressive_saver = nil)
       Rails.logger.info("[CALL_CLAUDE] Starting call_claude_crawler")
       emit(:phase, message: "Invoking Claude Opus 4.6 Agent")
@@ -88,25 +109,27 @@ module LegislationCrawler
       current_operation_id = next_operation_id
       response = nil
       begin
-        Timeout.timeout(TIMEOUT_SECONDS) do
-          web_search_tool = { type: "web_search_20250305", name: "web_search" }
+        with_heartbeat do
+          Timeout.timeout(TIMEOUT_SECONDS) do
+            web_search_tool = { type: "web_search_20250305", name: "web_search" }
 
-          response = build_response_from_stream(
-            current_operation_id,
-            progressive_saver: progressive_saver,
-            model: MODEL,
-            max_tokens: MAX_TOKENS,
-            thinking: { type: "adaptive" },
-            tools: [web_search_tool],
-            tool_choice: { type: "auto" },
-            system_: system_prompt,
-            messages: messages,
-            output_config: {
-              effort: thinking_effort,
-              format: { type: "json_schema", schema: prompt_builder.legislation_schema }
-            }
-          )
-          emit_search_results_post_stream(response)
+            response = build_response_from_stream(
+              current_operation_id,
+              progressive_saver: progressive_saver,
+              model: MODEL,
+              max_tokens: MAX_TOKENS,
+              thinking: { type: "adaptive" },
+              tools: [web_search_tool],
+              tool_choice: { type: "auto" },
+              system_: system_prompt,
+              messages: messages,
+              output_config: {
+                effort: thinking_effort,
+                format: { type: "json_schema", schema: prompt_builder.legislation_schema }
+              }
+            )
+            emit_search_results_post_stream(response)
+          end
         end
       rescue Timeout::Error => e
         Rails.logger.error("Claude API timeout after #{TIMEOUT_SECONDS}s: #{e.message}")
@@ -208,8 +231,8 @@ module LegislationCrawler
       self.thinking_type_emitted = true unless thinking_type_emitted
       emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id,
                        thinking_type: thinking_type)
-    rescue StandardError
-      # Silent
+    rescue StandardError => e
+      Rails.logger.error("[STREAM_HANDLER] emit_thinking_delta error: #{e.class} - #{e.message}")
     end
 
     def emit_text_delta(event, progressive_saver)
@@ -217,8 +240,8 @@ module LegislationCrawler
 
       emit(:claude_text, text: event.delta.text)
       progressive_saver&.on_text_delta(event.delta.text)
-    rescue StandardError
-      # Silent
+    rescue StandardError => e
+      Rails.logger.error("[STREAM_HANDLER] emit_text_delta error: #{e.class} - #{e.message}")
     end
 
     def handle_token_tracking(event)

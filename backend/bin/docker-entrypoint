@@ -17,7 +17,7 @@ run_with_retry() {
 if [ "$1" == "./bin/rails" ] && [ "$2" == "server" ]; then
   run_with_retry "./bin/rails db:prepare"
   run_with_retry "./bin/rails db:seed"
-  echo "==> Starting Sidekiq (1 extraction + 3 long_io threads)..."
+  echo "==> Starting Sidekiq (1 extraction + 1 long_io threads)..."
   bundle exec sidekiq &
   echo "==> Starting server..."
 fi

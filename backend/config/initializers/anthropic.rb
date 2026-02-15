@@ -1,1 +1,1 @@
-Rails.application.config.x.anthropic = Anthropic::Client.new
+Rails.application.config.x.anthropic = Anthropic::Client.new(timeout: 1200)

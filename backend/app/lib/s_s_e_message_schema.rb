@@ -49,7 +49,10 @@ module SSEMessageSchema
     agent_tool_use_result: { fields: [:agent_name, :tool_call_id, :tool_name, :result],
                              required_fields: [:agent_name, :tool_name] },
     agent_end: { fields: [:agent_name, :result_summary, :usage, :duration_ms],
-                 required_fields: [:agent_name] }
+                 required_fields: [:agent_name] },
+
+    # Keep-alive for SSE proxy connections
+    heartbeat: { fields: [:timestamp], required_fields: [] }
   }.freeze
 
   # Validate message against schema

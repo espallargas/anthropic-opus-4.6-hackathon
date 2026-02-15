@@ -87,25 +87,27 @@ module LegislationCrawler
     end
 
     def save_category(category_sym, items)
-      items.each do |item|
-        next unless item.is_a?(Hash) && item["title"].present?
+      with_db_retry do
+        items.each do |item|
+          next unless item.is_a?(Hash) && item["title"].present?
 
-        existing = @country.legislations.find_by(title: item["title"])
-        parsed_date = parse_date(item["date_effective"])
+          existing = @country.legislations.find_by(title: item["title"])
+          parsed_date = parse_date(item["date_effective"])
 
-        if existing
-          next if !parsed_date || !existing.date_effective || parsed_date <= existing.date_effective
+          if existing
+            next if !parsed_date || !existing.date_effective || parsed_date <= existing.date_effective
+
+            new_leg = create_legislation(category_sym, item, parsed_date)
+            @pending_extraction_ids << new_leg.id
+            existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
+            @saved_count += 1
+            next
+          end
 
           new_leg = create_legislation(category_sym, item, parsed_date)
           @pending_extraction_ids << new_leg.id
-          existing.update!(is_deprecated: true, replaced_by_id: new_leg.id)
           @saved_count += 1
-          next
         end
-
-        new_leg = create_legislation(category_sym, item, parsed_date)
-        @pending_extraction_ids << new_leg.id
-        @saved_count += 1
       end
 
       @emit_proc.call(:batch_saved, total_saved: @country.legislations.count) if @saved_count.positive?
@@ -130,6 +132,20 @@ module LegislationCrawler
         extraction_status: "pending",
         crawled_at: Time.current
       )
+    end
+
+    def with_db_retry(retries: 2)
+      yield
+    rescue ActiveRecord::ConnectionNotEstablished, PG::ConnectionBad => e
+      retries -= 1
+      if retries >= 0
+        Rails.logger.warn("[PROGRESSIVE_SAVE] DB error (#{e.class}), retrying in 1s... (#{retries} retries left)")
+        ActiveRecord::Base.connection_pool.disconnect!
+        sleep 1
+        retry
+      end
+      Rails.logger.error("[PROGRESSIVE_SAVE] DB error after all retries: #{e.class} - #{e.message}")
+      raise
     end
 
     def parse_date(date_str)
