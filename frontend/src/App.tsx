@@ -14,7 +14,7 @@ import { useI18n } from './lib/i18n';
 function App() {
   const location = useLocation();
   const [showSetup, setShowSetup] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(280); // pixels
+  const [sidebarWidth, setSidebarWidth] = useState(320); // pixels
   const [isResizing, setIsResizing] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
