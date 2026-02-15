@@ -28,6 +28,7 @@ This document describes every i18n key used in the FreePath application, grouped
 | `sidebar.language` | Language | Label for the language/locale picker dropdown in the sidebar |
 | `sidebar.newChat` | New chat | Button label to start a fresh chat conversation |
 | `sidebar.deleteChat` | Delete chat | Button label / tooltip to delete an existing chat from the sidebar list |
+| `sidebar.chats` | Chats | Heading label for the chat list section in the sidebar |
 
 ## Chat
 

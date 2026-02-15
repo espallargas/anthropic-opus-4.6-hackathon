@@ -15,6 +15,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { LucideIcon } from 'lucide-react';
 
 const OBJECTIVE_ICON_MAP: Record<string, LucideIcon> = {
@@ -111,15 +112,16 @@ export function Sidebar({
         </button>
       </div> */}
 
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <h3 className="text-sm font-semibold text-white/70">Chats</h3>
-        <button
+      <div className="border-border flex items-center justify-between border-b px-4 py-3">
+        <h3 className="text-muted-foreground text-sm font-semibold">{t('sidebar.chats')}</h3>
+        <Button
           onClick={onNewChat}
-          className="cursor-pointer rounded-md p-1 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
+          variant="ghost"
+          size="icon-sm"
           title={t('sidebar.newChat')}
         >
-          <Plus className="h-4 w-4" />
-        </button>
+          <Plus className="size-4" />
+        </Button>
       </div>
 
       {/* Chat list */}
