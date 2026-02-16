@@ -40,6 +40,14 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, searchParams]);
 
+  // Clear URL when active chat is deleted
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && !store.chats.some((c) => c.id === id)) {
+      navigate('/');
+    }
+  }, [store.chats, searchParams, navigate]);
+
   const handleSetup = (vars: SystemVars) => {
     const natNames = vars.nationality
       .split(', ')
