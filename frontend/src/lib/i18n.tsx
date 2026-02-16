@@ -141,6 +141,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Novo chat',
     'sidebar.deleteChat': 'Excluir chat',
     'sidebar.chats': 'Conversas',
+    'sidebar.empty': 'Nenhuma conversa por enquanto',
     'globe.loading': 'Carregando globo...',
     'agent.analyze_pathways': 'Estrategista de Percurso',
     'agent.check_eligibility': 'Analista de Elegibilidade',
@@ -592,6 +593,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'New chat',
     'sidebar.deleteChat': 'Delete chat',
     'sidebar.chats': 'Chats',
+    'sidebar.empty': 'No chats yet',
     'globe.loading': 'Loading globe...',
     'agent.analyze_pathways': 'Pathway Strategist',
     'agent.check_eligibility': 'Eligibility Analyst',
@@ -1040,6 +1042,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'محادثة جديدة',
     'sidebar.deleteChat': 'حذف المحادثة',
     'sidebar.chats': 'المحادثات',
+    'sidebar.empty': 'لا توجد محادثات حتى الآن',
     'globe.loading': 'جارٍ تحميل الكرة الأرضية...',
     'agent.analyze_pathways': 'محلل المسارات',
     'agent.check_eligibility': 'محلل الأهلية',
@@ -1421,20 +1424,23 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'chat.copied': 'কপি করা হয়েছে!',
     'chat.interrupted': '*[প্রতিক্রিয়া বাধাগ্রস্ত হয়েছে]*',
     'chat.faq.visaOptions': 'ভিসা বিকল্পগুলি',
-    'chat.faq.visaOptions.prompt': 'আমি আমার অভিবাসনের ধরন অনুযায়ী উপলব্ধ ভিসা বিকল্পগুলি জানতে চাই।',
+    'chat.faq.visaOptions.prompt':
+      'আমি আমার অভিবাসনের ধরন অনুযায়ী উপলব্ধ ভিসা বিকল্পগুলি জানতে চাই।',
     'chat.faq.requiredDocs': 'প্রয়োজনীয় নথিগুলি',
     'chat.faq.requiredDocs.prompt': 'অভিবাসন প্রক্রিয়া শুরু করার জন্য আমার কী নথি প্রয়োজন?',
     'chat.faq.timeline': 'সময়সীমা এবং খরচ',
     'chat.faq.timeline.prompt': 'অভিবাসন প্রক্রিয়ায় অনুমানিত সময়সীমা এবং খরচ কত?',
     'chat.faq.gettingStarted': 'কোথা থেকে শুরু করব?',
-    'chat.faq.gettingStarted.prompt': 'আমি কোথা থেকে শুরু করব? আমার অভিবাসন প্রক্রিয়া শুরু করার প্রথম ধাপ কী?',
+    'chat.faq.gettingStarted.prompt':
+      'আমি কোথা থেকে শুরু করব? আমার অভিবাসন প্রক্রিয়া শুরু করার প্রথম ধাপ কী?',
     'greeting.intro': 'নমস্কার! আমি বুঝি যে আপনার কাছে নিম্নলিখিত তথ্য রয়েছে:',
     'greeting.nationalities': 'জাতীয়তাগুলি',
     'greeting.origin': 'উৎস দেশ',
     'greeting.destination': 'গন্তব্য দেশ',
     'greeting.objective': 'উদ্দেশ্য',
     'greeting.closing': 'আমি আজ আপনাকে কীভাবে সাহায্য করতে পারি?',
-    'setup.description': 'আপনার অভিবাসন প্রক্রিয়া সম্পর্কে ব্যক্তিগতকৃত নির্দেশনা পেতে আপনার বিবরণ পূরণ করুন।',
+    'setup.description':
+      'আপনার অভিবাসন প্রক্রিয়া সম্পর্কে ব্যক্তিগতকৃত নির্দেশনা পেতে আপনার বিবরণ পূরণ করুন।',
     'setup.origin': 'উৎস দেশ',
     'setup.origin.placeholder': 'আপনার উৎস দেশ নির্বাচন করুন',
     'setup.nationality': 'জাতীয়তা',
@@ -1486,6 +1492,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'নতুন চ্যাট',
     'sidebar.deleteChat': 'চ্যাট মুছুন',
     'sidebar.chats': 'চ্যাটগুলি',
+    'sidebar.empty': 'এখনও কোনো চ্যাট নেই',
     'globe.loading': 'গ্লোব লোড হচ্ছে...',
     'agent.analyze_pathways': 'পথ কৌশলবিদ',
     'agent.check_eligibility': 'যোগ্যতা বিশ্লেষক',
@@ -1519,7 +1526,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ ক্রল সম্পূর্ণ',
     'admin.crawl.documents_saved': 'নথি সংরক্ষিত',
     'admin.crawl.stop_confirm': 'ক্রল বন্ধ করুন?',
-    'admin.crawl.stop_description': 'অগ্রগতি বাতিল করা হবে। সমস্ত ডেটা শুধুমাত্র শেষে সংরক্ষিত হয়।',
+    'admin.crawl.stop_description':
+      'অগ্রগতি বাতিল করা হবে। সমস্ত ডেটা শুধুমাত্র শেষে সংরক্ষিত হয়।',
     'admin.crawl.stop_cancel': 'বাতিল করুন',
     'admin.crawl.stop_confirm_button': 'বন্ধ করুন এবং বন্ধ করুন',
     'admin.categories.title': 'বিভাগ',
@@ -1867,20 +1875,25 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'chat.copied': 'Nakopya!',
     'chat.interrupted': '*[sagot na naabala]*',
     'chat.faq.visaOptions': 'Mga pagpipilian ng visa',
-    'chat.faq.visaOptions.prompt': 'Nais kong malaman kung aling mga pagpipilian ng visa ang available para sa aking uri ng migrasyong.',
+    'chat.faq.visaOptions.prompt':
+      'Nais kong malaman kung aling mga pagpipilian ng visa ang available para sa aking uri ng migrasyong.',
     'chat.faq.requiredDocs': 'Kinakailangang mga dokumento',
-    'chat.faq.requiredDocs.prompt': 'Ano ang mga dokumentong kailangan ko upang magsimula ng proseso ng migrasyong?',
+    'chat.faq.requiredDocs.prompt':
+      'Ano ang mga dokumentong kailangan ko upang magsimula ng proseso ng migrasyong?',
     'chat.faq.timeline': 'Takdang panahon at gastos',
-    'chat.faq.timeline.prompt': 'Ano ang inilalahad na takdang panahon at gastos na kasangkot sa proseso ng migrasyong?',
+    'chat.faq.timeline.prompt':
+      'Ano ang inilalahad na takdang panahon at gastos na kasangkot sa proseso ng migrasyong?',
     'chat.faq.gettingStarted': 'Saan magsimula?',
-    'chat.faq.gettingStarted.prompt': 'Saan ako magsisimula? Ano ang unang hakbang upang magsimula ng aking proseso ng migrasyong?',
+    'chat.faq.gettingStarted.prompt':
+      'Saan ako magsisimula? Ano ang unang hakbang upang magsimula ng aking proseso ng migrasyong?',
     'greeting.intro': 'Kumusta! Naiintindihan ko na mayroon kang sumusunod na impormasyon:',
     'greeting.nationalities': 'Mga Nacionalidad',
     'greeting.origin': 'Bansa ng Pinagmulan',
     'greeting.destination': 'Bansa ng Patutunguhan',
     'greeting.objective': 'Layunin',
     'greeting.closing': 'Paano ko makakatulong sa iyo ngayong?',
-    'setup.description': 'Punan ang iyong mga detalye upang makatanggap ng personalized na gabay sa iyong proseso ng migrasyong.',
+    'setup.description':
+      'Punan ang iyong mga detalye upang makatanggap ng personalized na gabay sa iyong proseso ng migrasyong.',
     'setup.origin': 'Bansa ng Pinagmulan',
     'setup.origin.placeholder': 'Piliin ang iyong bansa ng pinagmulan',
     'setup.nationality': 'Nasionalidad',
@@ -1899,7 +1912,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'setup.step.destination': 'Bansa ng Patutunguhan',
     'setup.step.destination.description': 'Saang bansa gusto mong pumunta?',
     'setup.step.objective': 'Layunin',
-    'setup.step.objective.description': 'Ano ang iyong dahilan para pumunta sa bansa ng patutunguhan?',
+    'setup.step.objective.description':
+      'Ano ang iyong dahilan para pumunta sa bansa ng patutunguhan?',
     'setup.objective.temporary_visit': 'Pansamantalang pagbisita',
     'setup.objective.education': 'Edukasyon',
     'setup.objective.work': 'Trabaho',
@@ -1932,6 +1946,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Bagong usapan',
     'sidebar.deleteChat': 'Burahin ang usapan',
     'sidebar.chats': 'Mga usapan',
+    'sidebar.empty': 'Walang usapan pa',
     'globe.loading': 'Naglo-load ng mundo...',
     'agent.analyze_pathways': 'Stratehista sa Landas',
     'agent.check_eligibility': 'Analyst sa Pagkakahak-bukan',
@@ -1965,7 +1980,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ Nakumpleto ang pag-crawl',
     'admin.crawl.documents_saved': 'mga dokumentong na-save',
     'admin.crawl.stop_confirm': 'Itigil ang pag-crawl?',
-    'admin.crawl.stop_description': 'Ang progreso ay mababura. Lahat ng datos ay nai-save lamang sa dulo.',
+    'admin.crawl.stop_description':
+      'Ang progreso ay mababura. Lahat ng datos ay nai-save lamang sa dulo.',
     'admin.crawl.stop_cancel': 'Kanselahin',
     'admin.crawl.stop_confirm_button': 'Itigil at Isara',
     'admin.categories.title': 'Mga Kategorya',
@@ -2292,7 +2308,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
   },
   fr: {
     'app.title': 'FreePath',
-    'home.subtitle': 'Votre assistant personnel pour l\'immigration',
+    'home.subtitle': "Votre assistant personnel pour l'immigration",
     'home.cta': 'Commencer une nouvelle conversation',
     'home.or': 'ou',
     'home.resume': 'Reprendre une conversation récente',
@@ -2313,22 +2329,27 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'chat.copied': 'Copié !',
     'chat.interrupted': '*[réponse interrompue]*',
     'chat.faq.visaOptions': 'Options de visa',
-    'chat.faq.visaOptions.prompt': 'J\'aimerais connaître les options de visa disponibles pour mon type de migration.',
+    'chat.faq.visaOptions.prompt':
+      "J'aimerais connaître les options de visa disponibles pour mon type de migration.",
     'chat.faq.requiredDocs': 'Documents requis',
-    'chat.faq.requiredDocs.prompt': 'Quels documents dois-je fournir pour commencer le processus de migration?',
+    'chat.faq.requiredDocs.prompt':
+      'Quels documents dois-je fournir pour commencer le processus de migration?',
     'chat.faq.timeline': 'Délais et coûts',
-    'chat.faq.timeline.prompt': 'Quels sont les délais estimés et les coûts impliqués dans le processus de migration?',
+    'chat.faq.timeline.prompt':
+      'Quels sont les délais estimés et les coûts impliqués dans le processus de migration?',
     'chat.faq.gettingStarted': 'Par où commencer?',
-    'chat.faq.gettingStarted.prompt': 'Par où je commence? Quelle est la première étape pour commencer mon processus de migration?',
+    'chat.faq.gettingStarted.prompt':
+      'Par où je commence? Quelle est la première étape pour commencer mon processus de migration?',
     'greeting.intro': 'Bonjour! Je comprends que vous avez les informations suivantes:',
     'greeting.nationalities': 'Nationalités',
-    'greeting.origin': 'Pays d\'origine',
+    'greeting.origin': "Pays d'origine",
     'greeting.destination': 'Pays de destination',
     'greeting.objective': 'Objectif',
-    'greeting.closing': 'Comment puis-je vous aider aujourd\'hui?',
-    'setup.description': 'Remplissez vos informations pour recevoir des conseils personnalisés sur votre processus de migration.',
-    'setup.origin': 'Pays d\'origine',
-    'setup.origin.placeholder': 'Sélectionnez votre pays d\'origine',
+    'greeting.closing': "Comment puis-je vous aider aujourd'hui?",
+    'setup.description':
+      'Remplissez vos informations pour recevoir des conseils personnalisés sur votre processus de migration.',
+    'setup.origin': "Pays d'origine",
+    'setup.origin.placeholder': "Sélectionnez votre pays d'origine",
     'setup.nationality': 'Nationalité',
     'setup.nationality.placeholder': 'Ex: Français',
     'setup.destination': 'Pays de destination',
@@ -2338,14 +2359,15 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'setup.additional': 'Informations supplémentaires (optionnel)',
     'setup.additional.placeholder': 'Contexte supplémentaire qui pourrait aider...',
     'setup.submit': 'Commencer le chat',
-    'setup.step.origin': 'Pays d\'origine',
+    'setup.step.origin': "Pays d'origine",
     'setup.step.origin.description': 'De quel pays allez-vous partir?',
     'setup.step.nationalities': 'Nationalités',
     'setup.step.nationalities.description': 'Indiquez toutes vos nationalités actuelles',
     'setup.step.destination': 'Pays de destination',
     'setup.step.destination.description': 'Vers quel pays voulez-vous aller?',
     'setup.step.objective': 'Objectif',
-    'setup.step.objective.description': 'Quelle est votre raison d\'aller dans le pays de destination?',
+    'setup.step.objective.description':
+      "Quelle est votre raison d'aller dans le pays de destination?",
     'setup.objective.temporary_visit': 'Visite temporaire',
     'setup.objective.education': 'Éducation',
     'setup.objective.work': 'Travail',
@@ -2366,7 +2388,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'tool.search_visa_requirements': 'Recherche des exigences de visa',
     'tool.check_processing_times': 'Vérification des délais de traitement',
     'tool.analyze_pathways': 'Analyse des voies migratoires',
-    'tool.check_eligibility': 'Vérification de l\'admissibilité',
+    'tool.check_eligibility': "Vérification de l'admissibilité",
     'tool.list_required_documents': 'Liste des documents requis',
     'tool.get_processing_statistics': 'Obtention des statistiques de traitement',
     'tool.code_execution': 'Exécution du code',
@@ -2378,9 +2400,10 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Nouveau chat',
     'sidebar.deleteChat': 'Supprimer le chat',
     'sidebar.chats': 'Chats',
+    'sidebar.empty': 'Aucune conversation pour le moment',
     'globe.loading': 'Chargement du globe...',
     'agent.analyze_pathways': 'Stratégiste des Voies',
-    'agent.check_eligibility': 'Analyste de l\'Admissibilité',
+    'agent.check_eligibility': "Analyste de l'Admissibilité",
     'agent.list_required_documents': 'Spécialiste de la Documentation',
     'agent.get_processing_statistics': 'Gestionnaire des Demandes',
     'agent.unknown': 'Agent',
@@ -2411,7 +2434,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ Crawl terminé',
     'admin.crawl.documents_saved': 'documents sauvegardés',
     'admin.crawl.stop_confirm': 'Arrêter le crawl?',
-    'admin.crawl.stop_description': 'La progression sera supprimée. Toutes les données ne sont sauvegardées qu\'à la fin.',
+    'admin.crawl.stop_description':
+      "La progression sera supprimée. Toutes les données ne sont sauvegardées qu'à la fin.",
     'admin.crawl.stop_cancel': 'Annuler',
     'admin.crawl.stop_confirm_button': 'Arrêter et Fermer',
     'admin.categories.title': 'Catégories',
@@ -2530,7 +2554,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.ug': 'Ouganda',
     'countries.gh': 'Ghana',
     'countries.sn': 'Sénégal',
-    'countries.ci': 'Côte d\'Ivoire',
+    'countries.ci': "Côte d'Ivoire",
     'countries.tn': 'Tunisie',
     'countries.dz': 'Algérie',
     'countries.ma': 'Maroc',
@@ -2618,7 +2642,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.hm': 'Îles Heard et McDonald',
     'countries.ht': 'Haïti',
     'countries.im': 'Île de Man',
-    'countries.io': 'Territoire britannique de l\'océan Indien',
+    'countries.io': "Territoire britannique de l'océan Indien",
     'countries.je': 'Jersey',
     'countries.kg': 'Kirghizistan',
     'countries.ki': 'Kiribati',
@@ -2725,15 +2749,15 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'design.section.buttons': 'Boutons',
     'design.section.inputs': 'Entrées de Formulaire',
     'design.section.cards': 'Cartes',
-    'design.section.status': 'Indicateurs d\'État',
+    'design.section.status': "Indicateurs d'État",
     'design.section.glass': 'Panneau Verre',
     'design.section.expandable': 'Sections Extensibles',
     'design.section.icon_buttons': 'Boutons Icône',
     'design.section.section_header': 'En-tête de Section',
-    'design.section.agents': 'Cartes d\'Agent',
+    'design.section.agents': "Cartes d'Agent",
     'design.section.thinking': 'Cartes de Réflexion',
-    'design.section.tools': 'Cartes d\'Appel d\'Outil',
-    'design.section.usage': 'Badge d\'Utilisation',
+    'design.section.tools': "Cartes d'Appel d'Outil",
+    'design.section.usage': "Badge d'Utilisation",
     'design.section.animations': 'Animations',
   },
   hi: {
@@ -2759,20 +2783,24 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'chat.copied': 'कॉपी किया गया!',
     'chat.interrupted': '*[प्रतिक्रिया बाधित]*',
     'chat.faq.visaOptions': 'वीज़ा विकल्प',
-    'chat.faq.visaOptions.prompt': 'मैं जानना चाहूंगा कि मेरे प्रवास के प्रकार के लिए कौन से वीज़ा विकल्प उपलब्ध हैं।',
+    'chat.faq.visaOptions.prompt':
+      'मैं जानना चाहूंगा कि मेरे प्रवास के प्रकार के लिए कौन से वीज़ा विकल्प उपलब्ध हैं।',
     'chat.faq.requiredDocs': 'आवश्यक दस्तावेज़',
-    'chat.faq.requiredDocs.prompt': 'प्रवास प्रक्रिया शुरू करने के लिए मुझे कौन से दस्तावेज़ की आवश्यकता है?',
+    'chat.faq.requiredDocs.prompt':
+      'प्रवास प्रक्रिया शुरू करने के लिए मुझे कौन से दस्तावेज़ की आवश्यकता है?',
     'chat.faq.timeline': 'समय सीमा और लागत',
     'chat.faq.timeline.prompt': 'प्रवास प्रक्रिया में अनुमानित समय सीमा और लागत क्या है?',
     'chat.faq.gettingStarted': 'कहाँ से शुरू करें?',
-    'chat.faq.gettingStarted.prompt': 'मैं कहाँ से शुरू करूँ? अपनी प्रवास प्रक्रिया शुरू करने के लिए पहला कदम क्या है?',
+    'chat.faq.gettingStarted.prompt':
+      'मैं कहाँ से शुरू करूँ? अपनी प्रवास प्रक्रिया शुरू करने के लिए पहला कदम क्या है?',
     'greeting.intro': 'नमस्ते! मुझे समझ आ गया कि आपके पास निम्नलिखित जानकारी है:',
     'greeting.nationalities': 'राष्ट्रीयताएं',
     'greeting.origin': 'मूल देश',
     'greeting.destination': 'गंतव्य देश',
     'greeting.objective': 'उद्देश्य',
     'greeting.closing': 'मैं आपकी आज कैसे मदद कर सकता हूँ?',
-    'setup.description': 'अपनी प्रवास प्रक्रिया पर व्यक्तिगत मार्गदर्शन प्राप्त करने के लिए अपने विवरण भरें।',
+    'setup.description':
+      'अपनी प्रवास प्रक्रिया पर व्यक्तिगत मार्गदर्शन प्राप्त करने के लिए अपने विवरण भरें।',
     'setup.origin': 'मूल देश',
     'setup.origin.placeholder': 'अपना मूल देश चुनें',
     'setup.nationality': 'राष्ट्रीयता',
@@ -2824,6 +2852,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'नई चैट',
     'sidebar.deleteChat': 'चैट हटाएं',
     'sidebar.chats': 'चैट्स',
+    'sidebar.empty': 'अभी कोई चैट नहीं',
     'globe.loading': 'ग्लोब लोड हो रहा है...',
     'agent.analyze_pathways': 'पथ रणनीतिकार',
     'agent.check_eligibility': 'पात्रता विश्लेषक',
@@ -2857,7 +2886,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ क्रॉल पूर्ण',
     'admin.crawl.documents_saved': 'दस्तावेज़ सहेजे गए',
     'admin.crawl.stop_confirm': 'क्रॉल बंद करें?',
-    'admin.crawl.stop_description': 'प्रगति को त्याग दिया जाएगा। सभी डेटा केवल अंत में सहेजे जाते हैं।',
+    'admin.crawl.stop_description':
+      'प्रगति को त्याग दिया जाएगा। सभी डेटा केवल अंत में सहेजे जाते हैं।',
     'admin.crawl.stop_cancel': 'रद्द करें',
     'admin.crawl.stop_confirm_button': 'बंद करें और बंद करें',
     'admin.categories.title': 'श्रेणियाँ',
@@ -3208,6 +3238,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Obrolan baru',
     'sidebar.deleteChat': 'Hapus obrolan',
     'sidebar.chats': 'Obrolan',
+    'sidebar.empty': 'Belum ada percakapan',
 
     // Chat
     'chat.empty': 'Kirim pesan untuk memulai.',
@@ -3224,13 +3255,16 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'Pilihan visa',
-    'chat.faq.visaOptions.prompt': 'Saya ingin mengetahui opsi visa apa yang tersedia untuk jenis migrasi saya.',
+    'chat.faq.visaOptions.prompt':
+      'Saya ingin mengetahui opsi visa apa yang tersedia untuk jenis migrasi saya.',
     'chat.faq.requiredDocs': 'Dokumen yang diperlukan',
     'chat.faq.requiredDocs.prompt': 'Dokumen apa yang saya butuhkan untuk memulai proses imigrasi?',
     'chat.faq.timeline': 'Jadwal & biaya',
-    'chat.faq.timeline.prompt': 'Berapa perkiraan waktu dan biaya yang terlibat dalam proses imigrasi?',
+    'chat.faq.timeline.prompt':
+      'Berapa perkiraan waktu dan biaya yang terlibat dalam proses imigrasi?',
     'chat.faq.gettingStarted': 'Dari mana memulai?',
-    'chat.faq.gettingStarted.prompt': 'Dari mana saya mulai? Apa langkah pertama untuk memulai proses imigrasi saya?',
+    'chat.faq.gettingStarted.prompt':
+      'Dari mana saya mulai? Apa langkah pertama untuk memulai proses imigrasi saya?',
 
     // Greeting
     'greeting.intro': 'Halo! Saya memahami Anda memiliki detail berikut:',
@@ -3241,7 +3275,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'Bagaimana saya bisa membantu Anda hari ini?',
 
     // Setup Form
-    'setup.description': 'Isi detail Anda untuk menerima panduan yang dipersonalisasi tentang proses imigrasi Anda.',
+    'setup.description':
+      'Isi detail Anda untuk menerima panduan yang dipersonalisasi tentang proses imigrasi Anda.',
     'setup.origin': 'Negara asal',
     'setup.origin.placeholder': 'Pilih negara asal Anda',
     'setup.nationality': 'Kewarganegaraan',
@@ -3698,6 +3733,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': '新聊天',
     'sidebar.deleteChat': '删除聊天',
     'sidebar.chats': '聊天',
+    'sidebar.empty': '暂无聊天',
 
     // Chat
     'chat.empty': '发送消息以开始。',
@@ -4188,6 +4224,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Новый чат',
     'sidebar.deleteChat': 'Удалить чат',
     'sidebar.chats': 'Чаты',
+    'sidebar.empty': 'Пока нет чатов',
 
     // Chat
     'chat.empty': 'Отправьте сообщение, чтобы начать.',
@@ -4204,13 +4241,16 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'Варианты визы',
-    'chat.faq.visaOptions.prompt': 'Я хотел бы узнать, какие варианты визы доступны для моего типа миграции.',
+    'chat.faq.visaOptions.prompt':
+      'Я хотел бы узнать, какие варианты визы доступны для моего типа миграции.',
     'chat.faq.requiredDocs': 'Необходимые документы',
     'chat.faq.requiredDocs.prompt': 'Какие документы мне нужны для начала процесса иммиграции?',
     'chat.faq.timeline': 'Сроки и затраты',
-    'chat.faq.timeline.prompt': 'Каковы предполагаемые сроки и затраты, связанные с процессом иммиграции?',
+    'chat.faq.timeline.prompt':
+      'Каковы предполагаемые сроки и затраты, связанные с процессом иммиграции?',
     'chat.faq.gettingStarted': 'С чего начать?',
-    'chat.faq.gettingStarted.prompt': 'С чего мне начать? Какой первый шаг для начала моего процесса иммиграции?',
+    'chat.faq.gettingStarted.prompt':
+      'С чего мне начать? Какой первый шаг для начала моего процесса иммиграции?',
 
     // Greeting
     'greeting.intro': 'Привет! Я понимаю, что у вас есть следующие сведения:',
@@ -4221,7 +4261,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'Чем я могу вам помочь сегодня?',
 
     // Setup Form
-    'setup.description': 'Заполните свои данные, чтобы получить персонализированное руководство по вашему процессу иммиграции.',
+    'setup.description':
+      'Заполните свои данные, чтобы получить персонализированное руководство по вашему процессу иммиграции.',
     'setup.origin': 'Страна происхождения',
     'setup.origin.placeholder': 'Выберите вашу страну происхождения',
     'setup.nationality': 'Гражданство',
@@ -4316,7 +4357,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ Краулинг завершен',
     'admin.crawl.documents_saved': 'документы сохранены',
     'admin.crawl.stop_confirm': 'Остановить краулинг?',
-    'admin.crawl.stop_description': 'Прогресс будет потерян. Все данные сохраняются только в конце.',
+    'admin.crawl.stop_description':
+      'Прогресс будет потерян. Все данные сохраняются только в конце.',
     'admin.crawl.stop_cancel': 'Отменить',
     'admin.crawl.stop_confirm_button': 'Остановить и закрыть',
     'admin.crawl.tokens': 'токены',
@@ -4483,7 +4525,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.ug': 'Уганда',
     'countries.gh': 'Гана',
     'countries.sn': 'Сенегал',
-    'countries.ci': 'Кот-д\'Ивуар',
+    'countries.ci': "Кот-д'Ивуар",
     'countries.tn': 'Тунис',
     'countries.dz': 'Алжир',
     'countries.ma': 'Марокко',
@@ -4678,6 +4720,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Nuevo chat',
     'sidebar.deleteChat': 'Eliminar chat',
     'sidebar.chats': 'Chats',
+    'sidebar.empty': 'Sin chats todavía',
 
     // Chat
     'chat.empty': 'Envía un mensaje para comenzar.',
@@ -4694,13 +4737,17 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'Opciones de visa',
-    'chat.faq.visaOptions.prompt': 'Me gustaría saber qué opciones de visa están disponibles para mi tipo de migración.',
+    'chat.faq.visaOptions.prompt':
+      'Me gustaría saber qué opciones de visa están disponibles para mi tipo de migración.',
     'chat.faq.requiredDocs': 'Documentos requeridos',
-    'chat.faq.requiredDocs.prompt': '¿Qué documentos necesito para comenzar el proceso de inmigración?',
+    'chat.faq.requiredDocs.prompt':
+      '¿Qué documentos necesito para comenzar el proceso de inmigración?',
     'chat.faq.timeline': 'Cronograma y costos',
-    'chat.faq.timeline.prompt': '¿Cuáles son los cronogramas estimados y los costos involucrados en el proceso de inmigración?',
+    'chat.faq.timeline.prompt':
+      '¿Cuáles son los cronogramas estimados y los costos involucrados en el proceso de inmigración?',
     'chat.faq.gettingStarted': '¿Por dónde comenzar?',
-    'chat.faq.gettingStarted.prompt': '¿Por dónde comienzo? ¿Cuál es el primer paso para iniciar mi proceso de inmigración?',
+    'chat.faq.gettingStarted.prompt':
+      '¿Por dónde comienzo? ¿Cuál es el primer paso para iniciar mi proceso de inmigración?',
 
     // Greeting
     'greeting.intro': '¡Hola! Entiendo que tienes los siguientes detalles:',
@@ -4711,7 +4758,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': '¿Cómo puedo ayudarte hoy?',
 
     // Setup Form
-    'setup.description': 'Completa tus datos para recibir orientación personalizada sobre tu proceso de inmigración.',
+    'setup.description':
+      'Completa tus datos para recibir orientación personalizada sobre tu proceso de inmigración.',
     'setup.origin': 'País de origen',
     'setup.origin.placeholder': 'Selecciona tu país de origen',
     'setup.nationality': 'Nacionalidad',
@@ -4806,7 +4854,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ Rastreo completado',
     'admin.crawl.documents_saved': 'documentos guardados',
     'admin.crawl.stop_confirm': '¿Detener rastreo?',
-    'admin.crawl.stop_description': 'El progreso se descartará. Todos los datos se guardan solo al final.',
+    'admin.crawl.stop_description':
+      'El progreso se descartará. Todos los datos se guardan solo al final.',
     'admin.crawl.stop_cancel': 'Cancelar',
     'admin.crawl.stop_confirm_button': 'Detener y cerrar',
     'admin.crawl.tokens': 'tokens',
@@ -5168,6 +5217,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'Новий чат',
     'sidebar.deleteChat': 'Видалити чат',
     'sidebar.chats': 'Чати',
+    'sidebar.empty': 'Поки чатів немає',
 
     // Chat
     'chat.empty': 'Надішліть повідомлення, щоб почати.',
@@ -5184,13 +5234,16 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'Варіанти віз',
-    'chat.faq.visaOptions.prompt': 'Я хотів би знати, які варіанти віз доступні для мого типу міграції.',
+    'chat.faq.visaOptions.prompt':
+      'Я хотів би знати, які варіанти віз доступні для мого типу міграції.',
     'chat.faq.requiredDocs': 'Необхідні документи',
     'chat.faq.requiredDocs.prompt': 'Які документи мені потрібні, щоб розпочати процес імміграції?',
     'chat.faq.timeline': 'Часові рамки та витрати',
-    'chat.faq.timeline.prompt': 'Які приблизні часові рамки та витрати, пов\'язані з процесом імміграції?',
+    'chat.faq.timeline.prompt':
+      "Які приблизні часові рамки та витрати, пов'язані з процесом імміграції?",
     'chat.faq.gettingStarted': 'З чого почати?',
-    'chat.faq.gettingStarted.prompt': 'З чого мені почати? Який перший крок для розпочинання мого процесу імміграції?',
+    'chat.faq.gettingStarted.prompt':
+      'З чого мені почати? Який перший крок для розпочинання мого процесу імміграції?',
 
     // Greeting
     'greeting.intro': 'Привіт! Я розумію, що у вас є такі деталі:',
@@ -5201,7 +5254,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'Чим я можу вам допомогти сьогодні?',
 
     // Setup Form
-    'setup.description': 'Заповніть свої деталі, щоб отримати персоналізовану допомогу щодо вашого процесу імміграції.',
+    'setup.description':
+      'Заповніть свої деталі, щоб отримати персоналізовану допомогу щодо вашого процесу імміграції.',
     'setup.origin': 'Країна походження',
     'setup.origin.placeholder': 'Виберіть вашу країну походження',
     'setup.nationality': 'Громадянство',
@@ -5210,11 +5264,11 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'setup.destination.placeholder': 'Виберіть вашу країну призначення',
     'setup.visa': 'Тип візи / мета',
     'setup.visa.placeholder': 'Наприклад: Робота, навчання, постійне місце проживання',
-    'setup.additional': 'Додаткова інформація (необов\'язково)',
+    'setup.additional': "Додаткова інформація (необов'язково)",
     'setup.additional.placeholder': 'Додатковий контекст, який може допомогти...',
     'setup.submit': 'Розпочати чат',
     'setup.step.origin': 'Країна походження',
-    'setup.step.origin.description': 'З якої країни ви від\'їжджатимете?',
+    'setup.step.origin.description': "З якої країни ви від'їжджатимете?",
     'setup.step.nationalities': 'Громадянства',
     'setup.step.nationalities.description': 'Перелічіть усі ваші поточні громадянства',
     'setup.step.destination': 'Країна призначення',
@@ -5231,7 +5285,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'setup.objective.temporary_visit': 'Тимчасовий візит',
     'setup.objective.education': 'Освіта',
     'setup.objective.work': 'Робота',
-    'setup.objective.family_reunion': 'Воссоединение сім\'ї',
+    'setup.objective.family_reunion': "Воссоединение сім'ї",
     'setup.objective.seek_protection': 'Пошук захисту',
     'setup.objective.investments': 'Інвестиції',
     'setup.objective.permanent_residence': 'Постійне місце проживання',
@@ -5319,8 +5373,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.category.consular.description': 'Візи та посольства',
     'admin.category.jurisdictional': 'Юрисдикційний',
     'admin.category.jurisdictional.description': 'Регіональні правила',
-    'admin.category.complementary': 'Охорона здоров\'я та доповнення',
-    'admin.category.complementary.description': 'Вимоги охорони здоров\'я',
+    'admin.category.complementary': "Охорона здоров'я та доповнення",
+    'admin.category.complementary.description': "Вимоги охорони здоров'я",
     'admin.category.auxiliary': 'Допоміжний',
     'admin.category.auxiliary.description': 'Статистика та квоти',
 
@@ -5412,7 +5466,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.ph': 'Філіппіни',
     'countries.my': 'Малайзія',
     'countries.id': 'Індонезія',
-    'countries.vn': 'В\'єтнам',
+    'countries.vn': "В'єтнам",
     'countries.ar': 'Аргентина',
     'countries.cl': 'Чилі',
     'countries.co': 'Колумбія',
@@ -5421,7 +5475,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.eg': 'Єгипет',
     'countries.ng': 'Нігерія',
     'countries.ke': 'Кенія',
-    'countries.ae': 'Об\'єднані Арабські Емірати',
+    'countries.ae': "Об'єднані Арабські Емірати",
     'countries.sa': 'Саудівська Аравія',
     'countries.il': 'Ізраїль',
     'countries.tr': 'Туреччина',
@@ -5456,7 +5510,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.np': 'Непал',
     'countries.kh': 'Камбоджа',
     'countries.la': 'Лаос',
-    'countries.mm': 'М\'янма',
+    'countries.mm': "М'янма",
     'countries.tw': 'Тайвань',
     'countries.mz': 'Мозамбік',
     'countries.tz': 'Танзанія',
@@ -5589,7 +5643,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'countries.nu': 'Ніуе',
     'countries.pf': 'Французька Полінезія',
     'countries.pg': 'Папуа-Нова Гвінея',
-    'countries.pm': 'Сен-П\'єр і Мікелон',
+    'countries.pm': "Сен-П'єр і Мікелон",
     'countries.pn': 'Острови Піткерн',
     'countries.pr': 'Пуерто-Рико',
     'countries.ps': 'Палестина',
@@ -5659,6 +5713,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'نوی چات',
     'sidebar.deleteChat': 'چات حذف کړئ',
     'sidebar.chats': 'چات',
+    'sidebar.empty': 'هنوز کوم چات نشته',
 
     // Chat
     'chat.empty': 'پیل کولو لپاره پیغام لیږئ.',
@@ -5675,13 +5730,15 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'ویزې انتخابونه',
-    'chat.faq.visaOptions.prompt': 'زه داغوښتنه کوم چې پوه شم کوم ویزې انتخابونه د زما مهاجرت ډوله لپاره شتون لري.',
+    'chat.faq.visaOptions.prompt':
+      'زه داغوښتنه کوم چې پوه شم کوم ویزې انتخابونه د زما مهاجرت ډوله لپاره شتون لري.',
     'chat.faq.requiredDocs': 'ضروري اسناد',
     'chat.faq.requiredDocs.prompt': 'زه کوم اسناد ته ضرورت لرم چې مهاجرت پروسه پیل کړم؟',
     'chat.faq.timeline': 'مهال تالار او هزینې',
     'chat.faq.timeline.prompt': 'د مهاجرت پروسې کې اندازې کول شوې مهال تالار او هزینې کومې دي؟',
     'chat.faq.gettingStarted': 'کوم ځای ته پیل کړم؟',
-    'chat.faq.gettingStarted.prompt': 'زه کوم ځای ته پیل کړم؟ د زا مهاجرت پروسه پیل کولو لپاره لومړۍ ګام کوم دی؟',
+    'chat.faq.gettingStarted.prompt':
+      'زه کوم ځای ته پیل کړم؟ د زا مهاجرت پروسه پیل کولو لپاره لومړۍ ګام کوم دی؟',
 
     // Greeting
     'greeting.intro': 'سلام! زه پوهیږم چې تاسو لاندې تفصیلات لرئ:',
@@ -5692,7 +5749,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'زه د تاسو سره امروز څنګه کولی شم؟',
 
     // Setup Form
-    'setup.description': 'د تاسو تفصیلات ډک کړئ تر څو د تاسو د مهاجرت پروسې په هکله شخصي لارښود ترلاسه کړئ.',
+    'setup.description':
+      'د تاسو تفصیلات ډک کړئ تر څو د تاسو د مهاجرت پروسې په هکله شخصي لارښود ترلاسه کړئ.',
     'setup.origin': 'د مبدا هیواد',
     'setup.origin.placeholder': 'ستاسو د مبدا هیواد انتخاب کړئ',
     'setup.nationality': 'تابعیت',
@@ -6150,6 +6208,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'گفتگوی نو',
     'sidebar.deleteChat': 'حذف گفتگو',
     'sidebar.chats': 'گفتگوها',
+    'sidebar.empty': 'هنوز گفتگویی وجود ندارد',
 
     // Chat
     'chat.empty': 'برای شروع، پیام بفرستید.',
@@ -6166,13 +6225,15 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'گزینه‌های ویزا',
-    'chat.faq.visaOptions.prompt': 'من می‌خواهم بدانم کدام گزینه‌های ویزا برای نوع مهاجرت من موجود است.',
+    'chat.faq.visaOptions.prompt':
+      'من می‌خواهم بدانم کدام گزینه‌های ویزا برای نوع مهاجرت من موجود است.',
     'chat.faq.requiredDocs': 'اسناد مورد نیاز',
     'chat.faq.requiredDocs.prompt': 'برای شروع فرآیند مهاجرت به کدام اسناد نیاز دارم؟',
     'chat.faq.timeline': 'جدول زمانی و هزینه‌ها',
     'chat.faq.timeline.prompt': 'جدول زمانی تخمینی و هزینه‌های درگیر در فرآیند مهاجرت چه است؟',
     'chat.faq.gettingStarted': 'از کجا شروع کنم؟',
-    'chat.faq.gettingStarted.prompt': 'از کجا شروع کنم؟ نخستین مرحله برای شروع فرآیند مهاجرت من چه است؟',
+    'chat.faq.gettingStarted.prompt':
+      'از کجا شروع کنم؟ نخستین مرحله برای شروع فرآیند مهاجرت من چه است؟',
 
     // Greeting
     'greeting.intro': 'سلام! من درمی‌یابم که شما جزئیات زیر را دارید:',
@@ -6183,7 +6244,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'امروز چگونه می‌توانم کمک کنم؟',
 
     // Setup Form
-    'setup.description': 'جزئیات خود را پر کنید تا راهنمایی شخصی شده در مورد فرآیند مهاجرت خود دریافت کنید.',
+    'setup.description':
+      'جزئیات خود را پر کنید تا راهنمایی شخصی شده در مورد فرآیند مهاجرت خود دریافت کنید.',
     'setup.origin': 'کشور مبدا',
     'setup.origin.placeholder': 'کشور مبدای خود را انتخاب کنید',
     'setup.nationality': 'تابعیت',
@@ -6278,7 +6340,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'admin.crawl.complete': '✓ خزش تکمیل',
     'admin.crawl.documents_saved': 'اسناد ذخیره شدند',
     'admin.crawl.stop_confirm': 'خزش را متوقف کنید؟',
-    'admin.crawl.stop_description': 'پیشرفت کنار گذاشته می‌شود. تمام داده‌ها فقط در انتهایی ذخیره می‌شوند.',
+    'admin.crawl.stop_description':
+      'پیشرفت کنار گذاشته می‌شود. تمام داده‌ها فقط در انتهایی ذخیره می‌شوند.',
     'admin.crawl.stop_cancel': 'لغو',
     'admin.crawl.stop_confirm_button': 'متوقف و بستن',
     'admin.crawl.tokens': 'توکن',
@@ -6641,6 +6704,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'sidebar.newChat': 'نیا چیٹ',
     'sidebar.deleteChat': 'چیٹ حذف کریں',
     'sidebar.chats': 'چیٹس',
+    'sidebar.empty': 'ابھی کوئی چیٹ نہیں',
 
     // Chat
     'chat.empty': 'شروع کرنے کے لیے پیغام بھیجیں۔',
@@ -6657,13 +6721,16 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
     // Chat FAQ Pills
     'chat.faq.visaOptions': 'ویزا کے اختیارات',
-    'chat.faq.visaOptions.prompt': 'میں جاننا چاہتا ہوں کہ میری قسم کی ہجرت کے لیے کون سے ویزا کے اختیارات دستیاب ہیں۔',
+    'chat.faq.visaOptions.prompt':
+      'میں جاننا چاہتا ہوں کہ میری قسم کی ہجرت کے لیے کون سے ویزا کے اختیارات دستیاب ہیں۔',
     'chat.faq.requiredDocs': 'ضروری دستاویزات',
-    'chat.faq.requiredDocs.prompt': 'ہجرت کے عمل کو شروع کرنے کے لیے مجھے کون سی دستاویزات کی ضرورت ہے؟',
+    'chat.faq.requiredDocs.prompt':
+      'ہجرت کے عمل کو شروع کرنے کے لیے مجھے کون سی دستاویزات کی ضرورت ہے؟',
     'chat.faq.timeline': 'ٹائم لائن اور اخراجات',
     'chat.faq.timeline.prompt': 'ہجرت کے عمل میں شامل تخمینی ٹائم لائن اور اخراجات کیا ہیں؟',
     'chat.faq.gettingStarted': 'کہاں سے شروع کریں؟',
-    'chat.faq.gettingStarted.prompt': 'میں کہاں سے شروع کروں؟ اپنے ہجرت کے عمل کو شروع کرنے کا پہلا قدم کیا ہے؟',
+    'chat.faq.gettingStarted.prompt':
+      'میں کہاں سے شروع کروں؟ اپنے ہجرت کے عمل کو شروع کرنے کا پہلا قدم کیا ہے؟',
 
     // Greeting
     'greeting.intro': 'السلام علیکم! میں سمجھتا ہوں کہ آپ کے پاس یہ تفصیلات ہیں:',
@@ -6674,7 +6741,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'greeting.closing': 'آج میں آپ کی کس طرح مدد کر سکتا ہوں؟',
 
     // Setup Form
-    'setup.description': 'اپنی تفصیلات درج کریں تاکہ آپ اپنے ہجرت کے عمل کے بارے میں ذاتی نوعیت کی رہنمائی حاصل کریں۔',
+    'setup.description':
+      'اپنی تفصیلات درج کریں تاکہ آپ اپنے ہجرت کے عمل کے بارے میں ذاتی نوعیت کی رہنمائی حاصل کریں۔',
     'setup.origin': 'اصل ملک',
     'setup.origin.placeholder': 'اپنا اصل ملک منتخب کریں',
     'setup.nationality': 'شہری حیثیت',
@@ -7107,7 +7175,23 @@ const dictionaries: Record<Locale, Record<string, string>> = {
   },
 };
 
-const VALID_LOCALES: Locale[] = ['pt-BR', 'en', 'ar', 'bn', 'fil', 'fr', 'hi', 'id', 'zh', 'ru', 'es', 'uk', 'ps', 'dar', 'ur'];
+const VALID_LOCALES: Locale[] = [
+  'pt-BR',
+  'en',
+  'ar',
+  'bn',
+  'fil',
+  'fr',
+  'hi',
+  'id',
+  'zh',
+  'ru',
+  'es',
+  'uk',
+  'ps',
+  'dar',
+  'ur',
+];
 
 function detectSystemLocale(): Locale {
   const languages = navigator.languages ?? [navigator.language];
