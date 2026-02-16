@@ -4,10 +4,9 @@
 
 **Anthropic Virtual Hackathon 2026 | Problem Statement: "Break the Barriers"**
 
-- [🎬 See Demo](#how-to-demo-freepath-for-judges)
-- [⚡ Quick Start](#quick-start)
 - [🛠 Tech Stack](#tech-stack)
-- [🧠 Opus 4.6 Innovation](#-innovation-highlights-why-opus-46)
+- [🧠 Opus 4.6 Innovation](#innovation-highlights-why-opus-46)
+- [📖 Documentation](#key-documentation)
 
 ---
 
@@ -96,28 +95,6 @@ Each agent has its own specialized prompt and reasoning style. They work **in pa
 
 ---
 
-## 🎬 How to Demo FreePath (For Judges)
-
-**60-second demo flow**:
-
-1. **Select context** → Origin country (Venezuela) + Destination (Brazil) + Visa type (permanent residency)
-2. **Ask a question** → "What's my realistic path to get residency in Brazil?"
-3. **Watch 4 agents work in parallel**:
-   - 🗺️ Pathway Strategist analyzes available visa routes
-   - ✅ Eligibility Analyst checks YOUR specific requirements
-   - 📄 Documentation Specialist lists exact documents (with confidence scores)
-   - ⏱️ Application Manager estimates timeline & next steps
-4. **See adaptive thinking** → Watch the model's reasoning depth increase for complex cases
-5. **Get results** → Actionable checklist + document list + step-by-step timeline
-
-**What judges see**:
-- Real-time streaming UI (Opus 4.6 thinking blocks visible)
-- Agents providing different perspectives on one problem
-- Personalized output (NOT generic advice)
-- Multi-language support in action
-
----
-
 ## 🛠 Tech Stack
 
 | Component | Technology | Why? |
@@ -144,33 +121,6 @@ Backend (Rails 8 API, port 3000)
 ```
 
 **Key architectural insight**: **Progressive streaming** — Results appear as computed, not waiting for full response. Users see progress immediately.
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Ruby 3.4.7
-- Node 18+
-- PostgreSQL 14
-- Redis
-
-### Setup (2 minutes)
-
-```bash
-# Clone & enter
-git clone <repository>
-cd hackathon-project
-
-# Start both servers in parallel
-bin/dev
-
-# That's it! Visit http://localhost:5173
-```
-
-Both Rails (port 3000) and React (port 5173) start automatically. Vite proxies `/api` and `/cable` to Rails.
-
-**For full development setup**, see [CLAUDE.md](./CLAUDE.md).
 
 ---
 
