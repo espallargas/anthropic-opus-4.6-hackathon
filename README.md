@@ -2,6 +2,8 @@
 
 ## AI that understands YOUR immigration journey
 
+### ✨ [Live Demo](https://claude-opus-4-6-hackathon.onrender.com/)
+
 ### Anthropic Virtual Hackathon 2026 | Problem Statement: "Break the Barriers"
 
 Breaking barriers to immigration guidance — legal knowledge that was once locked
