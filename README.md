@@ -134,13 +134,6 @@ Backend (Rails 8 API, port 3000)
 - ✅ Full i18n with RTL support
 - ✅ Production-ready error handling & graceful degradation
 
-### Roadmap
-- 📱 Mobile app (React Native)
-- 🌍 Expand to 50+ countries
-- 🗣️ Support 20+ languages
-- 🤝 Lawyer marketplace (optional verification layer)
-- 📝 Document automation (API to fill government forms)
-
 ---
 
 ## 🏗️ Architecture Overview
