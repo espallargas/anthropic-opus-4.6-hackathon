@@ -156,12 +156,25 @@ Backend (Rails 8 API, port 3000)
 
 ## 🌐 Internationalization (i18n)
 
-All user-facing text goes through the `t()` function. Every visible string is translated into:
+All user-facing text goes through the `t()` function. Every visible string is translated into **15 languages**:
+
 - 🇧🇷 **Portuguese (pt-BR)**
 - 🇬🇧 **English (en)**
 - 🇸🇦 **Arabic (ar)** — with RTL support
+- 🇧🇩 **Bengali (bn)**
+- 🇵🇭 **Filipino (fil)**
+- 🇫🇷 **French (fr)**
+- 🇮🇳 **Hindi (hi)**
+- 🇮🇩 **Indonesian (id)**
+- 🇨🇳 **Chinese (zh)**
+- 🇷🇺 **Russian (ru)**
+- 🇪🇸 **Spanish (es)**
+- 🇺🇦 **Ukrainian (uk)**
+- 🇦🇫 **Pashto (ps)**
+- 🇦🇫 **Dari (dar)**
+- 🇵🇰 **Urdu (ur)**
 
-The system auto-detects your browser locale on first visit. All 3 locales are fully parity (same keys, translations verified).
+The system auto-detects your browser locale on first visit. All locales use the same translation keys (fully parity). RTL support for Arabic and Urdu.
 
 See [i18n-glossary.md](./frontend/src/lib/i18n-glossary.md) for every translation key and its meaning.
 
