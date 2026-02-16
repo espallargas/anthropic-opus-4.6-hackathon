@@ -77,14 +77,11 @@ export function useChatStore(): UseChatStoreReturn {
 
   const deleteChat = useCallback(
     (id: string) => {
+      const wasActive = activeChatId === id;
       setChats((prev) => deleteChatRecord(prev, id));
-      if (activeChatId === id) {
-        setChats((prev) => {
-          const remaining = prev;
-          const next = remaining[0] ?? null;
-          setActiveChatId(next?.id ?? null);
-          return prev;
-        });
+      if (wasActive) {
+        // Set activeChatId separately after chats are updated
+        setActiveChatId(null);
       }
     },
     [activeChatId],
