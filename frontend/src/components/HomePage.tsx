@@ -24,7 +24,7 @@ export function HomePage({ chats, onSelectChat, onNewChat }: HomePageProps) {
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-10">
       <div className="flex w-full max-w-lg flex-col items-center gap-4">
         {/* Logo + subtitle */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center">
           <img src="/logo.png" alt={t('nav.logo.alt')} className="h-20 w-auto" />
           <p className="text-muted-foreground text-center text-base">{t('home.subtitle')}</p>
         </div>
@@ -33,7 +33,7 @@ export function HomePage({ chats, onSelectChat, onNewChat }: HomePageProps) {
         <button
           type="button"
           onClick={onNewChat}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 group flex cursor-pointer items-center gap-2.5 rounded-xl px-8 py-3.5 text-sm font-medium shadow-lg transition-all hover:shadow-xl"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 group mt-5 flex cursor-pointer items-center gap-4 rounded-xl px-8 py-3.5 text-sm font-medium shadow-lg transition-all hover:shadow-xl"
         >
           {t('home.cta')}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
@@ -42,7 +42,7 @@ export function HomePage({ chats, onSelectChat, onNewChat }: HomePageProps) {
         {/* Divider + Recent chats */}
         {recentChats.length > 0 && (
           <>
-            <p className="text-muted-foreground/40 mt-2 text-center text-sm">{t('home.or')}</p>
+            <p className="text-muted-foreground/40 text-center text-sm">{t('home.or')}</p>
             <div className="w-full">
               <p className="text-muted-foreground/60 mb-3 text-center text-sm">
                 {t('home.resume')}

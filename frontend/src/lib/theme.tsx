@@ -66,7 +66,7 @@ function loadTheme(): ThemeId {
   } catch {
     // ignore
   }
-  return 'midnight';
+  return 'slate-emerald';
 }
 
 function applyTheme(themeId: ThemeId) {

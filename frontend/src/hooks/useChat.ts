@@ -40,12 +40,19 @@ export function useChat(
           ? {
               ...m,
               content: stream.content,
+              textBlocks: stream.textBlocks.length ? stream.textBlocks : m.textBlocks,
               toolCalls: stream.toolCalls.length ? stream.toolCalls : m.toolCalls,
               agentExecutions: stream.agentExecutions.length
                 ? stream.agentExecutions
                 : m.agentExecutions,
               usageReport: stream.usageReport ?? m.usageReport,
-              thinking: stream.thinking ?? m.thinking,
+              thinking: stream.thinkingBlocks[0] ?? m.thinking,
+              thinkingBlocks: stream.thinkingBlocks.length
+                ? stream.thinkingBlocks
+                : m.thinkingBlocks,
+              contentOrder: stream.contentOrder.length
+                ? stream.contentOrder
+                : m.contentOrder,
             }
           : m,
       ),

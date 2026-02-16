@@ -145,14 +145,14 @@ export function CountryPicker({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Pills + nav buttons row */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-h-9 items-center gap-3">
         {/* Multi-select tags */}
         {multiple && selectedCodes.length > 0 && (
           <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
             {selectedCodes.map((code) => (
               <span
                 key={code}
-                className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm"
+                className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm"
               >
                 <span className="text-base">{countryCodeToFlag(code)}</span>
                 {getCountryNameLocalized(code, t)}
@@ -170,7 +170,7 @@ export function CountryPicker({
 
         {/* Single-select chip */}
         {showChip && (
-          <span className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm">
+          <span className="bg-muted/50 text-foreground flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm">
             <span className="text-base">{countryCodeToFlag(value as string)}</span>
             {getCountryNameLocalized(value as string, t)}
             <button

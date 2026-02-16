@@ -58,6 +58,13 @@ module Api
 
           stream.each do |event|
             case event.type
+            when :content_block_start
+              block = event.content_block
+              if block.type.to_s == "text"
+                text_block_id = SecureRandom.uuid
+                sse.write({ type: "text_block_start", text_block_id: text_block_id, server_time: Time.current.iso8601(3) })
+              end
+
             when :thinking
               unless thinking_active
                 thinking_active = true

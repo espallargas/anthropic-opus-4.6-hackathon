@@ -4,6 +4,7 @@ export interface RawSSEEvent {
   type: string;
   token?: string;
   error?: string;
+  text_block_id?: string;
   thinking_type?: string;
   thinking_effort?: string;
   tool_call_id?: string;
@@ -24,6 +25,7 @@ export interface RawSSEEvent {
 }
 
 export type ChatAction =
+  | { type: 'TEXT_BLOCK_START'; textBlockId: string }
   | { type: 'APPEND_TOKEN'; token: string }
   | { type: 'TOOL_START'; toolCall: ToolCall }
   | { type: 'TOOL_DONE'; toolCallId: string; result: Record<string, unknown> }
@@ -59,6 +61,11 @@ export type ChatAction =
 
 export function mapSSEEvent(raw: RawSSEEvent): ChatAction | null {
   switch (raw.type) {
+    case 'text_block_start':
+      return raw.text_block_id
+        ? { type: 'TEXT_BLOCK_START', textBlockId: raw.text_block_id }
+        : null;
+
     case 'token':
       return raw.token ? { type: 'APPEND_TOKEN', token: raw.token } : null;
 

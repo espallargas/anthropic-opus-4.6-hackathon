@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { Bot, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { getCountryNameLocalized } from '@/lib/countries';
 import type { ToolCall } from '@/lib/chatStore';
 
 interface ToolCallCardProps {
@@ -10,13 +11,13 @@ interface ToolCallCardProps {
   children?: ReactNode;
 }
 
-function getToolDetail(toolCall: ToolCall): string | null {
+function getToolDetail(toolCall: ToolCall, t: (key: string) => string): string | null {
   const input = toolCall.input;
   if (toolCall.name === 'get_legislation' && input.country_code) {
-    return String(input.country_code).toUpperCase();
+    return getCountryNameLocalized(String(input.country_code), t);
   }
   if (input.destination_country) {
-    return String(input.destination_country);
+    return getCountryNameLocalized(String(input.destination_country), t);
   }
   return null;
 }
@@ -33,7 +34,7 @@ export const ToolCallCard = memo(function ToolCallCard({
       ? t(`tool.${toolCall.name}`)
       : toolCall.name;
 
-  const detail = getToolDetail(toolCall);
+  const detail = getToolDetail(toolCall, t);
   const iconSize = compact ? 'h-3 w-3' : 'h-4 w-4';
 
   const isWaiting = waiting && toolCall.status === 'calling';

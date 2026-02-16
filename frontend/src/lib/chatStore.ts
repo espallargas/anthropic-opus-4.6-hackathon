@@ -51,14 +51,30 @@ export interface ThinkingBlock {
   operationId?: string;
 }
 
+export interface TextBlock {
+  id: string;
+  content: string;
+}
+
+export type ContentBlock =
+  | { type: 'thinking'; thinkingId: string }
+  | { type: 'text'; textBlockId: string }
+  | { type: 'toolCall'; toolCallId: string }
+  | { type: 'agent'; agentName: string };
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
+  /** @deprecated Use textBlocks instead. Kept for backward compat with localStorage. */
   content: string;
+  textBlocks?: TextBlock[];
   toolCalls?: ToolCall[];
   agentExecutions?: AgentExecution[];
   usageReport?: UsageReport;
+  /** @deprecated Use thinkingBlocks instead. Kept for backward compat with localStorage. */
   thinking?: ThinkingBlock;
+  thinkingBlocks?: ThinkingBlock[];
+  contentOrder?: ContentBlock[];
 }
 
 export interface SystemVars {
@@ -114,5 +130,9 @@ export function deleteChat(chats: Chat[], id: string): Chat[] {
 }
 
 export function updateChatMessages(chats: Chat[], id: string, messages: ChatMessage[]): Chat[] {
-  return chats.map((c) => (c.id === id ? { ...c, messages, updatedAt: Date.now() } : c));
+  return chats.map((c) => {
+    if (c.id !== id) return c;
+    const hasNewMessages = messages.length > c.messages.length;
+    return { ...c, messages, updatedAt: hasNewMessages ? Date.now() : c.updatedAt };
+  });
 }

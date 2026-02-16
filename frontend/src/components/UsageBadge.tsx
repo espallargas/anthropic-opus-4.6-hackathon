@@ -23,7 +23,7 @@ export function UsageBadge({ report }: UsageBadgeProps) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="text-muted-foreground/40 hover:text-muted-foreground/70 text-[10px] transition-colors"
+        className="text-muted-foreground/60 hover:text-muted-foreground/80 text-xs transition-colors"
       >
         {t('usage.label')}: {total.toLocaleString()}
       </button>

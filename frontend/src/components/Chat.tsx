@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { UsageBadge } from '@/components/UsageBadge';
 import { useChat } from '@/hooks/useChat';
-import type { ChatMessage, Chat as ChatType } from '@/lib/chatStore';
+import type { ChatMessage, ContentBlock, Chat as ChatType } from '@/lib/chatStore';
 import { useI18n } from '@/lib/i18n';
 import { Pill } from '@/components/ui/Pill';
 import {
@@ -51,6 +51,30 @@ const FAQ_PILLS = [
     icon: <Compass className="h-3 w-3" />,
   },
 ];
+
+/** Fallback order for messages without contentOrder (backward compat with localStorage). */
+function defaultContentOrder(msg: ChatMessage): ContentBlock[] {
+  const order: ContentBlock[] = [];
+  if (msg.thinkingBlocks?.length) {
+    for (const tb of msg.thinkingBlocks) {
+      order.push({ type: 'thinking', thinkingId: tb.id ?? 'legacy' });
+    }
+  } else if (msg.thinking) {
+    order.push({ type: 'thinking', thinkingId: msg.thinking.id ?? 'legacy' });
+  }
+  if (msg.toolCalls?.length) {
+    for (const tc of msg.toolCalls) order.push({ type: 'toolCall', toolCallId: tc.id });
+  }
+  if (msg.agentExecutions?.length) {
+    for (const ae of msg.agentExecutions) order.push({ type: 'agent', agentName: ae.agentName });
+  }
+  if (msg.textBlocks?.length) {
+    for (const tb of msg.textBlocks) order.push({ type: 'text', textBlockId: tb.id });
+  } else if (msg.content) {
+    order.push({ type: 'text', textBlockId: 'legacy' });
+  }
+  return order;
+}
 
 interface ChatProps {
   chat: ChatType;
@@ -165,49 +189,78 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={
-                  msg.role === 'user' ? 'max-w-[95%] md:max-w-[80%]' : 'w-[95%] md:w-[80%]'
-                }
+                className={msg.role === 'user' ? 'max-w-[95%] md:max-w-[80%]' : 'w-full'}
               >
-                <div className={msg.role === 'user' ? '' : 'w-full'}>
-                  {msg.thinking && <ThinkingCard thinking={msg.thinking} />}
-                  {msg.toolCalls?.map((tc) => {
-                    const agent = msg.agentExecutions?.find((ae) =>
-                      ae.toolCallId ? ae.toolCallId === tc.id : ae.agentName === tc.name,
-                    );
-                    return (
-                      <ToolCallCard key={tc.id} toolCall={tc} waiting={!agent}>
-                        {agent && <AgentCard agent={agent} />}
-                      </ToolCallCard>
-                    );
-                  })}
-                  {msg.agentExecutions
-                    ?.filter(
-                      (ae) =>
-                        !msg.toolCalls?.some((tc) =>
-                          ae.toolCallId ? ae.toolCallId === tc.id : tc.name === ae.agentName,
-                        ),
-                    )
-                    .map((ae) => (
-                      <AgentCard key={ae.toolCallId ?? `${ae.agentName}-${ae.task}`} agent={ae} />
-                    ))}
-                </div>
-                {(msg.content || !msg.toolCalls?.length) && (
-                  <div
-                    className={`rounded-lg px-4 py-2 text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground whitespace-pre-wrap'
-                        : 'text-foreground prose prose-sm prose-themed max-w-none [&_li]:leading-[1.85] [&_p]:leading-[1.85]'
-                    }`}
-                  >
-                    {msg.content ? (
-                      msg.role === 'user' ? (
-                        msg.content
-                      ) : (
-                        <MarkdownRenderer content={msg.content} />
-                      )
-                    ) : (
-                      <span className="text-muted-foreground animate-pulse">...</span>
+                {msg.role === 'user' ? (
+                  <div className="bg-primary text-primary-foreground whitespace-pre-wrap rounded-lg px-4 py-2 text-sm">
+                    {msg.content}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {(msg.contentOrder?.length ? msg.contentOrder : defaultContentOrder(msg)).map(
+                      (block) => {
+                        switch (block.type) {
+                          case 'thinking': {
+                            const tb =
+                              msg.thinkingBlocks?.find((b) => b.id === block.thinkingId) ??
+                              (block.thinkingId === 'legacy' ? msg.thinking : null);
+                            return tb ? (
+                              <div key={block.thinkingId} className="w-[95%] md:w-[80%]">
+                                <ThinkingCard thinking={tb} />
+                              </div>
+                            ) : null;
+                          }
+                          case 'toolCall': {
+                            const tc = msg.toolCalls?.find((t) => t.id === block.toolCallId);
+                            if (!tc) return null;
+                            const agent = msg.agentExecutions?.find((ae) =>
+                              ae.toolCallId
+                                ? ae.toolCallId === tc.id
+                                : ae.agentName === tc.name,
+                            );
+                            return (
+                              <div key={tc.id} className="w-[95%] md:w-[80%]">
+                                <ToolCallCard toolCall={tc} waiting={!agent}>
+                                  {agent && <AgentCard agent={agent} />}
+                                </ToolCallCard>
+                              </div>
+                            );
+                          }
+                          case 'agent': {
+                            const agent = msg.agentExecutions?.find(
+                              (ae) => ae.agentName === block.agentName,
+                            );
+                            return agent ? (
+                              <div key={`${block.agentName}-${agent.task}`} className="w-[95%] md:w-[80%]">
+                                <AgentCard agent={agent} />
+                              </div>
+                            ) : null;
+                          }
+                          case 'text': {
+                            const textBlock =
+                              msg.textBlocks?.find((tb) => tb.id === block.textBlockId) ??
+                              (block.textBlockId === 'legacy' ? { id: 'legacy', content: msg.content } : null);
+                            return (
+                              <div key={block.textBlockId} className="w-full">
+                                <div className="text-foreground prose prose-sm prose-themed max-w-none rounded-lg px-4 py-2 text-sm [&_li]:leading-[1.85] [&_p]:leading-[1.85]">
+                                  {textBlock?.content ? (
+                                    <MarkdownRenderer content={textBlock.content} />
+                                  ) : (
+                                    <span className="text-muted-foreground animate-pulse">
+                                      ...
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                      },
+                    )}
+                    {!msg.content && !msg.toolCalls?.length && (
+                      <div className="text-foreground rounded-lg px-4 py-2 text-sm">
+                        <span className="text-muted-foreground animate-pulse">...</span>
+                      </div>
                     )}
                   </div>
                 )}
