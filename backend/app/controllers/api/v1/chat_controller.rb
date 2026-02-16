@@ -62,7 +62,8 @@ module Api
               block = event.content_block
               if block.type.to_s == "text"
                 text_block_id = SecureRandom.uuid
-                sse.write({ type: "text_block_start", text_block_id: text_block_id, server_time: Time.current.iso8601(3) })
+                sse.write({ type: "text_block_start", text_block_id: text_block_id,
+                            server_time: Time.current.iso8601(3) })
               end
 
             when :thinking
@@ -327,7 +328,9 @@ module Api
                     { type: "code_execution_result", stdout: "", stderr: "", return_code: 0, content: [] }
                   end
 
-        { type: block_type, tool_use_id: tool_use_id, content: content }
+        result = { type: block_type, tool_use_id: tool_use_id, content: content }
+        result[:error_code] = nil if block_type.include?("code_execution_tool_result")
+        result
       end
 
       def parse_tool_input(input)
