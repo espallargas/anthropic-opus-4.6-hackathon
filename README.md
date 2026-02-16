@@ -273,17 +273,6 @@ Immigration shapes lives. Careers. Families. Safety. Yet most immigrants navigat
 
 ---
 
-## 🙋 Questions?
-
-- **How do I run FreePath?** → See [Quick Start](#quick-start)
-- **How does the AI work?** → See [How It Works](#-how-it-works-the-opus-46-innovation)
-- **Can I use this in production?** → Yes! MIT licensed, fully open source
-- **Can I contribute?** → Absolutely! See [CLAUDE.md](./CLAUDE.md) for contribution guidelines
-
----
-
----
-
 ## Final Note
 
 **Breaking barriers to immigration guidance, one AI-powered answer at a time.**
