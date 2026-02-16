@@ -4,9 +4,7 @@
 
 **Anthropic Virtual Hackathon 2026 | Problem Statement: "Break the Barriers"**
 
-- [🛠 Tech Stack](#tech-stack)
-- [🧠 Opus 4.6 Innovation](#innovation-highlights-why-opus-46)
-- [📖 Documentation](#key-documentation)
+Breaking barriers to immigration guidance — legal knowledge that was once locked behind expensive lawyers, language barriers, and expertise requirements is now accessible to everyone through Claude Opus 4.6.
 
 ---
 
