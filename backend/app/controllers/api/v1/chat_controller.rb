@@ -328,9 +328,12 @@ module Api
                     { type: "code_execution_result", stdout: "", stderr: "", return_code: 0, content: [] }
                   end
 
-        result = { type: block_type, tool_use_id: tool_use_id, content: content }
-        result[:error_code] = nil if block_type.include?("code_execution_tool_result")
-        result
+        # Add error_code to code execution results
+        if block_type.include?("code_execution_tool_result")
+          content[:error_code] = nil
+        end
+
+        { type: block_type, tool_use_id: tool_use_id, content: content }
       end
 
       def parse_tool_input(input)
