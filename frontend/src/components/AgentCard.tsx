@@ -82,14 +82,13 @@ export const AgentCard = memo(function AgentCard({ agent }: AgentCardProps) {
 
   const isError = agent.status === 'error';
 
-  const timingBadge =
-    isRunning
-      ? `${Math.round(elapsedMs / 1000)}s`
-      : isDone && agent.durationMs != null
-        ? `${Math.round(agent.durationMs / 1000)}s`
-        : isError
-          ? t('agent.cancelled')
-          : null;
+  const timingBadge = isRunning
+    ? `${Math.round(elapsedMs / 1000)}s`
+    : isDone && agent.durationMs != null
+      ? `${Math.round(agent.durationMs / 1000)}s`
+      : isError
+        ? t('agent.cancelled')
+        : null;
 
   const tokenBadge =
     isDone && agent.usage

@@ -99,7 +99,10 @@ export function chatStreamReducer(state: StreamState, action: ChatAction): Strea
       return {
         ...state,
         textBlocks: [...state.textBlocks, newBlock],
-        contentOrder: [...state.contentOrder, { type: 'text' as const, textBlockId: action.textBlockId }],
+        contentOrder: [
+          ...state.contentOrder,
+          { type: 'text' as const, textBlockId: action.textBlockId },
+        ],
       };
     }
 

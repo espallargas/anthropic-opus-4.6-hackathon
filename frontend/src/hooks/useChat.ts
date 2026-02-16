@@ -50,9 +50,7 @@ export function useChat(
               thinkingBlocks: stream.thinkingBlocks.length
                 ? stream.thinkingBlocks
                 : m.thinkingBlocks,
-              contentOrder: stream.contentOrder.length
-                ? stream.contentOrder
-                : m.contentOrder,
+              contentOrder: stream.contentOrder.length ? stream.contentOrder : m.contentOrder,
             }
           : m,
       ),

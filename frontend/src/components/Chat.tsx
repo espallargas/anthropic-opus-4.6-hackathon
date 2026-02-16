@@ -188,11 +188,9 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
               key={msg.id}
               className={`animate-fade-in flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={msg.role === 'user' ? 'max-w-[95%] md:max-w-[80%]' : 'w-full'}
-              >
+              <div className={msg.role === 'user' ? 'max-w-[95%] md:max-w-[80%]' : 'w-full'}>
                 {msg.role === 'user' ? (
-                  <div className="bg-primary text-primary-foreground whitespace-pre-wrap rounded-lg px-4 py-2 text-sm">
+                  <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm whitespace-pre-wrap">
                     {msg.content}
                   </div>
                 ) : (
@@ -214,9 +212,7 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                             const tc = msg.toolCalls?.find((t) => t.id === block.toolCallId);
                             if (!tc) return null;
                             const agent = msg.agentExecutions?.find((ae) =>
-                              ae.toolCallId
-                                ? ae.toolCallId === tc.id
-                                : ae.agentName === tc.name,
+                              ae.toolCallId ? ae.toolCallId === tc.id : ae.agentName === tc.name,
                             );
                             return (
                               <div key={tc.id} className="w-[95%] md:w-[80%]">
@@ -231,7 +227,10 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                               (ae) => ae.agentName === block.agentName,
                             );
                             return agent ? (
-                              <div key={`${block.agentName}-${agent.task}`} className="w-[95%] md:w-[80%]">
+                              <div
+                                key={`${block.agentName}-${agent.task}`}
+                                className="w-[95%] md:w-[80%]"
+                              >
                                 <AgentCard agent={agent} />
                               </div>
                             ) : null;
@@ -239,16 +238,16 @@ export function Chat({ chat, onUpdateMessages }: ChatProps) {
                           case 'text': {
                             const textBlock =
                               msg.textBlocks?.find((tb) => tb.id === block.textBlockId) ??
-                              (block.textBlockId === 'legacy' ? { id: 'legacy', content: msg.content } : null);
+                              (block.textBlockId === 'legacy'
+                                ? { id: 'legacy', content: msg.content }
+                                : null);
                             return (
                               <div key={block.textBlockId} className="w-full">
                                 <div className="text-foreground prose prose-sm prose-themed max-w-none rounded-lg px-4 py-2 text-sm [&_li]:leading-[1.85] [&_p]:leading-[1.85]">
                                   {textBlock?.content ? (
                                     <MarkdownRenderer content={textBlock.content} />
                                   ) : (
-                                    <span className="text-muted-foreground animate-pulse">
-                                      ...
-                                    </span>
+                                    <span className="text-muted-foreground animate-pulse">...</span>
                                   )}
                                 </div>
                               </div>

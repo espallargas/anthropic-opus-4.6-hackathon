@@ -37,7 +37,8 @@ module LegislationCrawler
 
         if progressive_saver.saved_categories.any?
           Rails.logger.info("Partial crawl: #{progressive_saver.saved_categories.size} categories saved before interruption")
-          emit(:phase, message: "Crawl partially completed (#{progressive_saver.saved_categories.size} categories saved)")
+          emit(:phase,
+               message: "Crawl partially completed (#{progressive_saver.saved_categories.size} categories saved)")
           results = {}
         else
           raise
@@ -232,7 +233,7 @@ module LegislationCrawler
       thinking_type = thinking_type_emitted ? nil : thinking_effort
       self.thinking_type_emitted = true unless thinking_type_emitted
       emit(:thinking, text: event.delta.thinking, is_summary: false, operation_id: operation_id,
-                       thinking_type: thinking_type)
+                      thinking_type: thinking_type)
     rescue StandardError => e
       Rails.logger.error("[STREAM_HANDLER] emit_thinking_delta error: #{e.class} - #{e.message}")
     end
